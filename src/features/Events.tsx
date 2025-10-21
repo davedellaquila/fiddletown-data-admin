@@ -5,6 +5,7 @@ type EventRow = {
   id?: number
   name: string
   slug?: string | null
+  description?: string | null
   host_org?: string | null
   start_date?: string | null
   end_date?: string | null
@@ -14,6 +15,7 @@ type EventRow = {
   recurrence?: string | null
   website_url?: string | null
   image_url?: string | null
+  ocr_text?: string | null
   status?: string | null
   sort_order?: number | null
   created_by?: string | null
@@ -24,8 +26,177 @@ type EventRow = {
 
 const slugify = (s: string) => s
   .toLowerCase()
-  .replace(/[^a-z0-9]+/g, '-')
-  .replace(/(^-|-$)/g, '')
+    .replace(/[''`]/g, '') // Remove apostrophes and similar characters
+    .replace(/[^a-z0-9]+/g, '-') // Replace non-alphanumeric with hyphens
+    .replace(/(^-|-$)/g, '') // Remove leading/trailing hyphens
+
+  const formatTimeToAMPM = (timeStr: string | null) => {
+    if (!timeStr) return '—'
+    
+    // Handle both HH:MM and HH:MM:SS formats
+    const timeMatch = timeStr.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/)
+    if (!timeMatch) return timeStr
+    
+    const hours = parseInt(timeMatch[1])
+    const minutes = timeMatch[2]
+    
+    if (hours === 0) {
+      return `12:${minutes} AM`
+    } else if (hours < 12) {
+      return `${hours}:${minutes} AM`
+    } else if (hours === 12) {
+      return `12:${minutes} PM`
+    } else {
+      return `${hours - 12}:${minutes} PM`
+    }
+  }
+
+  const convertTo24Hour = (timeStr: string | null, isEndTime: boolean = false, startTime?: string | null) => {
+    if (!timeStr || timeStr === null) return null
+    
+    // Handle abbreviated formats (e.g., "2p", "9a", "2:30p", "12a")
+    const abbrevMatch = timeStr.match(/^(\d{1,2})(?::(\d{2}))?\s*([ap]m?)$/i)
+    if (abbrevMatch) {
+      let hours = parseInt(abbrevMatch[1])
+      const minutes = abbrevMatch[2] ? abbrevMatch[2] : '00'
+      const ampm = abbrevMatch[3].toLowerCase()
+      
+      if (ampm.startsWith('a')) {
+        if (hours === 12) hours = 0
+      } else { // PM
+        if (hours !== 12) hours += 12
+      }
+      
+      return `${hours.toString().padStart(2, '0')}:${minutes}`
+    }
+    
+    // Handle 12-hour format (e.g., "2:30 PM", "9:15 AM", "12:00 PM")
+    const ampmMatch = timeStr.match(/^(\d{1,2}):(\d{2})\s*(AM|PM|am|pm)$/)
+    if (ampmMatch) {
+      let hours = parseInt(ampmMatch[1])
+      const minutes = ampmMatch[2]
+      const ampm = ampmMatch[3].toUpperCase()
+      
+      if (ampm === 'AM') {
+        if (hours === 12) hours = 0
+      } else { // PM
+        if (hours !== 12) hours += 12
+      }
+      
+      return `${hours.toString().padStart(2, '0')}:${minutes}`
+    }
+    
+    // Handle 24-hour format (e.g., "14:30", "09:15")
+    const time24Match = timeStr.match(/^(\d{1,2}):(\d{2})$/)
+    if (time24Match) {
+      let hours = parseInt(time24Match[1])
+      const minutes = time24Match[2]
+      
+      // For end_time, if the hour is 1-11, assume it's PM
+      if (isEndTime && hours >= 1 && hours <= 11) {
+        hours += 12
+      }
+      
+      return `${hours.toString().padStart(2, '0')}:${minutes}`
+    }
+    
+    // Handle single numbers with P/A suffix (e.g., "1P", "9A", "12P")
+    const singleWithSuffixMatch = timeStr.match(/^(\d{1,2})([AP])$/i)
+    if (singleWithSuffixMatch) {
+      let hours = parseInt(singleWithSuffixMatch[1])
+      const ampm = singleWithSuffixMatch[2].toUpperCase()
+      
+      if (ampm === 'A') {
+        // AM: 12 becomes 0, others stay the same
+        if (hours === 12) hours = 0
+      } else { // PM
+        // PM: 1-11 add 12, 12 stays 12
+        if (hours >= 1 && hours <= 11) {
+          hours += 12
+        }
+      }
+      return `${hours.toString().padStart(2, '0')}:00`
+    }
+    
+    // Handle single numbers (e.g., "7", "9", "10", "11", "12")
+    const singleNumberMatch = timeStr.match(/^(\d{1,2})$/)
+    if (singleNumberMatch) {
+      let hours = parseInt(singleNumberMatch[1])
+      
+      // Convert all numbers to proper time format
+      if (hours >= 1 && hours <= 9) {
+        // For start_time: assume AM (4 → 04:00)
+        // For end_time: be smart about AM/PM based on start_time
+        if (isEndTime) {
+          // End time: be smart about AM/PM based on start_time
+          if (startTime && startTime !== null) {
+            const startHour = parseInt(startTime.split(':')[0])
+            // For end times, we need to be smarter:
+            // - If start_time is in the morning (0-11) and end_time number is less than start_time, assume PM
+            // - If start_time is in the morning (0-11) and end_time number is >= start_time, assume AM
+            // - If start_time is in the afternoon/evening (12-23), assume end_time is also PM
+            if (startHour >= 0 && startHour <= 11) {
+              // Start time is AM
+              if (hours < startHour) {
+                // End time number is less than start time, assume PM
+                hours += 12
+              } else {
+                // End time number is >= start time, assume AM
+                // No conversion needed for AM times
+              }
+            } else {
+              // Start time is PM, so end time should also be PM
+              hours += 12
+            }
+          } else {
+            // No start_time context, default to PM for end_time
+            hours += 12
+          }
+        } else {
+          // Start time: assume AM for 1-9, keep 12 as 12
+          // No conversion needed for AM times
+        }
+        return `${hours.toString().padStart(2, '0')}:00`
+      } else if (hours === 10 || hours === 11) {
+        // For 10 and 11: format as time and apply context logic
+        if (isEndTime) {
+          // End time: be smart about AM/PM based on start_time
+          if (startTime && startTime !== null) {
+            const startHour = parseInt(startTime.split(':')[0])
+            // For end times, we need to be smarter:
+            // - If start_time is in the morning (0-11) and end_time number is less than start_time, assume PM
+            // - If start_time is in the morning (0-11) and end_time number is >= start_time, assume AM
+            // - If start_time is in the afternoon/evening (12-23), assume end_time is also PM
+            if (startHour >= 0 && startHour <= 11) {
+              // Start time is AM
+              if (hours < startHour) {
+                // End time number is less than start time, assume PM
+                hours += 12
+              } else {
+                // End time number is >= start time, assume AM
+                // No conversion needed for AM times
+              }
+            } else {
+              // Start time is PM, so end time should also be PM
+              hours += 12
+            }
+          } else {
+            // No start_time context, default to PM for end_time
+            hours += 12
+          }
+        } else {
+          // Start time: assume AM (10 → 10:00, 11 → 11:00)
+          // No conversion needed for AM times
+        }
+        return `${hours.toString().padStart(2, '0')}:00`
+      } else if (hours === 12) {
+        // For 12: keep as 12 (noon/midnight)
+        return `${hours.toString().padStart(2, '0')}:00`
+      }
+    }
+    
+    return timeStr // Return as-is if no pattern matches
+  }
 
 const formatISO = (d: Date) => d.toISOString().slice(0, 10)
 
@@ -75,8 +246,8 @@ function parseEventText(text: string) {
       }
     }
     if (!foundDate) {
-      titleLines.push(ln)
-    }
+    titleLines.push(ln)
+  }
   }
   
   // If no date found in first pass, try a more aggressive search
@@ -123,6 +294,9 @@ function parseEventText(text: string) {
     const startTimeStr = timeMatch[1]
     const endTimeStr = timeMatch[2]
     
+    console.log('Extracted start time string:', startTimeStr)
+    console.log('Extracted end time string:', endTimeStr)
+    
     // Convert to 24-hour format for HTML time inputs
     const convertTo24Hour = (timeStr: string) => {
       const cleanTime = timeStr.trim()
@@ -134,13 +308,20 @@ function parseEventText(text: string) {
       if (isPM && hours !== 12) hours += 12
       if (isAM && hours === 12) hours = 0
       
-      return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`
+      const result = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`
+      console.log('Converted time:', cleanTime, '->', result)
+      return result
     }
     
     startTime = convertTo24Hour(startTimeStr)
     if (endTimeStr) {
       endTime = convertTo24Hour(endTimeStr)
+    } else {
+      console.log('No end time found in time match')
     }
+    
+    console.log('Final start time:', startTime)
+    console.log('Final end time:', endTime)
   }
 
   // Enhanced date parsing with multiple attempts
@@ -313,8 +494,19 @@ export default function Events({ darkMode = false }: EventsProps) {
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
-  const [sortBy, setSortBy] = useState<'start_date' | 'name' | 'created_at'>('start_date')
+  const [sortBy, setSortBy] = useState<'start_date' | 'end_date' | 'name' | 'location' | 'status' | 'start_time' | 'end_time' | 'created_at'>('start_date')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
+
+  const handleSort = (column: 'start_date' | 'end_date' | 'name' | 'location' | 'status' | 'start_time' | 'end_time' | 'created_at') => {
+    if (sortBy === column) {
+      // If clicking the same column, toggle sort order
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')
+    } else {
+      // If clicking a different column, set it as sort column and default to asc
+      setSortBy(column)
+      setSortOrder('asc')
+    }
+  }
 
   // OCR / Image-to-Event state with persistence
   const [ocrOpen, setOcrOpen] = useState(() => {
@@ -344,6 +536,25 @@ export default function Events({ darkMode = false }: EventsProps) {
 
   const headers = ['name','slug','host_org','start_date','end_date','start_time','end_time','location','recurrence','website_url','image_url','status','sort_order']
 
+  // Reset image states when editing changes
+  useEffect(() => {
+    if (editing) {
+      // Reset image states when opening a new event for editing
+      setEditingImageUrl(null)
+      setEditingImageUploading(false)
+      setEventImagePasteReady(false)
+    }
+  }, [editing?.id]) // Only reset when the event ID changes
+
+  // Reset OCR image states when OCR dialog opens
+  useEffect(() => {
+    if (ocrOpen) {
+      // Reset OCR image states when opening OCR dialog
+      setOcrImageUrl(null)
+      setOcrImageUploading(false)
+    }
+  }, [ocrOpen])
+
   // Close edit dialog with ESC key
   useEffect(() => {
     function handleKeyDown(ev: KeyboardEvent) {
@@ -362,6 +573,14 @@ export default function Events({ darkMode = false }: EventsProps) {
 
     const handleGlobalPaste = async (e: ClipboardEvent) => {
       console.log('Global paste event in edit dialog')
+      
+      // Only handle paste if it's in the edit dialog, not in OCR form
+      const target = e.target as HTMLElement
+      if (target && target.closest('[data-paste-zone="event-image"]')) {
+        console.log('Global paste in edit dialog - skipping, handled by OCR form')
+        return
+      }
+      
       const items = e.clipboardData?.items
       if (items) {
         for (let i = 0; i < items.length; i++) {
@@ -421,7 +640,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                 console.log('Global event image upload result URL:', url)
                 if (url) {
                   console.log('Global event image setting OCR draft with image URL:', url)
-                  setOcrDraft({ ...(ocrDraft||{}), image_url: url })
+                  setOcrDraft(prev => ({ ...(prev || {}), image_url: url }))
                 }
                 setOcrImageUploading(false)
                 setEventImageProcessing(false)
@@ -489,7 +708,7 @@ export default function Events({ darkMode = false }: EventsProps) {
     try {
     let query = supabase
       .from('events')
-        .select('id, name, slug, host_org, start_date, end_date, start_time, end_time, location, recurrence, website_url, image_url, status, sort_order, created_by, created_at, updated_at, deleted_at')
+        .select('id, name, slug, description, host_org, start_date, end_date, start_time, end_time, location, recurrence, website_url, image_url, status, sort_order, created_by, created_at, updated_at, deleted_at')
       .is('deleted_at', null)
         .order('sort_order', { ascending: true })
       .order(sortBy, { ascending: sortOrder === 'asc' })
@@ -726,10 +945,26 @@ export default function Events({ darkMode = false }: EventsProps) {
     await load();
   }
 
+  const navigateToNext = () => {
+    if (!editing?.id) return
+    const currentIndex = rows.findIndex(r => r.id === editing.id)
+    if (currentIndex < rows.length - 1) {
+      setEditing(rows[currentIndex + 1])
+    }
+  }
+
+  const navigateToPrevious = () => {
+    if (!editing?.id) return
+    const currentIndex = rows.findIndex(r => r.id === editing.id)
+    if (currentIndex > 0) {
+      setEditing(rows[currentIndex - 1])
+    }
+  }
+
   const exportCSVFiltered = () => {
     let query = supabase
       .from('events')
-      .select('id, name, slug, host_org, start_date, end_date, start_time, end_time, location, recurrence, website_url, image_url, status, sort_order')
+      .select('id, name, slug, description, host_org, start_date, end_date, start_time, end_time, location, recurrence, website_url, image_url, status, sort_order')
       .is('deleted_at', null)
       .order('sort_order', { ascending: true })
       .order('start_date', { ascending: true })
@@ -832,6 +1067,7 @@ export default function Events({ darkMode = false }: EventsProps) {
     const payload: any = {
       name: ocrDraft.name || '',
       slug: (ocrDraft as any).slug || (ocrDraft.name ? slugify(ocrDraft.name) : ''),
+      description: ocrDraft.description ?? null,
       host_org: ocrDraft.host_org ?? null,
       start_date: ocrDraft.start_date ?? null,
       end_date: ocrDraft.end_date ?? ocrDraft.start_date ?? null,
@@ -841,6 +1077,7 @@ export default function Events({ darkMode = false }: EventsProps) {
       recurrence: ocrDraft.recurrence ?? null,
       website_url: ocrDraft.website_url ?? null,
       image_url: ocrDraft.image_url ?? null,
+      ocr_text: ocrRawText || null,
       status: (ocrDraft.status as any) || 'draft',
       sort_order: ocrDraft.sort_order ?? 1000,
       created_by: uid
@@ -864,26 +1101,45 @@ export default function Events({ darkMode = false }: EventsProps) {
     if (!editing) return
     const payload = { ...editing }
 
+    console.log('Save function - editing state:', editing)
+    console.log('Save function - start_date:', payload.start_date, 'type:', typeof payload.start_date)
+    console.log('Save function - end_date:', payload.end_date, 'type:', typeof payload.end_date)
+    console.log('Save function - start_time:', payload.start_time, 'type:', typeof payload.start_time)
+    console.log('Save function - end_time:', payload.end_time, 'type:', typeof payload.end_time)
+    console.log('Save function - full payload:', payload)
+
     if (!payload.name) return alert('Name is required')
     if (!payload.slug) payload.slug = slugify(payload.name)
 
     if (payload.id) {
-      const { error } = await supabase.from('events').update({
+      const updateData = {
         name: payload.name,
         slug: payload.slug,
+        description: payload.description,
         host_org: payload.host_org,
         start_date: payload.start_date,
         end_date: payload.end_date,
-        start_time: payload.start_time,
-        end_time: payload.end_time,
+        start_time: payload.start_time || null,
+        end_time: payload.end_time || null,
         location: payload.location,
         recurrence: payload.recurrence,
         website_url: payload.website_url,
         image_url: payload.image_url,
+        ocr_text: payload.ocr_text,
         status: payload.status,
         sort_order: payload.sort_order
-      }).eq('id', payload.id)
-      if (error) { alert(error.message); return }
+      }
+      
+      console.log('Database update data:', updateData)
+      console.log('Updating event with ID:', payload.id)
+      
+      const { error } = await supabase.from('events').update(updateData).eq('id', payload.id)
+      if (error) { 
+        console.error('Database update error:', error)
+        alert(`Update error: ${error.message}`); 
+        return 
+      }
+      console.log('Database update successful')
     } else {
       const { id, created_at, updated_at, deleted_at, ...insertable } = payload
       const { data, error } = await supabase.from('events').insert(insertable).select().single()
@@ -966,7 +1222,7 @@ export default function Events({ darkMode = false }: EventsProps) {
       >
         {/* Top row: Module title and Action buttons */}
         <div
-          style={{
+          style={{ 
             display: 'flex',
             flexWrap: 'wrap',
             gap: 8,
@@ -975,108 +1231,108 @@ export default function Events({ darkMode = false }: EventsProps) {
           }}
         >
           <h2 style={{ 
-            color: darkMode ? '#f9fafb' : '#1f2937',
+              color: darkMode ? '#f9fafb' : '#1f2937',
             margin: 0,
             fontSize: '24px',
             fontWeight: '600',
             marginRight: '16px'
           }}>📅 Events</h2>
-          <button 
-            className="btn" 
-            onClick={startNew} 
-            disabled={importing}
-            style={getButtonStyle({ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '6px',
-              padding: '8px 12px'
-            })}
-            title="Create new event"
-          >
-            <span>➕</span>
-            <span>New</span>
-          </button>
+        <button 
+          className="btn" 
+          onClick={startNew} 
+          disabled={importing}
+          style={getButtonStyle({ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '6px',
+            padding: '8px 12px'
+          })}
+          title="Create new event"
+        >
+          <span>➕</span>
+          <span>New</span>
+        </button>
+        
+        <button 
+          className="btn" 
+          onClick={() => setOcrOpen(true)} 
+          disabled={importing}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+            gap: '6px',
+            padding: '8px 12px'
+          }}
+          title="Add event from image using OCR"
+        >
+          <span>🔍</span>
+          <span>OCR</span>
+        </button>
+        
+        <button 
+          className="btn" 
+          onClick={load} 
+          disabled={loading || importing}
+          style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '6px',
+            padding: '8px 12px'
+          }}
+          title="Refresh events list"
+        >
+          <span>{loading ? '⏳' : '🔄'}</span>
+          <span>{loading ? 'Loading…' : 'Refresh'}</span>
+        </button>
+        
+        <button 
+          className="btn" 
+          onClick={downloadTemplateCSV} 
+          disabled={importing}
+          style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '6px',
+            padding: '8px 12px'
+          }}
+          title="Download CSV template"
+        >
+          <span>📋</span>
+          <span>Template</span>
+        </button>
+        
+        <button 
+          className="btn" 
+          onClick={exportCSV} 
+          disabled={importing}
+          style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '6px',
+            padding: '8px 12px'
+          }}
+          title="Export all events to CSV"
+        >
+          <span>📤</span>
+          <span>Export</span>
+        </button>
           
-          <button 
-            className="btn" 
-            onClick={() => setOcrOpen(true)} 
-            disabled={importing}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '8px 12px'
-            }}
-            title="Add event from image using OCR"
-          >
-            <span>🔍</span>
-            <span>OCR</span>
-          </button>
-          
-          <button 
-            className="btn" 
-            onClick={load} 
-            disabled={loading || importing}
-            style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '6px',
-              padding: '8px 12px'
-            }}
-            title="Refresh events list"
-          >
-            <span>{loading ? '⏳' : '🔄'}</span>
-            <span>{loading ? 'Loading…' : 'Refresh'}</span>
-          </button>
-          
-          <button 
-            className="btn" 
-            onClick={downloadTemplateCSV} 
-            disabled={importing}
-            style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '6px',
-              padding: '8px 12px'
-            }}
-            title="Download CSV template"
-          >
-            <span>📋</span>
-            <span>Template</span>
-          </button>
-          
-          <button 
-            className="btn" 
-            onClick={exportCSV} 
-            disabled={importing}
-            style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '6px',
-              padding: '8px 12px'
-            }}
-            title="Export all events to CSV"
-          >
-            <span>📤</span>
-            <span>Export</span>
-          </button>
-          
-          <label 
-            className="btn" 
-            style={{ 
-              cursor: 'pointer', 
-              opacity: importing ? 0.6 : 1,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '8px 12px'
-            }}
-            title="Import events from CSV file"
-          >
-            <span>📥</span>
-            <span>Import</span>
-            <input type="file" accept=".csv,.tsv,text/csv,text/tab-separated-values" onChange={handleImportFile} style={{ display: 'none' }} disabled={importing} />
-          </label>
+        <label 
+          className="btn" 
+          style={{ 
+            cursor: 'pointer', 
+            opacity: importing ? 0.6 : 1,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '8px 12px'
+          }}
+          title="Import events from CSV file"
+        >
+          <span>📥</span>
+          <span>Import</span>
+          <input type="file" accept=".csv,.tsv,text/csv,text/tab-separated-values" onChange={handleImportFile} style={{ display: 'none' }} disabled={importing} />
+        </label>
           
           <button 
             className="btn" 
@@ -1211,8 +1467,8 @@ export default function Events({ darkMode = false }: EventsProps) {
                   lineHeight: 1
                 }}
               >
-                {/* circle.square symbol */}
-                ◯◼︎
+                {/* X mark with circle around it, hollow */}
+                ⨂
               </button>
             )}
           </div>
@@ -1341,25 +1597,28 @@ export default function Events({ darkMode = false }: EventsProps) {
             <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
               Event Image
             </label>
-            <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-              <div style={{ flex: 1, display: 'flex', gap: '8px' }}>
+            <div style={{ display: 'flex', gap: '16px', alignItems: 'stretch' }}>
+              <div style={{ flex: 1 }}>
                 <input 
                   type="file" 
                   accept="image/*" 
                   onChange={handleFileSelect}
                   style={{ 
+                    width: '100%',
                     padding: '12px', 
                     border: '1px solid #d1d5db', 
                     borderRadius: '8px',
                     fontSize: '14px',
-                    flex: 1
+                    boxSizing: 'border-box'
                   }}
                 />
+              </div>
+              <div style={{ flex: 1 }}>
                 <div
                   ref={ocrPasteRef}
-                  onPaste={handlePaste}
-                  tabIndex={0}
-                  style={{
+            onPaste={handlePaste}
+            tabIndex={0}
+            style={{
                     padding: '12px',
                     border: ocrImageUploading 
                       ? '2px dashed #3b82f6' 
@@ -1374,7 +1633,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                     fontSize: '14px',
                     color: ocrImageUploading ? '#3b82f6' : ocrProcessing ? '#f59e0b' : (ocrDraft?.image_url || ocrImageUrl) ? '#10b981' : '#6b7280',
                     background: ocrImageUploading ? '#eff6ff' : ocrProcessing ? '#fffbeb' : (ocrDraft?.image_url || ocrImageUrl) ? '#f0fdf4' : '#f9fafb',
-                    minWidth: '120px',
+                    width: '100%',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -1427,22 +1686,9 @@ export default function Events({ darkMode = false }: EventsProps) {
                       <div style={{ fontSize: '12px' }}>Paste Image</div>
                       <div style={{ fontSize: '10px', color: '#6b7280', marginTop: '2px' }}>Ctrl+V</div>
                     </>
-                  )}
-                </div>
-              </div>
-              {ocrImageUrl && (
-                <img 
-                  src={ocrImageUrl} 
-                  alt="Event preview" 
-                  style={{ 
-                    width: 80, 
-                    height: 80, 
-                    objectFit: 'cover', 
-                    borderRadius: '8px',
-                    border: '1px solid #d1d5db'
-                  }} 
-                />
               )}
+            </div>
+              </div>
             </div>
             <div style={{ marginTop: '8px', fontSize: '12px', color: '#6b7280' }}>
               💡 Tip: You can paste images directly from your clipboard (screenshots, copied images, etc.)
@@ -1488,7 +1734,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                   </label>
                         <input 
                           value={ocrDraft?.name ?? ''} 
-                          onChange={e=>setOcrDraft({ ...(ocrDraft||{}), name: e.target.value })} 
+                          onChange={e=>setOcrDraft({ ...(ocrDraft||{}), name: e.target.value, slug: slugify(e.target.value) })} 
                           style={{ 
                             width: '100%', 
                             padding: '8px 12px', 
@@ -1505,7 +1751,12 @@ export default function Events({ darkMode = false }: EventsProps) {
                         </label>
                         <input 
                           value={(ocrDraft as any)?.slug ?? ''} 
-                          onChange={e=>setOcrDraft({ ...(ocrDraft||{}), slug: e.target.value })} 
+                          onChange={e=>setOcrDraft({ ...(ocrDraft||{}), slug: slugify(e.target.value) })} 
+                          onPaste={e=>{
+                            e.preventDefault()
+                            const pastedText = e.clipboardData.getData('text')
+                            setOcrDraft({ ...(ocrDraft||{}), slug: slugify(pastedText) })
+                          }}
                           style={{ 
                             width: '100%', 
                             padding: '8px 12px', 
@@ -1516,6 +1767,27 @@ export default function Events({ darkMode = false }: EventsProps) {
                           placeholder="event-slug"
                         />
                       </div>
+                </div>
+
+                    {/* Description */}
+                    <div>
+                      <label style={{ display: 'block', marginBottom: 4, fontSize: '14px', fontWeight: '500', color: '#374151' }}>
+                        Description
+                      </label>
+                      <textarea 
+                        value={ocrDraft?.description ?? ''} 
+                        onChange={e=>setOcrDraft({ ...(ocrDraft||{}), description: e.target.value })} 
+                        style={{ 
+                          width: '100%', 
+                          padding: '8px 12px', 
+                          border: '1px solid #d1d5db', 
+                          borderRadius: '6px',
+                          fontSize: '14px',
+                          minHeight: '80px',
+                          resize: 'vertical'
+                        }} 
+                        placeholder="Enter event description"
+                      />
                 </div>
 
                     {/* Host Org and Location row */}
@@ -1565,7 +1837,46 @@ export default function Events({ darkMode = false }: EventsProps) {
                         <input 
                           type="date" 
                           value={ocrDraft?.start_date ?? ''} 
-                          onChange={e=>setOcrDraft({ ...(ocrDraft||{}), start_date: e.target.value })} 
+                          onChange={e=>{
+                            const newStartDate = e.target.value
+                            const currentEndDate = ocrDraft?.end_date
+                            const today = new Date().toISOString().slice(0, 10)
+                            
+                            let updatedEndDate = currentEndDate
+                            
+                            // If end date is today, blank, or null, set it to the start date
+                            if (!currentEndDate || currentEndDate === '' || currentEndDate === today) {
+                              updatedEndDate = newStartDate
+                              console.log('OCR End date is today/blank/null, setting to start date:', newStartDate)
+                            }
+                            // If end date exists and is before the new start date, set it to the start date
+                            else if (currentEndDate && newStartDate && currentEndDate < newStartDate) {
+                              updatedEndDate = newStartDate
+                              console.log('OCR End date is before start date, adjusting to start date')
+                            }
+                            
+                            setOcrDraft({
+                              ...(ocrDraft||{}),
+                              start_date: newStartDate,
+                              end_date: updatedEndDate
+                            })
+                          }}
+                          onInput={e=>{
+                            const newStartDate = e.currentTarget.value
+                            const currentEndDate = ocrDraft?.end_date
+                            
+                            // If end date exists and is before the new start date, set it to the start date
+                            let updatedEndDate = currentEndDate
+                            if (currentEndDate && newStartDate && currentEndDate < newStartDate) {
+                              updatedEndDate = newStartDate
+                            }
+                            
+                            setOcrDraft({
+                              ...(ocrDraft||{}),
+                              start_date: newStartDate,
+                              end_date: updatedEndDate
+                            })
+                          }}
                           style={{ 
                             width: '100%', 
                             padding: '8px 12px', 
@@ -1583,6 +1894,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                           type="date" 
                           value={ocrDraft?.end_date ?? ''} 
                           onChange={e=>setOcrDraft({ ...(ocrDraft||{}), end_date: e.target.value })} 
+                          onInput={e=>setOcrDraft({ ...(ocrDraft||{}), end_date: e.currentTarget.value })}
                           style={{ 
                             width: '100%', 
                             padding: '8px 12px', 
@@ -1601,15 +1913,48 @@ export default function Events({ darkMode = false }: EventsProps) {
                           Start Time
                         </label>
                         <input 
-                          type="time" 
+                          type="text" 
                           value={ocrDraft?.start_time ?? ''} 
-                          onChange={e=>setOcrDraft({ ...(ocrDraft||{}), start_time: e.target.value })} 
+                          onChange={e=>{
+                            const inputValue = e.target.value
+                            console.log('OCR Start time input:', inputValue)
+                            
+                            // Store the raw input value without conversion, convert empty string to null
+                            setOcrDraft({
+                              ...(ocrDraft||{}),
+                              start_time: inputValue === '' ? null : inputValue
+                            })
+                          }}
+                          onBlur={e=>{
+                            const inputValue = e.target.value
+                            const convertedTime = convertTo24Hour(inputValue, false)
+                            console.log('OCR Start time blur - converting:', inputValue, 'to:', convertedTime)
+                            
+                            // If end time exists and is before the new start time, set it to the start time
+                            const currentEndTime = ocrDraft?.end_time
+                            let updatedEndTime = currentEndTime
+                            if (currentEndTime && convertedTime && currentEndTime < convertedTime) {
+                              console.log('OCR End time is before new start time, adjusting end time to start time')
+                              updatedEndTime = convertedTime
+                            }
+                            
+                            setOcrDraft({
+                              ...(ocrDraft||{}),
+                              start_time: convertedTime,
+                              end_time: updatedEndTime
+                            })
+                          }}
+                          placeholder="HH:MM (e.g., 14:30)"
+                          pattern="[0-9]{2}:[0-9]{2}"
+                          title="Enter time in HH:MM format (24-hour)"
                           style={{ 
                             width: '100%', 
                             padding: '8px 12px', 
                             border: '1px solid #d1d5db', 
                             borderRadius: '6px',
-                            fontSize: '14px'
+                            fontSize: '14px',
+                            background: '#fff',
+                            cursor: 'pointer'
                           }} 
                         />
                       </div>
@@ -1618,15 +1963,43 @@ export default function Events({ darkMode = false }: EventsProps) {
                           End Time
                         </label>
                         <input 
-                          type="time" 
+                          type="text" 
                           value={ocrDraft?.end_time ?? ''} 
-                          onChange={e=>setOcrDraft({ ...(ocrDraft||{}), end_time: e.target.value })} 
+                          onChange={e=>{
+                            const inputValue = e.target.value
+                            console.log('OCR End time input:', inputValue)
+                            
+                            // Store the raw input value without conversion, convert empty string to null
+                            setOcrDraft({
+                              ...(ocrDraft||{}),
+                              end_time: inputValue === '' ? null : inputValue
+                            })
+                          }}
+                          onBlur={e=>{
+                            const inputValue = e.target.value
+                            const convertedTime = convertTo24Hour(inputValue, true, ocrDraft?.start_time)
+                            console.log('OCR End time blur - converting:', inputValue, 'to:', convertedTime)
+                            
+                            // Check if end time is before start time
+                            const startTime = ocrDraft?.start_time
+                            if (startTime && convertedTime && convertedTime < startTime) {
+                              console.log('OCR End time is before start time, adjusting...')
+                              setOcrDraft({ ...(ocrDraft||{}), end_time: startTime })
+                            } else {
+                              setOcrDraft({ ...(ocrDraft||{}), end_time: convertedTime })
+                            }
+                          }}
+                          placeholder="HH:MM (e.g., 16:30)"
+                          pattern="[0-9]{2}:[0-9]{2}"
+                          title="Enter time in HH:MM format (24-hour)"
                           style={{ 
                             width: '100%', 
                             padding: '8px 12px', 
                             border: '1px solid #d1d5db', 
                             borderRadius: '6px',
-                            fontSize: '14px'
+                            fontSize: '14px',
+                            background: '#fff',
+                            cursor: 'pointer'
                           }} 
                         />
                       </div>
@@ -1675,28 +2048,31 @@ export default function Events({ darkMode = false }: EventsProps) {
                       <label style={{ display: 'block', marginBottom: 4, fontSize: '14px', fontWeight: '500', color: '#374151' }}>
                         Event Image
                       </label>
-                      <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                        <div style={{ flex: 1, display: 'flex', gap: '8px' }}>
-                          <input 
-                            type="file" 
-                            accept="image/*" 
-                            onChange={async (e) => {
-                              const file = e.target.files?.[0]
-                              if (file) {
-                                const url = await uploadImage(file)
-                                if (url) {
-                                  setOcrDraft({ ...(ocrDraft||{}), image_url: url })
-                                }
+                      <div style={{ display: 'flex', gap: 12, alignItems: 'stretch' }}>
+                        <div style={{ flex: '1 1 0', minWidth: 0 }}>
+                        <input 
+                          type="file" 
+                          accept="image/*" 
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0]
+                            if (file) {
+                              const url = await uploadImage(file)
+                              if (url) {
+                                setOcrDraft({ ...(ocrDraft||{}), image_url: url })
                               }
-                            }}
-                            style={{ 
-                              padding: '8px 12px', 
-                              border: '1px solid #d1d5db', 
-                              borderRadius: '6px',
-                              fontSize: '14px',
-                              flex: 1
+                            }
+                          }}
+                          style={{ 
+                              width: '100%',
+                            padding: '8px 12px', 
+                            border: '1px solid #d1d5db', 
+                            borderRadius: '6px',
+                            fontSize: '14px',
+                              boxSizing: 'border-box'
                             }}
                           />
+                        </div>
+                        <div style={{ flex: '1 1 0', minWidth: 0 }}>
                           <div
                             data-paste-zone="event-image"
                             tabIndex={0}
@@ -1721,7 +2097,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                                       console.log('Event image upload result URL:', url)
                                       if (url) {
                                         console.log('Event image setting OCR draft with image URL:', url)
-                                        setOcrDraft({ ...(ocrDraft||{}), image_url: url })
+                                        setOcrDraft(prev => ({ ...(prev || {}), image_url: url }))
                                       }
                                       setOcrImageUploading(false)
                                       setEventImageProcessing(false) // Hide processing state when done
@@ -1732,7 +2108,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                               }
                               setEventImageProcessing(false) // Hide processing state if no image found
                             }}
-                            style={{
+                            style={{ 
                               padding: '8px 12px',
                               border: ocrImageUploading 
                                 ? '2px dashed #3b82f6' 
@@ -1759,13 +2135,14 @@ export default function Events({ darkMode = false }: EventsProps) {
                                   : ocrDraft?.image_url 
                                     ? '#f0fdf4' 
                                     : '#f9fafb',
-                              minWidth: '100px',
+                              width: '100%',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
                               flexDirection: 'column',
                               gap: '4px',
-                              transition: 'all 0.2s ease'
+                              transition: 'all 0.2s ease',
+                              boxSizing: 'border-box'
                             }}
                             onMouseEnter={(e) => {
                               if (!ocrImageUploading) {
@@ -1816,19 +2193,6 @@ export default function Events({ darkMode = false }: EventsProps) {
                             )}
                           </div>
                         </div>
-                        {ocrDraft?.image_url && (
-                          <img 
-                            src={ocrDraft.image_url} 
-                            alt="Event preview" 
-                            style={{ 
-                              width: 60, 
-                              height: 60, 
-                              objectFit: 'cover', 
-                              borderRadius: '6px',
-                              border: '1px solid #d1d5db'
-                            }} 
-                          />
-                        )}
                       </div>
                     </div>
 
@@ -1854,6 +2218,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                         <option value="archived">Archived</option>
                       </select>
               </div>
+
             </div>
 
                   <div style={{ marginTop: 20, display: 'flex', gap: 12 }}>
@@ -1884,8 +2249,36 @@ export default function Events({ darkMode = false }: EventsProps) {
                   </div>
                 </div>
 
-                {/* Right side - OCR Text */}
+                {/* Right side - Image Preview and OCR Text */}
                 <div>
+                  {/* Image Preview */}
+                  {(ocrDraft?.image_url || ocrImageUrl) && (
+                    <div style={{ marginBottom: '16px' }}>
+                      <h4 style={{ margin: '0 0 12px 0', fontSize: '16px', fontWeight: '600', color: '#374151' }}>
+                        Image Preview
+                      </h4>
+                      <div style={{ 
+                        width: '100%', 
+                        padding: '12px', 
+                        border: '1px solid #d1d5db', 
+                        borderRadius: '6px',
+                        background: '#ffffff'
+                      }}>
+                        <img 
+                          src={ocrDraft?.image_url || ocrImageUrl} 
+                          alt="Event preview" 
+                          style={{ 
+                            width: '100%',
+                            height: 'auto',
+                            objectFit: 'contain',
+                            borderRadius: '4px',
+                            display: 'block'
+                          }} 
+                        />
+                      </div>
+                    </div>
+                  )}
+
                   <h4 style={{ margin: '0 0 16px 0', fontSize: '16px', fontWeight: '600', color: '#374151' }}>OCR Text</h4>
                   <div style={{ position: 'relative' }}>
                     <textarea 
@@ -1950,55 +2343,105 @@ export default function Events({ darkMode = false }: EventsProps) {
                 }}
               />
             </th>
-            <th style={{ 
-              textAlign: 'left', 
-              padding: '8px 6px', 
-              borderBottom: `1px solid ${darkMode ? '#374151' : '#ddd'}`,
-              background: darkMode ? '#374151' : '#f8f9fa',
-              color: darkMode ? '#f9fafb' : '#1f2937'
-            }}>Name</th>
-            <th style={{ 
-              textAlign: 'left', 
-              padding: '8px 6px', 
-              borderBottom: `1px solid ${darkMode ? '#374151' : '#ddd'}`,
-              background: darkMode ? '#374151' : '#f8f9fa',
-              color: darkMode ? '#f9fafb' : '#1f2937'
-            }}>Start</th>
-            <th style={{ 
-              textAlign: 'left', 
-              padding: '8px 6px', 
-              borderBottom: `1px solid ${darkMode ? '#374151' : '#ddd'}`,
-              background: darkMode ? '#374151' : '#f8f9fa',
-              color: darkMode ? '#f9fafb' : '#1f2937'
-            }}>End</th>
-            <th style={{ 
-              textAlign: 'left', 
-              padding: '8px 6px', 
-              borderBottom: `1px solid ${darkMode ? '#374151' : '#ddd'}`,
-              background: darkMode ? '#374151' : '#f8f9fa',
-              color: darkMode ? '#f9fafb' : '#1f2937'
-            }}>Start Time</th>
-            <th style={{ 
-              textAlign: 'left', 
-              padding: '8px 6px', 
-              borderBottom: `1px solid ${darkMode ? '#374151' : '#ddd'}`,
-              background: darkMode ? '#374151' : '#f8f9fa',
-              color: darkMode ? '#f9fafb' : '#1f2937'
-            }}>End Time</th>
-            <th style={{ 
-              textAlign: 'left', 
-              padding: '8px 6px', 
-              borderBottom: `1px solid ${darkMode ? '#374151' : '#ddd'}`,
-              background: darkMode ? '#374151' : '#f8f9fa',
-              color: darkMode ? '#f9fafb' : '#1f2937'
-            }}>Location</th>
-            <th style={{ 
-              textAlign: 'left', 
-              padding: '8px 6px', 
-              borderBottom: `1px solid ${darkMode ? '#374151' : '#ddd'}`,
-              background: darkMode ? '#374151' : '#f8f9fa',
-              color: darkMode ? '#f9fafb' : '#1f2937'
-            }}>Status</th>
+            <th 
+              onClick={() => handleSort('name')}
+              style={{ 
+                textAlign: 'left', 
+                padding: '8px 6px', 
+                borderBottom: `1px solid ${darkMode ? '#374151' : '#ddd'}`,
+                background: darkMode ? '#374151' : '#f8f9fa',
+                color: darkMode ? '#f9fafb' : '#1f2937',
+                cursor: 'pointer',
+                userSelect: 'none',
+                position: 'relative'
+              }}
+            >
+              Name {sortBy === 'name' && (sortOrder === 'asc' ? '↑' : '↓')}
+            </th>
+            <th 
+              onClick={() => handleSort('start_date')}
+              style={{ 
+                textAlign: 'left', 
+                padding: '8px 6px', 
+                borderBottom: `1px solid ${darkMode ? '#374151' : '#ddd'}`,
+                background: darkMode ? '#374151' : '#f8f9fa',
+                color: darkMode ? '#f9fafb' : '#1f2937',
+                cursor: 'pointer',
+                userSelect: 'none'
+              }}
+            >
+              Start {sortBy === 'start_date' && (sortOrder === 'asc' ? '↑' : '↓')}
+            </th>
+            <th 
+              onClick={() => handleSort('end_date')}
+              style={{ 
+                textAlign: 'left', 
+                padding: '8px 6px', 
+                borderBottom: `1px solid ${darkMode ? '#374151' : '#ddd'}`,
+                background: darkMode ? '#374151' : '#f8f9fa',
+                color: darkMode ? '#f9fafb' : '#1f2937',
+                cursor: 'pointer',
+                userSelect: 'none'
+              }}
+            >
+              End {sortBy === 'end_date' && (sortOrder === 'asc' ? '↑' : '↓')}
+            </th>
+            <th 
+              onClick={() => handleSort('start_time')}
+              style={{ 
+                textAlign: 'left', 
+                padding: '8px 6px', 
+                borderBottom: `1px solid ${darkMode ? '#374151' : '#ddd'}`,
+                background: darkMode ? '#374151' : '#f8f9fa',
+                color: darkMode ? '#f9fafb' : '#1f2937',
+                cursor: 'pointer',
+                userSelect: 'none'
+              }}
+            >
+              Start Time {sortBy === 'start_time' && (sortOrder === 'asc' ? '↑' : '↓')}
+            </th>
+            <th 
+              onClick={() => handleSort('end_time')}
+              style={{ 
+                textAlign: 'left', 
+                padding: '8px 6px', 
+                borderBottom: `1px solid ${darkMode ? '#374151' : '#ddd'}`,
+                background: darkMode ? '#374151' : '#f8f9fa',
+                color: darkMode ? '#f9fafb' : '#1f2937',
+                cursor: 'pointer',
+                userSelect: 'none'
+              }}
+            >
+              End Time {sortBy === 'end_time' && (sortOrder === 'asc' ? '↑' : '↓')}
+            </th>
+            <th 
+              onClick={() => handleSort('location')}
+              style={{ 
+                textAlign: 'left', 
+                padding: '8px 6px', 
+                borderBottom: `1px solid ${darkMode ? '#374151' : '#ddd'}`,
+                background: darkMode ? '#374151' : '#f8f9fa',
+                color: darkMode ? '#f9fafb' : '#1f2937',
+                cursor: 'pointer',
+                userSelect: 'none'
+              }}
+            >
+              Location {sortBy === 'location' && (sortOrder === 'asc' ? '↑' : '↓')}
+            </th>
+            <th 
+              onClick={() => handleSort('status')}
+              style={{ 
+                textAlign: 'left', 
+                padding: '8px 6px', 
+                borderBottom: `1px solid ${darkMode ? '#374151' : '#ddd'}`,
+                background: darkMode ? '#374151' : '#f8f9fa',
+                color: darkMode ? '#f9fafb' : '#1f2937',
+                cursor: 'pointer',
+                userSelect: 'none'
+              }}
+            >
+              Status {sortBy === 'status' && (sortOrder === 'asc' ? '↑' : '↓')}
+            </th>
             <th style={{ 
               textAlign: 'left', 
               padding: '8px 6px', 
@@ -2024,7 +2467,38 @@ export default function Events({ darkMode = false }: EventsProps) {
             </tr>
           </thead>
           <tbody>
-          {rows.map((r) => (
+          {rows
+            .sort((a, b) => {
+              let aVal = a[sortBy]
+              let bVal = b[sortBy]
+              
+              // Handle null/undefined values
+              if (aVal == null && bVal == null) return 0
+              if (aVal == null) return sortOrder === 'asc' ? 1 : -1
+              if (bVal == null) return sortOrder === 'asc' ? -1 : 1
+              
+              // Handle date sorting
+              if (sortBy === 'start_date' || sortBy === 'end_date') {
+                const aTime = new Date(aVal).getTime()
+                const bTime = new Date(bVal).getTime()
+                if (aTime < bTime) return sortOrder === 'asc' ? -1 : 1
+                if (aTime > bTime) return sortOrder === 'asc' ? 1 : -1
+                return 0
+              }
+              
+              // Handle string sorting
+              if (typeof aVal === 'string' && typeof bVal === 'string') {
+                return sortOrder === 'asc' 
+                  ? aVal.localeCompare(bVal)
+                  : bVal.localeCompare(aVal)
+              }
+              
+              // Handle numeric sorting
+              if (aVal < bVal) return sortOrder === 'asc' ? -1 : 1
+              if (aVal > bVal) return sortOrder === 'asc' ? 1 : -1
+              return 0
+            })
+            .map((r) => (
             <tr 
               key={r.id ?? r.slug ?? r.name}
               onClick={() => setEditing(r)}
@@ -2041,8 +2515,8 @@ export default function Events({ darkMode = false }: EventsProps) {
             >
               <td 
                 style={{ 
-                  padding: '8px 6px', 
-                  borderBottom: `1px solid ${darkMode ? '#374151' : '#f1f1f1'}`,
+                padding: '8px 6px', 
+                borderBottom: `1px solid ${darkMode ? '#374151' : '#f1f1f1'}`,
                   background: 'transparent'
                 }}
                 onClick={(e) => e.stopPropagation()}
@@ -2088,14 +2562,14 @@ export default function Events({ darkMode = false }: EventsProps) {
                 borderBottom: `1px solid ${darkMode ? '#374151' : '#f1f1f1'}`,
                 background: 'transparent'
               }}>
-                {r.start_time || '—'}
+                {formatTimeToAMPM(r.start_time)}
               </td>
               <td style={{ 
                 padding: '8px 6px', 
                 borderBottom: `1px solid ${darkMode ? '#374151' : '#f1f1f1'}`,
                 background: 'transparent'
               }}>
-                {r.end_time || '—'}
+                {formatTimeToAMPM(r.end_time)}
               </td>
               <td style={{ 
                 padding: '8px 6px', 
@@ -2128,7 +2602,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                 borderBottom: `1px solid ${darkMode ? '#374151' : '#f1f1f1'}`,
                 background: 'transparent'
               }}>
-                {r.website_url ? (
+                {r.website_url && r.website_url.trim() ? (
                   <a 
                     href={r.website_url} 
                     target="_blank" 
@@ -2227,7 +2701,9 @@ export default function Events({ darkMode = false }: EventsProps) {
         </table>
 
       {editing && (
-        <div style={{ 
+        <div 
+          onClick={() => setEditing(null)}
+          style={{ 
           position: 'fixed', 
           top: 0, 
           left: 0, 
@@ -2239,82 +2715,94 @@ export default function Events({ darkMode = false }: EventsProps) {
           alignItems: 'center', 
           justifyContent: 'center',
           padding: '20px'
-        }}>
-          <div style={{ 
+          }}
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            style={{ 
             background: 'white', 
-            padding: '32px', 
             borderRadius: '12px', 
             maxWidth: '800px', 
             width: '100%', 
             maxHeight: '90vh', 
-            overflow: 'auto',
-            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
-          }}>
-            {/* Sticky Header with Title and Action Buttons */}
-            <div style={{ 
-              position: 'sticky',
-              top: 0,
-              zIndex: 10,
-              background: '#ffffff',
-              padding: '16px 0',
-              marginBottom: '24px',
-              borderBottom: '1px solid #e5e7eb',
               display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between'
+              flexDirection: 'column',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
+            }}
+          >
+            {/* Header */}
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'space-between', 
+              padding: '32px 32px 24px 32px',
+              borderBottom: '1px solid #e5e7eb'
             }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
               <h3 style={{ margin: 0, fontSize: '24px', fontWeight: '600', color: '#1f2937' }}>
                 {editing.id ? '✏️ Edit Event' : '➕ New Event'}
               </h3>
-              
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <button 
-                  className="btn" 
-                  onClick={()=>setEditing(null)}
-                  style={{ 
-                    padding: '12px 24px', 
-                    fontSize: '14px',
-                    background: '#f9fafb',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '8px',
-                    color: '#374151'
-                  }}
-                >
-                  Cancel
-                </button>
-                <button 
-                  className="btn primary" 
-                  onClick={save}
-                  style={{ 
-                    padding: '12px 24px', 
-                    fontSize: '14px',
-                    background: '#3b82f6',
-                    border: '1px solid #3b82f6',
-                    borderRadius: '8px',
-                    color: 'white',
-                    fontWeight: '500'
-                  }}
-                >
-                  💾 Save Event
-                </button>
-                <button 
-                  onClick={()=>setEditing(null)}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    fontSize: '24px',
-                    cursor: 'pointer',
-                    color: '#6b7280',
-                    padding: '4px',
-                    marginLeft: '8px'
-                  }}
-                  title="Close"
-                >
-                  ✕
-                </button>
+                {editing.id && (
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button 
+                      onClick={navigateToPrevious}
+                      disabled={rows.findIndex(r => r.id === editing.id) === 0}
+                      style={{
+                        background: '#f3f4f6',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '6px',
+                        padding: '6px 12px',
+                        fontSize: '14px',
+                        cursor: rows.findIndex(r => r.id === editing.id) === 0 ? 'not-allowed' : 'pointer',
+                        color: rows.findIndex(r => r.id === editing.id) === 0 ? '#9ca3af' : '#374151',
+                        opacity: rows.findIndex(r => r.id === editing.id) === 0 ? 0.5 : 1
+                      }}
+                      title="Previous event"
+                    >
+                      ← Previous
+                    </button>
+                    <button 
+                      onClick={navigateToNext}
+                      disabled={rows.findIndex(r => r.id === editing.id) === rows.length - 1}
+                      style={{
+                        background: '#f3f4f6',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '6px',
+                        padding: '6px 12px',
+                        fontSize: '14px',
+                        cursor: rows.findIndex(r => r.id === editing.id) === rows.length - 1 ? 'not-allowed' : 'pointer',
+                        color: rows.findIndex(r => r.id === editing.id) === rows.length - 1 ? '#9ca3af' : '#374151',
+                        opacity: rows.findIndex(r => r.id === editing.id) === rows.length - 1 ? 0.5 : 1
+                      }}
+                      title="Next event"
+                    >
+                      Next →
+                    </button>
+                  </div>
+                )}
               </div>
+              <button 
+                onClick={()=>setEditing(null)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '24px',
+                  cursor: 'pointer',
+                  color: '#6b7280',
+                  padding: '4px'
+                }}
+                title="Close"
+              >
+                ✕
+              </button>
             </div>
 
+            {/* Scrollable Content */}
+            <div style={{ 
+              flex: 1, 
+              overflow: 'auto', 
+              padding: '32px'
+            }}>
             <div style={{ display: 'grid', gap: '20px' }}>
               {/* Event Name and Slug */}
               <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '16px' }}>
@@ -2324,7 +2812,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                   </label>
                   <input 
                     value={editing?.name || ''} 
-                    onChange={e=>setEditing({...editing, name: e.target.value})} 
+                    onChange={e=>setEditing({...editing, name: e.target.value, slug: slugify(e.target.value)})} 
                     style={{ 
                       width: '100%', 
                       padding: '12px', 
@@ -2342,7 +2830,12 @@ export default function Events({ darkMode = false }: EventsProps) {
                   </label>
                   <input 
                     value={editing?.slug || ''} 
-                    onChange={e=>setEditing({...editing, slug: e.target.value})} 
+                    onChange={e=>setEditing({...editing, slug: slugify(e.target.value)})} 
+                    onPaste={e=>{
+                      e.preventDefault()
+                      const pastedText = e.clipboardData.getData('text')
+                      setEditing({...editing, slug: slugify(pastedText)})
+                    }}
                     style={{ 
                       width: '100%', 
                       padding: '12px', 
@@ -2354,6 +2847,28 @@ export default function Events({ darkMode = false }: EventsProps) {
                     placeholder="event-slug"
                   />
                 </div>
+              </div>
+
+              {/* Description */}
+              <div>
+                <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
+                  Description
+                </label>
+                <textarea 
+                  value={editing?.description || ''} 
+                  onChange={e=>setEditing({...editing, description: e.target.value})} 
+                  style={{ 
+                    width: '100%', 
+                    padding: '12px', 
+                    border: '1px solid #d1d5db', 
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    background: '#fff',
+                    minHeight: '100px',
+                    resize: 'vertical'
+                  }}
+                  placeholder="Enter event description"
+                />
               </div>
 
               {/* Host Org and Location */}
@@ -2405,7 +2920,50 @@ export default function Events({ darkMode = false }: EventsProps) {
                   <input 
                     type="date" 
                     value={editing?.start_date || ''} 
-                    onChange={e=>setEditing({...editing, start_date: e.target.value})} 
+                    onChange={e=>{
+                      const newStartDate = e.target.value
+                      const currentEndDate = editing?.end_date
+                      const today = new Date().toISOString().slice(0, 10)
+                      
+                      console.log('Start date changed to:', newStartDate)
+                      
+                      let updatedEndDate = currentEndDate
+                      
+                      // If end date is today, blank, or null, set it to the start date
+                      if (!currentEndDate || currentEndDate === '' || currentEndDate === today) {
+                        updatedEndDate = newStartDate
+                        console.log('End date is today/blank/null, setting to start date:', newStartDate)
+                      }
+                      // If end date exists and is before the new start date, set it to the start date
+                      else if (currentEndDate && newStartDate && currentEndDate < newStartDate) {
+                        updatedEndDate = newStartDate
+                        console.log('End date is before start date, adjusting to start date')
+                      }
+                      
+                      setEditing({
+                        ...editing,
+                        start_date: newStartDate,
+                        end_date: updatedEndDate
+                      })
+                    }}
+                    onInput={e=>{
+                      const newStartDate = e.currentTarget.value
+                      const currentEndDate = editing?.end_date
+                      
+                      console.log('Start date input to:', newStartDate)
+                      
+                      // If end date exists and is before the new start date, set it to the start date
+                      let updatedEndDate = currentEndDate
+                      if (currentEndDate && newStartDate && currentEndDate < newStartDate) {
+                        updatedEndDate = newStartDate
+                      }
+                      
+                      setEditing({
+                        ...editing,
+                        start_date: newStartDate,
+                        end_date: updatedEndDate
+                      })
+                    }}
                     style={{ 
                       width: '100%', 
                       padding: '12px', 
@@ -2423,7 +2981,14 @@ export default function Events({ darkMode = false }: EventsProps) {
                   <input 
                     type="date" 
                     value={editing?.end_date || ''} 
-                    onChange={e=>setEditing({...editing, end_date: e.target.value})} 
+                    onChange={e=>{
+                      console.log('End date changed to:', e.target.value)
+                      setEditing({...editing, end_date: e.target.value})
+                    }}
+                    onInput={e=>{
+                      console.log('End date input to:', e.currentTarget.value)
+                      setEditing({...editing, end_date: e.currentTarget.value})
+                    }} 
                     style={{ 
                       width: '100%', 
                       padding: '12px', 
@@ -2443,16 +3008,48 @@ export default function Events({ darkMode = false }: EventsProps) {
                     Start Time
           </label>
                   <input 
-                    type="time" 
-                    value={editing?.start_time || ''} 
-                    onChange={e=>setEditing({...editing, start_time: e.target.value})} 
+                    type="text" 
+                    value={editing?.start_time ?? ''} 
+                    onChange={e=>{
+                      const inputValue = e.target.value
+                      console.log('Start time input:', inputValue)
+                      
+                      // Store the raw input value without conversion, convert empty string to null
+                      setEditing({
+                        ...editing,
+                        start_time: inputValue === '' ? null : inputValue
+                      })
+                    }}
+                    onBlur={e=>{
+                      const inputValue = e.target.value
+                      const convertedTime = convertTo24Hour(inputValue, false)
+                      console.log('Start time blur - converting:', inputValue, 'to:', convertedTime)
+                      
+                      // If end time exists and is before the new start time, set it to the start time
+                      const currentEndTime = editing?.end_time
+                      let updatedEndTime = currentEndTime
+                      if (currentEndTime && convertedTime && currentEndTime < convertedTime) {
+                        console.log('End time is before new start time, adjusting end time to start time')
+                        updatedEndTime = convertedTime
+                      }
+                      
+                      setEditing({
+                        ...editing,
+                        start_time: convertedTime,
+                        end_time: updatedEndTime
+                      })
+                    }}
+                    placeholder="HH:MM (e.g., 14:30)"
+                    pattern="[0-9]{2}:[0-9]{2}"
+                    title="Enter time in HH:MM format (24-hour)"
                     style={{ 
                       width: '100%', 
                       padding: '12px', 
                       border: '1px solid #d1d5db', 
                       borderRadius: '8px',
                       fontSize: '14px',
-                      background: '#fff'
+                      background: '#fff',
+                      cursor: 'pointer'
                     }}
                   />
                 </div>
@@ -2461,16 +3058,43 @@ export default function Events({ darkMode = false }: EventsProps) {
                     End Time
                   </label>
                   <input 
-                    type="time" 
-                    value={editing?.end_time || ''} 
-                    onChange={e=>setEditing({...editing, end_time: e.target.value})} 
+                    type="text" 
+                    value={editing?.end_time ?? ''} 
+                    onChange={e=>{
+                      const inputValue = e.target.value
+                      console.log('End time input:', inputValue)
+                      
+                      // Store the raw input value without conversion, convert empty string to null
+                      setEditing({
+                        ...editing,
+                        end_time: inputValue === '' ? null : inputValue
+                      })
+                    }}
+                    onBlur={e=>{
+                      const inputValue = e.target.value
+                      const convertedTime = convertTo24Hour(inputValue, true, editing?.start_time)
+                      console.log('End time blur - converting:', inputValue, 'to:', convertedTime)
+                      
+                      // Check if end time is before start time
+                      const startTime = editing?.start_time
+                      if (startTime && convertedTime && convertedTime < startTime) {
+                        console.log('End time is before start time, adjusting...')
+                        setEditing({...editing, end_time: startTime})
+                      } else {
+                        setEditing({...editing, end_time: convertedTime})
+                      }
+                    }}
+                    placeholder="HH:MM (e.g., 16:30)"
+                    pattern="[0-9]{2}:[0-9]{2}"
+                    title="Enter time in HH:MM format (24-hour)"
                     style={{ 
                       width: '100%', 
                       padding: '12px', 
                       border: '1px solid #d1d5db', 
                       borderRadius: '8px',
                       fontSize: '14px',
-                      background: '#fff'
+                      background: '#fff',
+                      cursor: 'pointer'
                     }}
                   />
                 </div>
@@ -2483,19 +3107,19 @@ export default function Events({ darkMode = false }: EventsProps) {
                     Website URL
                   </label>
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    <input 
-                      value={editing?.website_url || ''} 
-                      onChange={e=>setEditing({...editing, website_url: e.target.value})} 
-                      style={{ 
+                  <input 
+                    value={editing?.website_url || ''} 
+                    onChange={e=>setEditing({...editing, website_url: e.target.value})} 
+                    style={{ 
                         flex: 1,
-                        padding: '12px', 
-                        border: '1px solid #d1d5db', 
-                        borderRadius: '8px',
-                        fontSize: '14px',
-                        background: '#fff'
-                      }}
-                      placeholder="https://example.com"
-                    />
+                      padding: '12px', 
+                      border: '1px solid #d1d5db', 
+                      borderRadius: '8px',
+                      fontSize: '14px',
+                      background: '#fff'
+                    }}
+                    placeholder="https://example.com"
+                  />
                     {editing?.website_url && (
                       <button
                         type="button"
@@ -2570,8 +3194,8 @@ export default function Events({ darkMode = false }: EventsProps) {
                     <span>Image attached to this event</span>
                   </div>
                 )}
-                <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-                  <div style={{ flex: 1, display: 'flex', gap: '8px' }}>
+                <div style={{ display: 'flex', gap: '16px', alignItems: 'stretch' }}>
+                  <div style={{ flex: 1 }}>
                     <input 
                       type="file" 
                       accept="image/*" 
@@ -2586,13 +3210,15 @@ export default function Events({ darkMode = false }: EventsProps) {
                         }
                       }}
                       style={{ 
+                        width: '100%',
                         padding: '12px', 
                         border: '1px solid #d1d5db', 
                         borderRadius: '8px',
-                        fontSize: '14px',
-                        flex: 1
+                        fontSize: '14px'
                       }}
                     />
+                  </div>
+                  <div style={{ flex: 1 }}>
                     <div
                       ref={editPasteRef}
                       tabIndex={0}
@@ -2628,14 +3254,18 @@ export default function Events({ darkMode = false }: EventsProps) {
                       onClick={() => {
                         console.log('Edit dialog paste zone clicked - focusing for paste')
                         editPasteRef.current?.focus()
+                        setEventImagePasteReady(true)
                       }}
                       style={{
+                        width: '100%',
                         padding: '12px',
                         border: editingImageUploading 
                           ? `2px dashed #3b82f6` 
                           : (editing?.image_url || editingImageUrl)
                             ? `2px dashed #10b981` 
-                            : `2px dashed ${darkMode ? '#4b5563' : '#d1d5db'}`,
+                            : eventImagePasteReady
+                              ? `2px dashed #f59e0b`
+                              : `2px dashed ${darkMode ? '#4b5563' : '#d1d5db'}`,
                         borderRadius: '8px',
                         textAlign: 'center',
                         cursor: editingImageUploading ? 'not-allowed' : 'pointer',
@@ -2644,13 +3274,16 @@ export default function Events({ darkMode = false }: EventsProps) {
                           ? '#3b82f6' 
                           : (editing?.image_url || editingImageUrl)
                             ? '#10b981' 
-                            : darkMode ? '#9ca3af' : '#6b7280',
+                            : eventImagePasteReady
+                              ? '#f59e0b'
+                              : darkMode ? '#9ca3af' : '#6b7280',
                         background: editingImageUploading 
                           ? '#eff6ff' 
                           : (editing?.image_url || editingImageUrl)
                             ? '#f0fdf4' 
-                            : darkMode ? '#374151' : '#f9fafb',
-                        minWidth: '120px',
+                            : eventImagePasteReady
+                              ? '#fffbeb'
+                              : darkMode ? '#374151' : '#f9fafb',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -2663,9 +3296,12 @@ export default function Events({ darkMode = false }: EventsProps) {
                           if (editing?.image_url || editingImageUrl) {
                             e.currentTarget.style.borderColor = '#059669'
                             e.currentTarget.style.background = '#ecfdf5'
+                          } else if (eventImagePasteReady) {
+                            e.currentTarget.style.borderColor = '#d97706'
+                            e.currentTarget.style.background = '#fef3c7'
                           } else {
-                            e.currentTarget.style.borderColor = darkMode ? '#6b7280' : '#9ca3af'
-                            e.currentTarget.style.background = darkMode ? '#4b5563' : '#f3f4f6'
+                        e.currentTarget.style.borderColor = darkMode ? '#6b7280' : '#9ca3af'
+                        e.currentTarget.style.background = darkMode ? '#4b5563' : '#f3f4f6'
                           }
                         }
                       }}
@@ -2674,9 +3310,12 @@ export default function Events({ darkMode = false }: EventsProps) {
                           if (editing?.image_url || editingImageUrl) {
                             e.currentTarget.style.borderColor = '#10b981'
                             e.currentTarget.style.background = '#f0fdf4'
+                          } else if (eventImagePasteReady) {
+                            e.currentTarget.style.borderColor = '#f59e0b'
+                            e.currentTarget.style.background = '#fffbeb'
                           } else {
-                            e.currentTarget.style.borderColor = darkMode ? '#4b5563' : '#d1d5db'
-                            e.currentTarget.style.background = darkMode ? '#374151' : '#f9fafb'
+                        e.currentTarget.style.borderColor = darkMode ? '#4b5563' : '#d1d5db'
+                        e.currentTarget.style.background = darkMode ? '#374151' : '#f9fafb'
                           }
                         }
                       }}
@@ -2692,10 +3331,16 @@ export default function Events({ darkMode = false }: EventsProps) {
                           <div style={{ fontSize: '16px' }}>✅</div>
                           <div style={{ fontSize: '12px' }}>Image Ready</div>
                         </>
-                      ) : (
+                      ) : eventImagePasteReady ? (
                         <>
                           <div style={{ fontSize: '16px' }}>📋</div>
-                          <div style={{ fontSize: '12px' }}>Paste Image</div>
+                          <div style={{ fontSize: '12px' }}>Ready...</div>
+                          <div style={{ fontSize: '10px', color: '#6b7280', marginTop: '2px' }}>Ctrl+V</div>
+                        </>
+                      ) : (
+                        <>
+                      <div style={{ fontSize: '16px' }}>📋</div>
+                      <div style={{ fontSize: '12px' }}>Paste Image</div>
                           <div style={{ fontSize: '10px', color: '#6b7280', marginTop: '2px' }}>Ctrl+V</div>
                         </>
                       )}
@@ -2768,7 +3413,7 @@ export default function Events({ darkMode = false }: EventsProps) {
 
             {/* Image Display Section */}
             {(editing?.image_url || editingImageUrl) && (
-              <div style={{ 
+            <div style={{ 
                 marginTop: '24px', 
                 padding: '16px', 
                 background: '#f8fafc', 
@@ -2835,6 +3480,95 @@ export default function Events({ darkMode = false }: EventsProps) {
                 </div>
               </div>
             )}
+
+            {/* OCR Text Display Section */}
+            {editing?.ocr_text && (
+              <div style={{ 
+                marginTop: '24px', 
+                padding: '16px', 
+                background: '#f8fafc', 
+                border: '1px solid #e2e8f0', 
+                borderRadius: '8px' 
+              }}>
+                <h4 style={{ 
+                  margin: '0 0 12px 0', 
+                  fontSize: '16px', 
+                  fontWeight: '600', 
+                  color: '#374151' 
+                }}>
+                  📝 Original OCR Text
+                </h4>
+                <div style={{ 
+                  background: '#ffffff', 
+                  border: '1px solid #d1d5db', 
+                  borderRadius: '8px', 
+                  padding: '12px',
+                  maxHeight: '200px',
+                  overflowY: 'auto'
+                }}>
+                  <pre style={{ 
+                    margin: '0', 
+                    fontSize: '12px', 
+                    fontFamily: 'monospace',
+                    lineHeight: '1.4',
+                    color: '#374151',
+                    whiteSpace: 'pre-wrap',
+                    wordBreak: 'break-word'
+                  }}>
+                    {editing.ocr_text}
+                  </pre>
+                </div>
+                <p style={{ 
+                  margin: '8px 0 0 0', 
+                  fontSize: '12px', 
+                  color: '#6b7280' 
+                }}>
+                  Original text extracted from the image
+                </p>
+              </div>
+              )}
+            </div>
+
+            {/* Bottom Action Buttons */}
+            <div style={{ 
+              background: '#ffffff',
+              padding: '16px 32px',
+              borderTop: '1px solid #e5e7eb',
+              display: 'flex', 
+              gap: '12px', 
+              justifyContent: 'flex-end',
+              borderRadius: '0 0 12px 12px'
+            }}>
+              <button 
+                className="btn" 
+                onClick={()=>setEditing(null)}
+                style={{ 
+                  padding: '12px 24px', 
+                  fontSize: '14px',
+                  background: '#f9fafb',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  color: '#374151'
+                }}
+              >
+                Cancel
+              </button>
+              <button 
+                className="btn primary" 
+                onClick={save}
+                style={{ 
+                  padding: '12px 24px', 
+                  fontSize: '14px',
+                  background: '#3b82f6',
+                  border: '1px solid #3b82f6',
+                  borderRadius: '8px',
+                  color: 'white',
+                  fontWeight: '500'
+                }}
+              >
+                💾 Save Event
+              </button>
+            </div>
           </div>
         </div>
       )}

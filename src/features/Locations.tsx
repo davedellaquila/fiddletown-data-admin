@@ -683,29 +683,35 @@ export default function Locations({ darkMode = false }: LocationsProps) {
           </tbody>
         </table>
       ) : (
-        <div style={{ 
-          position: 'fixed', 
-          top: 0, 
-          left: 0, 
-          right: 0, 
-          bottom: 0, 
-          background: 'rgba(0,0,0,0.5)', 
-          zIndex: 1000, 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'center',
-          padding: '20px'
-        }}>
-          <div style={{ 
-            background: 'white', 
-            padding: '32px', 
-            borderRadius: '12px', 
-            maxWidth: '600px', 
-            width: '100%', 
-            maxHeight: '90vh', 
-            overflow: 'auto',
-            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
-          }}>
+        <div 
+          onClick={() => setEditing(null)}
+          style={{ 
+            position: 'fixed', 
+            top: 0, 
+            left: 0, 
+            right: 0, 
+            bottom: 0, 
+            background: 'rgba(0,0,0,0.5)', 
+            zIndex: 1000, 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            padding: '20px'
+          }}
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            style={{ 
+              background: 'white', 
+              padding: '32px', 
+              borderRadius: '12px', 
+              maxWidth: '600px', 
+              width: '100%', 
+              maxHeight: '90vh', 
+              overflow: 'auto',
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
+            }}
+          >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
               <h3 style={{ margin: 0, fontSize: '24px', fontWeight: '600', color: '#1f2937' }}>
                 {editing.id ? '✏️ Edit Location' : '➕ New Location'}
