@@ -313,104 +313,138 @@ export default function Locations({ darkMode = false }: LocationsProps) {
         fontWeight: '600'
       }}>📍 Locations</h2>
 
-      <div className="stack" style={{ 
-        marginBottom: 12, 
-        flexWrap: 'wrap',
+      <div style={{ 
+        marginBottom: 12,
+        position: 'sticky',
+        top: 0,
+        zIndex: 100,
         background: darkMode ? '#1f2937' : '#f8f9fa',
         padding: '12px',
-        borderRadius: '8px',
-        border: `1px solid ${darkMode ? '#374151' : '#e5e7eb'}`
+        borderBottom: `1px solid ${darkMode ? '#374151' : '#dee2e6'}`,
+        borderRadius: '4px'
       }}>
-        <input 
-          placeholder="Search name…" 
-          value={q} 
-          onChange={(e)=>setQ(e.target.value)} 
-          style={{ 
-            flex: 1, 
-            minWidth: 220, 
-            padding: 8,
-            background: darkMode ? '#374151' : '#ffffff',
-            border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`,
-            borderRadius: '6px',
-            color: darkMode ? '#f9fafb' : '#1f2937'
-          }} 
-        />
-        <button 
-          className="btn" 
-          onClick={startNew}
-          style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: '6px',
-            padding: '8px 12px'
-          }}
-          title="Create new location"
-        >
-          <span>➕</span>
-          <span>New</span>
-        </button>
-        
-        <button 
-          className="btn" 
-          onClick={load} 
-          disabled={loading}
-          style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: '6px',
-            padding: '8px 12px'
-          }}
-          title="Refresh locations list"
-        >
-          <span>{loading ? '⏳' : '🔄'}</span>
-          <span>{loading ? 'Loading…' : 'Refresh'}</span>
-        </button>
-        
-        <button 
-          className="btn" 
-          onClick={exportCSV}
-          style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: '6px',
-            padding: '8px 12px'
-          }}
-          title="Export all locations to CSV"
-        >
-          <span>📤</span>
-          <span>Export</span>
-        </button>
-        
-        <button 
-          className="btn" 
-          onClick={downloadTemplate}
-          style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: '6px',
-            padding: '8px 12px'
-          }}
-          title="Download CSV template"
-        >
-          <span>📋</span>
-          <span>Template</span>
-        </button>
-        
-        <label 
-          className="btn" 
-          style={{ 
-            display: 'inline-flex', 
-            cursor: 'pointer',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '8px 12px'
-          }}
-          title="Import locations from CSV file"
-        >
-          <span>📥</span>
-          <span>Import</span>
-          <input type="file" accept=".csv,text/csv" onChange={handleImportFile} style={{ display: 'none' }} />
-        </label>
+        {/* Action Buttons Row */}
+        <div className="stack" style={{ 
+          flexWrap: 'wrap',
+          marginBottom: '12px'
+        }}>
+          <button 
+            className="btn" 
+            onClick={startNew}
+            style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '6px',
+              padding: '8px 12px'
+            }}
+            title="Create new location"
+          >
+            <span>➕</span>
+            <span>New</span>
+          </button>
+          
+          <button 
+            className="btn" 
+            onClick={load} 
+            disabled={loading}
+            style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '6px',
+              padding: '8px 12px'
+            }}
+            title="Refresh locations list"
+          >
+            <span>{loading ? '⏳' : '🔄'}</span>
+            <span>{loading ? 'Loading…' : 'Refresh'}</span>
+          </button>
+          
+          <button 
+            className="btn" 
+            onClick={exportCSV}
+            style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '6px',
+              padding: '8px 12px'
+            }}
+            title="Export all locations to CSV"
+          >
+            <span>📤</span>
+            <span>Export</span>
+          </button>
+          
+          <button 
+            className="btn" 
+            onClick={downloadTemplate}
+            style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '6px',
+              padding: '8px 12px'
+            }}
+            title="Download CSV template"
+          >
+            <span>📋</span>
+            <span>Template</span>
+          </button>
+          
+          <label 
+            className="btn" 
+            style={{ 
+              display: 'inline-flex', 
+              cursor: 'pointer',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '8px 12px'
+            }}
+            title="Import locations from CSV file"
+          >
+            <span>📥</span>
+            <span>Import</span>
+            <input type="file" accept=".csv,text/csv" onChange={handleImportFile} style={{ display: 'none' }} />
+          </label>
+        </div>
+
+        {/* Search Controls Row */}
+        <div className="stack" style={{ 
+          flexWrap: 'wrap',
+          marginBottom: '12px'
+        }}>
+          <input 
+            placeholder="Search name…" 
+            value={q} 
+            onChange={(e)=>setQ(e.target.value)} 
+            style={{ 
+              flex: 1, 
+              minWidth: 220, 
+              padding: 8,
+              background: darkMode ? '#374151' : '#ffffff',
+              border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`,
+              borderRadius: '6px',
+              color: darkMode ? '#f9fafb' : '#1f2937'
+            }} 
+          />
+        </div>
+
+        {/* Column Headers Row */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 150px 120px 120px 200px',
+          gap: '0',
+          alignItems: 'center',
+          fontSize: '14px',
+          fontWeight: '600',
+          color: darkMode ? '#f9fafb' : '#1f2937',
+          padding: '8px 0',
+          borderBottom: `1px solid ${darkMode ? '#374151' : '#e5e7eb'}`
+        }}>
+          <div style={{ padding: '0 8px' }}>Name</div>
+          <div style={{ padding: '0 8px' }}>Region</div>
+          <div style={{ padding: '0 8px' }}>Status</div>
+          <div style={{ padding: '0 8px' }}>Website</div>
+          <div style={{ padding: '0 8px' }}>Actions</div>
+        </div>
       </div>
 
       {importing && (
@@ -457,14 +491,78 @@ export default function Locations({ darkMode = false }: LocationsProps) {
       )}
 
       {!editing ? (
-        <table>
-          <thead>
+        <table style={{ 
+          width: '100%', 
+          borderCollapse: 'collapse',
+          position: 'relative'
+        }}>
+          <thead style={{
+            position: 'sticky',
+            top: 0,
+            zIndex: 10,
+            background: darkMode ? '#1f2937' : '#ffffff'
+          }}>
             <tr>
-              <th>Name</th>
-              <th>Region</th>
-              <th>Status</th>
-              <th>Website</th>
-              <th></th>
+              <th style={{
+                padding: '12px 8px',
+                textAlign: 'left',
+                fontWeight: '600',
+                fontSize: '14px',
+                color: darkMode ? '#f9fafb' : '#1f2937',
+                background: darkMode ? '#1f2937' : '#ffffff',
+                borderBottom: `2px solid ${darkMode ? '#374151' : '#e5e7eb'}`,
+                position: 'sticky',
+                top: 0,
+                zIndex: 10
+              }}>Name</th>
+              <th style={{
+                padding: '12px 8px',
+                textAlign: 'left',
+                fontWeight: '600',
+                fontSize: '14px',
+                color: darkMode ? '#f9fafb' : '#1f2937',
+                background: darkMode ? '#1f2937' : '#ffffff',
+                borderBottom: `2px solid ${darkMode ? '#374151' : '#e5e7eb'}`,
+                position: 'sticky',
+                top: 0,
+                zIndex: 10
+              }}>Region</th>
+              <th style={{
+                padding: '12px 8px',
+                textAlign: 'left',
+                fontWeight: '600',
+                fontSize: '14px',
+                color: darkMode ? '#f9fafb' : '#1f2937',
+                background: darkMode ? '#1f2937' : '#ffffff',
+                borderBottom: `2px solid ${darkMode ? '#374151' : '#e5e7eb'}`,
+                position: 'sticky',
+                top: 0,
+                zIndex: 10
+              }}>Status</th>
+              <th style={{
+                padding: '12px 8px',
+                textAlign: 'left',
+                fontWeight: '600',
+                fontSize: '14px',
+                color: darkMode ? '#f9fafb' : '#1f2937',
+                background: darkMode ? '#1f2937' : '#ffffff',
+                borderBottom: `2px solid ${darkMode ? '#374151' : '#e5e7eb'}`,
+                position: 'sticky',
+                top: 0,
+                zIndex: 10
+              }}>Website</th>
+              <th style={{
+                padding: '12px 8px',
+                textAlign: 'left',
+                fontWeight: '600',
+                fontSize: '14px',
+                color: darkMode ? '#f9fafb' : '#1f2937',
+                background: darkMode ? '#1f2937' : '#ffffff',
+                borderBottom: `2px solid ${darkMode ? '#374151' : '#e5e7eb'}`,
+                position: 'sticky',
+                top: 0,
+                zIndex: 10
+              }}></th>
             </tr>
           </thead>
           <tbody>

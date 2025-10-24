@@ -626,16 +626,12 @@ export default function Events({ darkMode = false }: EventsProps) {
       }}>📅 Events</h2>
       
 
-      {/* Clean single toolbar */}
+      {/* Events Toolbar */}
       <div
         className="events-toolbar"
         aria-label="Events toolbar"
         role="toolbar"
         style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: 8,
-          alignItems: 'center',
           marginBottom: 12,
           position: 'sticky',
           top: 0,
@@ -646,144 +642,119 @@ export default function Events({ darkMode = false }: EventsProps) {
           borderRadius: '4px'
         }}
       >
-        <input 
-          placeholder="Search name…" 
-          value={q} 
-          onChange={(e)=>setQ(e.target.value)} 
-          style={{ 
-            flex: 1, 
-            minWidth: 220, 
-            padding: 8,
-            background: darkMode ? '#374151' : '#ffffff',
-            border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`,
-            borderRadius: '6px',
-            color: darkMode ? '#f9fafb' : '#1f2937'
-          }} 
-        />
-        <label style={{ color: darkMode ? '#f9fafb' : '#374151' }}>
-          From <input 
-            type="date" 
-            value={from} 
-            onChange={e=>setFrom(e.target.value)} 
-            style={{
-              background: darkMode ? '#374151' : '#ffffff',
-              border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`,
-              borderRadius: '6px',
-              color: darkMode ? '#f9fafb' : '#1f2937',
-              padding: '4px'
-            }}
-          />
-        </label>
-        <label style={{ color: darkMode ? '#f9fafb' : '#374151' }}>
-          To <input 
-            type="date" 
-            value={to} 
-            onChange={e=>setTo(e.target.value)} 
-            style={{
-              background: darkMode ? '#374151' : '#ffffff',
-              border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`,
-              borderRadius: '6px',
-              color: darkMode ? '#f9fafb' : '#1f2937',
-              padding: '4px'
-            }}
-          />
-        </label>
-        <button 
-          className="btn" 
-          onClick={startNew} 
-          disabled={importing}
-          style={getButtonStyle({ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: '6px',
-            padding: '8px 12px'
-          })}
-          title="Create new event"
-        >
-          <span>➕</span>
-          <span>New</span>
-        </button>
-        
-        <button 
-          className="btn" 
-          onClick={() => setOcrOpen(true)} 
-          disabled={importing}
-        style={{
+        {/* Action Buttons Row */}
+        <div style={{
           display: 'flex',
+          flexWrap: 'wrap',
+          gap: 8,
           alignItems: 'center',
-            gap: '6px',
-            padding: '8px 12px'
-          }}
-          title="Add event from image using OCR"
-        >
-          <span>🔍</span>
-          <span>OCR</span>
-        </button>
-        
-        <button 
-          className="btn" 
-          onClick={load} 
-          disabled={loading || importing}
-          style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: '6px',
-            padding: '8px 12px'
-          }}
-          title="Refresh events list"
-        >
-          <span>{loading ? '⏳' : '🔄'}</span>
-          <span>{loading ? 'Loading…' : 'Refresh'}</span>
-        </button>
-        
-        <button 
-          className="btn" 
-          onClick={downloadTemplateCSV} 
-          disabled={importing}
-          style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: '6px',
-            padding: '8px 12px'
-          }}
-          title="Download CSV template"
-        >
-          <span>📋</span>
-          <span>Template</span>
-        </button>
-        
-        <button 
-          className="btn" 
-          onClick={exportCSV} 
-          disabled={importing}
-          style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: '6px',
-            padding: '8px 12px'
-          }}
-          title="Export all events to CSV"
-        >
-          <span>📤</span>
-          <span>Export</span>
-        </button>
-        <label 
-          className="btn" 
-          style={{ 
-            cursor: 'pointer', 
-            opacity: importing ? 0.6 : 1,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '8px 12px'
-          }}
-          title="Import events from CSV file"
-        >
-          <span>📥</span>
-          <span>Import</span>
-          <input type="file" accept=".csv,.tsv,text/csv,text/tab-separated-values" onChange={handleImportFile} style={{ display: 'none' }} disabled={importing} />
-        </label>
-        <div style={{ display:'inline-flex', gap:8, flexWrap:'wrap' }}>
+          marginBottom: 12
+        }}>
+          <button 
+            className="btn" 
+            onClick={startNew} 
+            disabled={importing}
+            style={getButtonStyle({ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '6px',
+              padding: '8px 12px'
+            })}
+            title="Create new event"
+          >
+            <span>➕</span>
+            <span>New</span>
+          </button>
+          
+          <button 
+            className="btn" 
+            onClick={() => setOcrOpen(true)} 
+            disabled={importing}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '8px 12px'
+            }}
+            title="Add event from image using OCR"
+          >
+            <span>🔍</span>
+            <span>OCR</span>
+          </button>
+          
+          <button 
+            className="btn" 
+            onClick={load} 
+            disabled={loading || importing}
+            style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '6px',
+              padding: '8px 12px'
+            }}
+            title="Refresh events list"
+          >
+            <span>{loading ? '⏳' : '🔄'}</span>
+            <span>{loading ? 'Loading…' : 'Refresh'}</span>
+          </button>
+          
+          <button 
+            className="btn" 
+            onClick={downloadTemplateCSV} 
+            disabled={importing}
+            style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '6px',
+              padding: '8px 12px'
+            }}
+            title="Download CSV template"
+          >
+            <span>📋</span>
+            <span>Template</span>
+          </button>
+          
+          <button 
+            className="btn" 
+            onClick={exportCSV} 
+            disabled={importing}
+            style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '6px',
+              padding: '8px 12px'
+            }}
+            title="Export all events to CSV"
+          >
+            <span>📤</span>
+            <span>Export</span>
+          </button>
+          
+          <label 
+            className="btn" 
+            style={{ 
+              cursor: 'pointer', 
+              opacity: importing ? 0.6 : 1,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '8px 12px'
+            }}
+            title="Import events from CSV file"
+          >
+            <span>📥</span>
+            <span>Import</span>
+            <input type="file" accept=".csv,.tsv,text/csv,text/tab-separated-values" onChange={handleImportFile} style={{ display: 'none' }} disabled={importing} />
+          </label>
+        </div>
+
+        {/* Bulk Actions Row */}
+        <div style={{ 
+          display:'inline-flex', 
+          gap:8, 
+          flexWrap:'wrap',
+          marginBottom: 12
+        }}>
           <button 
             className="btn" 
             onClick={bulkSetStatusFromDates} 
@@ -872,6 +843,83 @@ export default function Events({ darkMode = false }: EventsProps) {
             <span>🗑️</span>
             <span>Delete</span>
           </button>
+        </div>
+
+        {/* Search Controls Row */}
+        <div style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: 8,
+          alignItems: 'center',
+          marginBottom: '12px'
+        }}>
+          <input 
+            placeholder="Search name…" 
+            value={q} 
+            onChange={(e)=>setQ(e.target.value)} 
+            style={{ 
+              flex: 1, 
+              minWidth: 220, 
+              padding: 8,
+              background: darkMode ? '#374151' : '#ffffff',
+              border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`,
+              borderRadius: '6px',
+              color: darkMode ? '#f9fafb' : '#1f2937'
+            }} 
+          />
+          <label style={{ color: darkMode ? '#f9fafb' : '#374151' }}>
+            From <input 
+              type="date" 
+              value={from} 
+              onChange={e=>setFrom(e.target.value)} 
+              style={{
+                background: darkMode ? '#374151' : '#ffffff',
+                border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`,
+                borderRadius: '6px',
+                color: darkMode ? '#f9fafb' : '#1f2937',
+                padding: '4px'
+              }}
+            />
+          </label>
+          <label style={{ color: darkMode ? '#f9fafb' : '#374151' }}>
+            To <input 
+              type="date" 
+              value={to} 
+              onChange={e=>setTo(e.target.value)} 
+              style={{
+                background: darkMode ? '#374151' : '#ffffff',
+                border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`,
+                borderRadius: '6px',
+                color: darkMode ? '#f9fafb' : '#1f2937',
+                padding: '4px'
+              }}
+            />
+          </label>
+        </div>
+
+        {/* Column Headers Row */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: '40px 1fr 100px 100px 100px 100px 150px 120px 120px 80px 200px',
+          gap: '0',
+          alignItems: 'center',
+          fontSize: '14px',
+          fontWeight: '600',
+          color: darkMode ? '#f9fafb' : '#1f2937',
+          padding: '8px 0',
+          borderBottom: `1px solid ${darkMode ? '#374151' : '#e5e7eb'}`
+        }}>
+          <div style={{ padding: '0 8px' }}></div>
+          <div style={{ padding: '0 8px' }}>Name</div>
+          <div style={{ padding: '0 8px' }}>Start</div>
+          <div style={{ padding: '0 8px' }}>End</div>
+          <div style={{ padding: '0 8px' }}>Start Time</div>
+          <div style={{ padding: '0 8px' }}>End Time</div>
+          <div style={{ padding: '0 8px' }}>Location</div>
+          <div style={{ padding: '0 8px' }}>Status</div>
+          <div style={{ padding: '0 8px' }}>Website</div>
+          <div style={{ padding: '0 8px' }}>Image</div>
+          <div style={{ padding: '0 8px' }}>Actions</div>
         </div>
       </div>
 
@@ -1300,16 +1348,27 @@ export default function Events({ darkMode = false }: EventsProps) {
         width: '100%', 
         borderCollapse: 'collapse',
         background: darkMode ? '#1f2937' : '#ffffff',
-        color: darkMode ? '#f9fafb' : '#1f2937'
+        color: darkMode ? '#f9fafb' : '#1f2937',
+        position: 'relative'
       }}>
-          <thead>
+          <thead style={{
+            position: 'sticky',
+            top: 0,
+            zIndex: 10,
+            background: darkMode ? '#1f2937' : '#ffffff'
+          }}>
             <tr>
             <th style={{ 
               textAlign: 'left', 
-              padding: '8px 6px', 
-              borderBottom: `1px solid ${darkMode ? '#374151' : '#ddd'}`,
-              background: darkMode ? '#374151' : '#f8f9fa',
-              color: darkMode ? '#f9fafb' : '#1f2937'
+              padding: '12px 8px', 
+              borderBottom: `2px solid ${darkMode ? '#374151' : '#e5e7eb'}`,
+              background: darkMode ? '#1f2937' : '#ffffff',
+              color: darkMode ? '#f9fafb' : '#1f2937',
+              fontWeight: '600',
+              fontSize: '14px',
+              position: 'sticky',
+              top: 0,
+              zIndex: 10
             }}>
               <input 
                 type="checkbox" 
@@ -1321,73 +1380,123 @@ export default function Events({ darkMode = false }: EventsProps) {
             </th>
             <th style={{ 
               textAlign: 'left', 
-              padding: '8px 6px', 
-              borderBottom: `1px solid ${darkMode ? '#374151' : '#ddd'}`,
-              background: darkMode ? '#374151' : '#f8f9fa',
-              color: darkMode ? '#f9fafb' : '#1f2937'
+              padding: '12px 8px', 
+              borderBottom: `2px solid ${darkMode ? '#374151' : '#e5e7eb'}`,
+              background: darkMode ? '#1f2937' : '#ffffff',
+              color: darkMode ? '#f9fafb' : '#1f2937',
+              fontWeight: '600',
+              fontSize: '14px',
+              position: 'sticky',
+              top: 0,
+              zIndex: 10
             }}>Name</th>
             <th style={{ 
               textAlign: 'left', 
-              padding: '8px 6px', 
-              borderBottom: `1px solid ${darkMode ? '#374151' : '#ddd'}`,
-              background: darkMode ? '#374151' : '#f8f9fa',
-              color: darkMode ? '#f9fafb' : '#1f2937'
+              padding: '12px 8px', 
+              borderBottom: `2px solid ${darkMode ? '#374151' : '#e5e7eb'}`,
+              background: darkMode ? '#1f2937' : '#ffffff',
+              color: darkMode ? '#f9fafb' : '#1f2937',
+              fontWeight: '600',
+              fontSize: '14px',
+              position: 'sticky',
+              top: 0,
+              zIndex: 10
             }}>Start</th>
             <th style={{ 
               textAlign: 'left', 
-              padding: '8px 6px', 
-              borderBottom: `1px solid ${darkMode ? '#374151' : '#ddd'}`,
-              background: darkMode ? '#374151' : '#f8f9fa',
-              color: darkMode ? '#f9fafb' : '#1f2937'
+              padding: '12px 8px', 
+              borderBottom: `2px solid ${darkMode ? '#374151' : '#e5e7eb'}`,
+              background: darkMode ? '#1f2937' : '#ffffff',
+              color: darkMode ? '#f9fafb' : '#1f2937',
+              fontWeight: '600',
+              fontSize: '14px',
+              position: 'sticky',
+              top: 0,
+              zIndex: 10
             }}>End</th>
             <th style={{ 
               textAlign: 'left', 
-              padding: '8px 6px', 
-              borderBottom: `1px solid ${darkMode ? '#374151' : '#ddd'}`,
-              background: darkMode ? '#374151' : '#f8f9fa',
-              color: darkMode ? '#f9fafb' : '#1f2937'
+              padding: '12px 8px', 
+              borderBottom: `2px solid ${darkMode ? '#374151' : '#e5e7eb'}`,
+              background: darkMode ? '#1f2937' : '#ffffff',
+              color: darkMode ? '#f9fafb' : '#1f2937',
+              fontWeight: '600',
+              fontSize: '14px',
+              position: 'sticky',
+              top: 0,
+              zIndex: 10
             }}>Start Time</th>
             <th style={{ 
               textAlign: 'left', 
-              padding: '8px 6px', 
-              borderBottom: `1px solid ${darkMode ? '#374151' : '#ddd'}`,
-              background: darkMode ? '#374151' : '#f8f9fa',
-              color: darkMode ? '#f9fafb' : '#1f2937'
+              padding: '12px 8px', 
+              borderBottom: `2px solid ${darkMode ? '#374151' : '#e5e7eb'}`,
+              background: darkMode ? '#1f2937' : '#ffffff',
+              color: darkMode ? '#f9fafb' : '#1f2937',
+              fontWeight: '600',
+              fontSize: '14px',
+              position: 'sticky',
+              top: 0,
+              zIndex: 10
             }}>End Time</th>
             <th style={{ 
               textAlign: 'left', 
-              padding: '8px 6px', 
-              borderBottom: `1px solid ${darkMode ? '#374151' : '#ddd'}`,
-              background: darkMode ? '#374151' : '#f8f9fa',
-              color: darkMode ? '#f9fafb' : '#1f2937'
+              padding: '12px 8px', 
+              borderBottom: `2px solid ${darkMode ? '#374151' : '#e5e7eb'}`,
+              background: darkMode ? '#1f2937' : '#ffffff',
+              color: darkMode ? '#f9fafb' : '#1f2937',
+              fontWeight: '600',
+              fontSize: '14px',
+              position: 'sticky',
+              top: 0,
+              zIndex: 10
             }}>Location</th>
             <th style={{ 
               textAlign: 'left', 
-              padding: '8px 6px', 
-              borderBottom: `1px solid ${darkMode ? '#374151' : '#ddd'}`,
-              background: darkMode ? '#374151' : '#f8f9fa',
-              color: darkMode ? '#f9fafb' : '#1f2937'
+              padding: '12px 8px', 
+              borderBottom: `2px solid ${darkMode ? '#374151' : '#e5e7eb'}`,
+              background: darkMode ? '#1f2937' : '#ffffff',
+              color: darkMode ? '#f9fafb' : '#1f2937',
+              fontWeight: '600',
+              fontSize: '14px',
+              position: 'sticky',
+              top: 0,
+              zIndex: 10
             }}>Status</th>
             <th style={{ 
               textAlign: 'left', 
-              padding: '8px 6px', 
-              borderBottom: `1px solid ${darkMode ? '#374151' : '#ddd'}`,
-              background: darkMode ? '#374151' : '#f8f9fa',
-              color: darkMode ? '#f9fafb' : '#1f2937'
+              padding: '12px 8px', 
+              borderBottom: `2px solid ${darkMode ? '#374151' : '#e5e7eb'}`,
+              background: darkMode ? '#1f2937' : '#ffffff',
+              color: darkMode ? '#f9fafb' : '#1f2937',
+              fontWeight: '600',
+              fontSize: '14px',
+              position: 'sticky',
+              top: 0,
+              zIndex: 10
             }}>Website</th>
             <th style={{ 
               textAlign: 'left', 
-              padding: '8px 6px', 
-              borderBottom: `1px solid ${darkMode ? '#374151' : '#ddd'}`,
-              background: darkMode ? '#374151' : '#f8f9fa',
-              color: darkMode ? '#f9fafb' : '#1f2937'
+              padding: '12px 8px', 
+              borderBottom: `2px solid ${darkMode ? '#374151' : '#e5e7eb'}`,
+              background: darkMode ? '#1f2937' : '#ffffff',
+              color: darkMode ? '#f9fafb' : '#1f2937',
+              fontWeight: '600',
+              fontSize: '14px',
+              position: 'sticky',
+              top: 0,
+              zIndex: 10
             }}>Image</th>
             <th style={{ 
               textAlign: 'left', 
-              padding: '8px 6px', 
-              borderBottom: `1px solid ${darkMode ? '#374151' : '#ddd'}`,
-              background: darkMode ? '#374151' : '#f8f9fa',
+              padding: '12px 8px', 
+              borderBottom: `2px solid ${darkMode ? '#374151' : '#e5e7eb'}`,
+              background: darkMode ? '#1f2937' : '#ffffff',
               color: darkMode ? '#f9fafb' : '#1f2937',
+              fontWeight: '600',
+              fontSize: '14px',
+              position: 'sticky',
+              top: 0,
+              zIndex: 10,
               minWidth: '200px' 
             }}>Actions</th>
             </tr>
