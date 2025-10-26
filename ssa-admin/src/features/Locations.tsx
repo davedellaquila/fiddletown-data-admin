@@ -46,6 +46,9 @@ export default function Locations({ darkMode = false }: LocationsProps) {
       console.log('📊 Locations - Slug:', editing.slug, 'Type:', typeof editing.slug);
       console.log('📊 Locations - Region:', editing.region, 'Type:', typeof editing.region);
       console.log('📊 Locations - Status:', editing.status, 'Type:', typeof editing.status);
+    } else {
+      console.log('📊 Locations - Editing state is now NULL - something reset it!');
+      console.trace('📊 Locations - Call stack when editing became null:');
     }
   }, [editing]);
 
@@ -588,10 +591,6 @@ export default function Locations({ darkMode = false }: LocationsProps) {
                 console.log('🔍 Locations - About to call setEditing with:', r);
                 setEditing(r);
                 console.log('🔍 Locations - setEditing called, editing should now be:', r);
-                // Force a re-render check
-                setTimeout(() => {
-                  console.log('🔍 Locations - After timeout, editing state is:', editing);
-                }, 100);
               }}
                 style={{ 
                   cursor: 'pointer',
