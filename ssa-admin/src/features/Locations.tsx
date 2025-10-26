@@ -46,6 +46,26 @@ export default function Locations({ darkMode = false }: LocationsProps) {
       console.log('📊 Locations - Slug:', editing.slug, 'Type:', typeof editing.slug);
       console.log('📊 Locations - Region:', editing.region, 'Type:', typeof editing.region);
       console.log('📊 Locations - Status:', editing.status, 'Type:', typeof editing.status);
+      
+      // Try to manually set field values after a short delay
+      setTimeout(() => {
+        const nameField = document.querySelector(`input[data-key="name-${editing.id}"]`) as HTMLInputElement;
+        const slugField = document.querySelector(`input[data-key="slug-${editing.id}"]`) as HTMLInputElement;
+        const regionField = document.querySelector(`input[data-key="region-${editing.id}"]`) as HTMLInputElement;
+        
+        if (nameField) {
+          console.log('🔧 Locations - Manually setting name field value:', editing.name);
+          nameField.value = editing.name || '';
+        }
+        if (slugField) {
+          console.log('🔧 Locations - Manually setting slug field value:', editing.slug);
+          slugField.value = editing.slug || '';
+        }
+        if (regionField) {
+          console.log('🔧 Locations - Manually setting region field value:', editing.region);
+          regionField.value = editing.region || '';
+        }
+      }, 50);
     } else {
       console.log('📊 Locations - Editing state is now NULL - something reset it!');
       console.trace('📊 Locations - Call stack when editing became null:');
@@ -841,6 +861,7 @@ export default function Locations({ darkMode = false }: LocationsProps) {
                   </label>
                   <input 
                     key={`name-${editing?.id || 'new'}`}
+                    data-key={`name-${editing?.id || 'new'}`}
                     defaultValue={editing?.name ?? ''}
                     onChange={e=>{
                       console.log('🔧 Locations - Name field changed:', e.target.value);
