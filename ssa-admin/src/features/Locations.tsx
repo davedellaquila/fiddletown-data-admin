@@ -841,7 +841,7 @@ export default function Locations({ darkMode = false }: LocationsProps) {
                   </label>
                   <input 
                     key={`name-${editing?.id || 'new'}`}
-                    value={editing?.name ?? ''} 
+                    defaultValue={editing?.name ?? ''}
                     onChange={e=>{
                       console.log('🔧 Locations - Name field changed:', e.target.value);
                       console.log('🔧 Locations - Current editing state:', editing);
@@ -868,7 +868,7 @@ export default function Locations({ darkMode = false }: LocationsProps) {
                   </label>
                   <input 
                     key={`slug-${editing?.id || 'new'}`}
-                    value={editing?.slug ?? ''} 
+                    defaultValue={editing?.slug ?? ''} 
                     onChange={e=>setEditing({...editing, slug: e.target.value})} 
                     style={{ 
                       width: '100%', 
@@ -891,7 +891,7 @@ export default function Locations({ darkMode = false }: LocationsProps) {
                   </label>
                   <input 
                     key={`region-${editing?.id || 'new'}`}
-                    value={editing?.region ?? ''} 
+                    defaultValue={editing?.region ?? ''} 
                     onChange={e=>setEditing({...editing, region: e.target.value})} 
                     style={{ 
                       width: '100%', 
