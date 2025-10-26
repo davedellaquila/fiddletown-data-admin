@@ -53,10 +53,12 @@ export default function Locations({ darkMode = false }: LocationsProps) {
         const nameField = document.querySelector(`input[data-key="name-${editing.id}"]`) as HTMLInputElement;
         const slugField = document.querySelector(`input[data-key="slug-${editing.id}"]`) as HTMLInputElement;
         const regionField = document.querySelector(`input[data-key="region-${editing.id}"]`) as HTMLInputElement;
+        const websiteField = document.querySelector(`input[data-key="website-${editing.id}"]`) as HTMLInputElement;
         
         console.log('🔧 Locations - Found nameField:', nameField);
         console.log('🔧 Locations - Found slugField:', slugField);
         console.log('🔧 Locations - Found regionField:', regionField);
+        console.log('🔧 Locations - Found websiteField:', websiteField);
         
         if (nameField) {
           console.log('🔧 Locations - Manually setting name field value:', editing.name);
@@ -78,6 +80,13 @@ export default function Locations({ darkMode = false }: LocationsProps) {
           console.log('🔧 Locations - Region field value after setting:', regionField.value);
         } else {
           console.log('🔧 Locations - Region field not found!');
+        }
+        if (websiteField) {
+          console.log('🔧 Locations - Manually setting website field value:', editing.website_url);
+          websiteField.value = editing.website_url || '';
+          console.log('🔧 Locations - Website field value after setting:', websiteField.value);
+        } else {
+          console.log('🔧 Locations - Website field not found!');
         }
       }, 50);
     } else {
@@ -903,6 +912,7 @@ export default function Locations({ darkMode = false }: LocationsProps) {
                   </label>
                   <input 
                     key={`slug-${editing?.id || 'new'}`}
+                    data-key={`slug-${editing?.id || 'new'}`}
                     defaultValue={editing?.slug ?? ''} 
                     onChange={e=>setEditing({...editing, slug: e.target.value})} 
                     style={{ 
@@ -926,6 +936,7 @@ export default function Locations({ darkMode = false }: LocationsProps) {
                   </label>
                   <input 
                     key={`region-${editing?.id || 'new'}`}
+                    data-key={`region-${editing?.id || 'new'}`}
                     defaultValue={editing?.region ?? ''} 
                     onChange={e=>setEditing({...editing, region: e.target.value})} 
                     style={{ 
@@ -945,7 +956,8 @@ export default function Locations({ darkMode = false }: LocationsProps) {
                   </label>
                   <input 
                     key={`website-${editing?.id || 'new'}`}
-                    value={editing?.website_url ?? ''} 
+                    data-key={`website-${editing?.id || 'new'}`}
+                    defaultValue={editing?.website_url ?? ''} 
                     onChange={e=>setEditing({...editing, website_url: e.target.value})} 
                     style={{ 
                       width: '100%', 
