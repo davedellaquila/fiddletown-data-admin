@@ -855,32 +855,6 @@ export default function Locations({ darkMode = false }: LocationsProps) {
             </div>
 
             <div style={{ display: 'grid', gap: '20px' }}>
-              {/* Debug Info */}
-              <div style={{ 
-                background: '#f3f4f6', 
-                padding: '12px', 
-                borderRadius: '8px', 
-                fontSize: '12px',
-                border: '1px solid #e5e7eb',
-                color: '#374151'
-              }}>
-                <strong>🐛 Locations Debug Info:</strong><br/>
-                <strong>Browser:</strong> {navigator.userAgent.includes('Chrome') ? 'Chrome-based' : 'Safari'}<br/>
-                <strong>Editing State:</strong> {editing ? 'Set' : 'Null'}<br/>
-                <strong>Name Value:</strong> "{editing?.name || 'undefined'}" (Type: {typeof editing?.name})<br/>
-                <strong>ID Value:</strong> "{editing?.id || 'undefined'}"<br/>
-                <strong>Region Value:</strong> "{editing?.region || 'undefined'}"<br/>
-                <strong>Slug Value:</strong> "{editing?.slug || 'undefined'}"<br/>
-                <strong>Status Value:</strong> "{editing?.status || 'undefined'}"<br/>
-                <strong>Raw Name:</strong> {JSON.stringify(editing?.name)}<br/>
-                <strong>Form Field Values (what inputs should show):</strong><br/>
-                &nbsp;&nbsp;Name: "{editing?.name ?? ''}"<br/>
-                &nbsp;&nbsp;Slug: "{editing?.slug ?? ''}"<br/>
-                &nbsp;&nbsp;Region: "{editing?.region ?? ''}"<br/>
-                &nbsp;&nbsp;Status: "{editing?.status ?? 'draft'}"<br/>
-                <strong>All Keys:</strong> {editing ? Object.keys(editing).join(', ') : 'null'}
-              </div>
-              
               {/* Name and Slug */}
               <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '16px' }}>
                 <div>
@@ -911,9 +885,6 @@ export default function Locations({ darkMode = false }: LocationsProps) {
                       color: '#000 !important'
                     }}
                   />
-                  <div style={{ fontSize: '10px', color: '#666', marginTop: '4px' }}>
-                    Debug: React value = "{editing?.name ?? 'undefined'}"
-                  </div>
                 </div>
                 <div>
                   <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
@@ -934,9 +905,6 @@ export default function Locations({ darkMode = false }: LocationsProps) {
                       color: '#000 !important'
                     }}
                   />
-                  <div style={{ fontSize: '10px', color: '#666', marginTop: '4px' }}>
-                    Debug: React value = "{editing?.slug ?? 'undefined'}"
-                  </div>
                 </div>
               </div>
 
