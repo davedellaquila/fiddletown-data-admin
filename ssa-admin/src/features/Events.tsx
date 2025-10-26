@@ -1582,7 +1582,7 @@ export default function Events({ darkMode = false }: EventsProps) {
               onClick={() => {
                 console.log('🎯 Events - Clicked row data:', r);
                 updateEditing(r);
-              }}
+              }}  
               style={{ 
                 cursor: 'pointer',
                 transition: 'background-color 0.2s ease'
