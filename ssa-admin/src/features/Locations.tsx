@@ -53,6 +53,7 @@ export default function Locations({ darkMode = false }: LocationsProps) {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && editing) {
+        console.log('⌨️ Locations - Escape key pressed, setting editing to null');
         setEditing(null)
       }
     }
@@ -266,6 +267,7 @@ export default function Locations({ darkMode = false }: LocationsProps) {
 
   const save = async () => {
     if (!editing) return
+    console.log('💾 Locations - Save function called');
     const payload = { ...editing }
   
     if (!payload.slug && payload.name) {
@@ -295,6 +297,7 @@ export default function Locations({ darkMode = false }: LocationsProps) {
       payload.id = data!.id
     }
   
+    console.log('💾 Locations - About to call setEditing(null) in save function');
     setEditing(null)
     await load()
   }
