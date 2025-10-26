@@ -861,7 +861,8 @@ export default function Locations({ darkMode = false }: LocationsProps) {
                 padding: '12px', 
                 borderRadius: '8px', 
                 fontSize: '12px',
-                border: '1px solid #e5e7eb'
+                border: '1px solid #e5e7eb',
+                color: '#374151'
               }}>
                 <strong>🐛 Locations Debug Info:</strong><br/>
                 <strong>Browser:</strong> {navigator.userAgent.includes('Chrome') ? 'Chrome-based' : 'Safari'}<br/>
