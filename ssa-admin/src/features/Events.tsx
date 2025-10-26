@@ -146,6 +146,40 @@ export default function Events({ darkMode = false }: EventsProps) {
   const [to, setTo] = useState('')
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
 
+  // OCR / Image-to-Event state with persistence
+  const [ocrOpen, setOcrOpen] = useState(() => {
+    const saved = localStorage.getItem('events-ocr-open')
+    return saved === 'true'
+  })
+  const [ocrLoading, setOcrLoading] = useState(false)
+  const [ocrError, setOcrError] = useState<string | null>(null)
+  const [ocrRawText, setOcrRawText] = useState(() => {
+    const saved = localStorage.getItem('events-ocr-text')
+    return saved || ''
+  })
+  const [ocrImageUrl, setOcrImageUrl] = useState<string | null>(() => {
+    const saved = localStorage.getItem('events-ocr-image')
+    return saved || null
+  })
+  const [ocrDraft, setOcrDraft] = useState<EventRow | null>(() => {
+    const saved = localStorage.getItem('events-ocr-draft')
+    return saved ? JSON.parse(saved) : null
+  })
+
+  // Helper function to update OCR draft safely
+  const updateOcrDraft = (updates: Partial<EventRow>) => {
+    if (ocrDraft) {
+      setOcrDraft({...ocrDraft, ...updates});
+    } else {
+      setOcrDraft({
+        name: '',
+        status: 'draft',
+        sort_order: 1000,
+        ...updates
+      } as EventRow);
+    }
+  }
+
   // Helper function to update editing state safely
   const updateEditing = (updates: Partial<EventRow>) => {
     if (editing) {
@@ -182,22 +216,6 @@ export default function Events({ darkMode = false }: EventsProps) {
     }
   }, [editing, ocrOpen])
 
-  // OCR / Image-to-Event state with persistence
-  const [ocrOpen, setOcrOpen] = useState(() => {
-    const saved = localStorage.getItem('events-ocr-open')
-    return saved === 'true'
-  })
-  const [ocrLoading, setOcrLoading] = useState(false)
-  const [ocrError, setOcrError] = useState<string | null>(null)
-  const [ocrRawText, setOcrRawText] = useState(() => {
-    const saved = localStorage.getItem('events-ocr-text')
-    return saved || ''
-  })
-  const [ocrDraft, setOcrDraft] = useState<Partial<EventRow> | null>(() => {
-    const saved = localStorage.getItem('events-ocr-draft')
-    return saved ? JSON.parse(saved) : null
-  })
-  const [ocrImageUrl, setOcrImageUrl] = useState<string | null>(null)
   const [editingImageUrl, setEditingImageUrl] = useState<string | null>(null)
   const pasteRef = useRef<HTMLDivElement | null>(null)
 
@@ -527,7 +545,7 @@ export default function Events({ darkMode = false }: EventsProps) {
       const parsed = parseEventText(text)
       if (typeof parsed === 'object' && parsed !== null && 'name' in parsed) {
         (parsed as any).slug = parsed.name ? slugify(parsed.name) : ''
-        setOcrDraft(parsed as Partial<EventRow>)
+        updateOcrDraft(parsed as Partial<EventRow>)
       }
     } catch (e: any) {
       console.error(e)
@@ -1119,7 +1137,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                           </label>
                           <input 
                             value={ocrDraft?.name ?? ''} 
-                            onChange={e=>setOcrDraft({ ...(ocrDraft||{}), name: e.target.value })} 
+                            onChange={e=>updateOcrDraft({ name: e.target.value })} 
                             style={{ 
                               width: '100%', 
                               padding: '12px', 
@@ -1136,7 +1154,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                           </label>
                           <input 
                             value={(ocrDraft as any)?.slug ?? ''} 
-                            onChange={e=>setOcrDraft({ ...(ocrDraft||{}), slug: e.target.value })} 
+                            onChange={e=>updateOcrDraft({ slug: e.target.value })} 
                             style={{ 
                               width: '100%', 
                               padding: '12px', 
@@ -1157,7 +1175,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                           </label>
                           <input 
                             value={ocrDraft?.host_org ?? ''} 
-                            onChange={e=>setOcrDraft({ ...(ocrDraft||{}), host_org: e.target.value })} 
+                            onChange={e=>updateOcrDraft({ host_org: e.target.value })} 
                             style={{ 
                               width: '100%', 
                               padding: '12px', 
@@ -1174,7 +1192,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                           </label>
                           <input 
                             value={ocrDraft?.location ?? ''} 
-                            onChange={e=>setOcrDraft({ ...(ocrDraft||{}), location: e.target.value })} 
+                            onChange={e=>updateOcrDraft({ location: e.target.value })} 
                             style={{ 
                               width: '100%', 
                               padding: '12px', 
@@ -1196,7 +1214,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                           <input 
                             type="date" 
                             value={ocrDraft?.start_date ?? ''} 
-                            onChange={e=>setOcrDraft({ ...(ocrDraft||{}), start_date: e.target.value })} 
+                            onChange={e=>updateOcrDraft({ start_date: e.target.value })} 
                             style={{ 
                               width: '100%', 
                               padding: '12px', 
@@ -1213,7 +1231,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                           <input 
                             type="date" 
                             value={ocrDraft?.end_date ?? ''} 
-                            onChange={e=>setOcrDraft({ ...(ocrDraft||{}), end_date: e.target.value })} 
+                            onChange={e=>updateOcrDraft({ end_date: e.target.value })} 
                             style={{ 
                               width: '100%', 
                               padding: '12px', 
@@ -1230,7 +1248,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                           <input 
                             type="time" 
                             value={ocrDraft?.start_time ?? ''} 
-                            onChange={e=>setOcrDraft({ ...(ocrDraft||{}), start_time: e.target.value })} 
+                            onChange={e=>updateOcrDraft({ start_time: e.target.value })} 
                             style={{ 
                               width: '100%', 
                               padding: '12px', 
@@ -1247,7 +1265,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                           <input 
                             type="time" 
                             value={ocrDraft?.end_time ?? ''} 
-                            onChange={e=>setOcrDraft({ ...(ocrDraft||{}), end_time: e.target.value })} 
+                            onChange={e=>updateOcrDraft({ end_time: e.target.value })} 
                             style={{ 
                               width: '100%', 
                               padding: '12px', 
@@ -1268,7 +1286,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                           <input 
                             type="url" 
                             value={ocrDraft?.website_url ?? ''} 
-                            onChange={e=>setOcrDraft({ ...(ocrDraft||{}), website_url: e.target.value })} 
+                            onChange={e=>updateOcrDraft({ website_url: e.target.value })} 
                             style={{ 
                               width: '100%', 
                               padding: '12px', 
@@ -1285,7 +1303,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                           </label>
                           <select 
                             value={ocrDraft?.status ?? 'draft'} 
-                            onChange={e=>setOcrDraft({ ...(ocrDraft||{}), status: e.target.value as any })} 
+                            onChange={e=>updateOcrDraft({ status: e.target.value as any })} 
                             style={{ 
                               width: '100%', 
                               padding: '12px', 
@@ -1310,7 +1328,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                     </h4>
                     <textarea 
                       value={ocrRawText} 
-                      onChange={e=>{ setOcrRawText(e.target.value); setOcrDraft(parseEventText(e.target.value) as any) }} 
+                      onChange={e=>{ setOcrRawText(e.target.value); updateOcrDraft(parseEventText(e.target.value) as Partial<EventRow>) }} 
                       style={{ 
                         width: '100%', 
                         height: 300, 
