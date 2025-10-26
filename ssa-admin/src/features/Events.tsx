@@ -229,6 +229,8 @@ export default function Events({ darkMode = false }: EventsProps) {
         console.log('🔧 Events - Looking for fields with ID:', editing.id);
         const nameField = document.querySelector(`input[key="name-${editing.id}"]`) as HTMLInputElement;
         const slugField = document.querySelector(`input[key="slug-${editing.id}"]`) as HTMLInputElement;
+        const hostOrgField = document.querySelector(`input[key="host-org-${editing.id}"]`) as HTMLInputElement;
+        const locationField = document.querySelector(`input[key="location-${editing.id}"]`) as HTMLInputElement;
         const websiteField = document.querySelector(`input[key="website-url-${editing.id}"]`) as HTMLInputElement;
         const recurrenceField = document.querySelector(`input[key="recurrence-${editing.id}"]`) as HTMLInputElement;
         
@@ -240,6 +242,8 @@ export default function Events({ darkMode = false }: EventsProps) {
         
         console.log('🔧 Events - Found nameField:', nameField);
         console.log('🔧 Events - Found slugField:', slugField);
+        console.log('🔧 Events - Found hostOrgField:', hostOrgField);
+        console.log('🔧 Events - Found locationField:', locationField);
         console.log('🔧 Events - Found websiteField:', websiteField);
         console.log('🔧 Events - Found recurrenceField:', recurrenceField);
         console.log('🔧 Events - Found startDateField:', startDateField);
@@ -262,6 +266,24 @@ export default function Events({ darkMode = false }: EventsProps) {
           console.log('🔧 Events - Slug field value after setting:', slugField.value);
         } else {
           console.log('🔧 Events - Slug field not found!');
+        }
+        
+        if (hostOrgField) {
+          console.log('🔧 Events - Manually setting host org field value:', editing.host_org);
+          hostOrgField.value = editing.host_org || '';
+          hostOrgField.style.color = '#000000';
+          console.log('🔧 Events - Host org field value after setting:', hostOrgField.value);
+        } else {
+          console.log('🔧 Events - Host org field not found!');
+        }
+        
+        if (locationField) {
+          console.log('🔧 Events - Manually setting location field value:', editing.location);
+          locationField.value = editing.location || '';
+          locationField.style.color = '#000000';
+          console.log('🔧 Events - Location field value after setting:', locationField.value);
+        } else {
+          console.log('🔧 Events - Location field not found!');
         }
         
         if (websiteField) {
@@ -1971,7 +1993,8 @@ export default function Events({ darkMode = false }: EventsProps) {
                     Host Organization
                   </label>
                   <input 
-                    value={editing?.host_org || ''} 
+                    key={`host-org-${editing?.id || 'new'}`}
+                    defaultValue={editing?.host_org || ''} 
                     onChange={e=>updateEditing({ host_org: e.target.value})} 
                     style={{ 
                       width: '100%', 
@@ -1979,9 +2002,9 @@ export default function Events({ darkMode = false }: EventsProps) {
                       border: '1px solid #d1d5db', 
                       borderRadius: '8px',
                       fontSize: '14px',
-                      background: '#fff'
+                      background: '#fff',
+                      color: '#000000'
                     }}
-                    placeholder="Organization name"
                   />
                 </div>
                 <div>
@@ -1989,7 +2012,8 @@ export default function Events({ darkMode = false }: EventsProps) {
                     Location
                   </label>
                   <input 
-                    value={editing?.location || ''} 
+                    key={`location-${editing?.id || 'new'}`}
+                    defaultValue={editing?.location || ''} 
                     onChange={e=>updateEditing({ location: e.target.value})} 
                     style={{ 
                       width: '100%', 
@@ -1997,9 +2021,9 @@ export default function Events({ darkMode = false }: EventsProps) {
                       border: '1px solid #d1d5db', 
                       borderRadius: '8px',
                       fontSize: '14px',
-                      background: '#fff'
+                      background: '#fff',
+                      color: '#000000'
                     }}
-                    placeholder="Event location"
                   />
                 </div>
               </div>
