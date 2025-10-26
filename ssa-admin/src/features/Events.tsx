@@ -230,8 +230,18 @@ export default function Events({ darkMode = false }: EventsProps) {
         const nameField = document.querySelector(`input[key="name-${editing.id}"]`) as HTMLInputElement;
         const slugField = document.querySelector(`input[key="slug-${editing.id}"]`) as HTMLInputElement;
         
+        // Find date and time fields by their type
+        const startDateField = document.querySelector('input[type="date"]') as HTMLInputElement;
+        const endDateField = document.querySelectorAll('input[type="date"]')[1] as HTMLInputElement;
+        const startTimeField = document.querySelector('input[type="time"]') as HTMLInputElement;
+        const endTimeField = document.querySelectorAll('input[type="time"]')[1] as HTMLInputElement;
+        
         console.log('🔧 Events - Found nameField:', nameField);
         console.log('🔧 Events - Found slugField:', slugField);
+        console.log('🔧 Events - Found startDateField:', startDateField);
+        console.log('🔧 Events - Found endDateField:', endDateField);
+        console.log('🔧 Events - Found startTimeField:', startTimeField);
+        console.log('🔧 Events - Found endTimeField:', endTimeField);
 
         if (nameField) {
           console.log('🔧 Events - Manually setting name field value:', editing.name);
@@ -248,6 +258,52 @@ export default function Events({ darkMode = false }: EventsProps) {
           console.log('🔧 Events - Slug field value after setting:', slugField.value);
         } else {
           console.log('🔧 Events - Slug field not found!');
+        }
+        
+        // Handle date fields - format dates properly
+        if (startDateField && editing.start_date) {
+          console.log('🔧 Events - Manually setting start date field value:', editing.start_date);
+          // Ensure date is in YYYY-MM-DD format
+          const formattedDate = editing.start_date.split('T')[0]; // Remove time part if present
+          startDateField.value = formattedDate;
+          startDateField.style.color = '#000000';
+          console.log('🔧 Events - Start date field value after setting:', startDateField.value);
+        } else {
+          console.log('🔧 Events - Start date field not found or no date value!');
+        }
+        
+        if (endDateField && editing.end_date) {
+          console.log('🔧 Events - Manually setting end date field value:', editing.end_date);
+          // Ensure date is in YYYY-MM-DD format
+          const formattedDate = editing.end_date.split('T')[0]; // Remove time part if present
+          endDateField.value = formattedDate;
+          endDateField.style.color = '#000000';
+          console.log('🔧 Events - End date field value after setting:', endDateField.value);
+        } else {
+          console.log('🔧 Events - End date field not found or no date value!');
+        }
+        
+        // Handle time fields - format times properly
+        if (startTimeField && editing.start_time) {
+          console.log('🔧 Events - Manually setting start time field value:', editing.start_time);
+          // Ensure time is in HH:MM format
+          const formattedTime = editing.start_time.substring(0, 5); // Take only HH:MM part
+          startTimeField.value = formattedTime;
+          startTimeField.style.color = '#000000';
+          console.log('🔧 Events - Start time field value after setting:', startTimeField.value);
+        } else {
+          console.log('🔧 Events - Start time field not found or no time value!');
+        }
+        
+        if (endTimeField && editing.end_time) {
+          console.log('🔧 Events - Manually setting end time field value:', editing.end_time);
+          // Ensure time is in HH:MM format
+          const formattedTime = editing.end_time.substring(0, 5); // Take only HH:MM part
+          endTimeField.value = formattedTime;
+          endTimeField.style.color = '#000000';
+          console.log('🔧 Events - End time field value after setting:', endTimeField.value);
+        } else {
+          console.log('🔧 Events - End time field not found or no time value!');
         }
       }, 50);
     }
@@ -1933,8 +1989,9 @@ export default function Events({ darkMode = false }: EventsProps) {
                     Start Date
             </label>
                   <input 
+                    key={`start-date-${editing?.id || 'new'}`}
                     type="date" 
-                    value={editing?.start_date || ''} 
+                    defaultValue={editing?.start_date ? editing.start_date.split('T')[0] : ''} 
                     onChange={e=>updateEditing({ start_date: e.target.value})} 
                     style={{ 
                       width: '100%', 
@@ -1942,7 +1999,8 @@ export default function Events({ darkMode = false }: EventsProps) {
                       border: '1px solid #d1d5db', 
                       borderRadius: '8px',
                       fontSize: '14px',
-                      background: '#fff'
+                      background: '#fff',
+                      color: '#000000'
                     }}
                   />
                 </div>
@@ -1951,8 +2009,9 @@ export default function Events({ darkMode = false }: EventsProps) {
                     End Date
                   </label>
                   <input 
+                    key={`end-date-${editing?.id || 'new'}`}
                     type="date" 
-                    value={editing?.end_date || ''} 
+                    defaultValue={editing?.end_date ? editing.end_date.split('T')[0] : ''} 
                     onChange={e=>updateEditing({ end_date: e.target.value})} 
                     style={{ 
                       width: '100%', 
@@ -1960,7 +2019,8 @@ export default function Events({ darkMode = false }: EventsProps) {
                       border: '1px solid #d1d5db', 
                       borderRadius: '8px',
                       fontSize: '14px',
-                      background: '#fff'
+                      background: '#fff',
+                      color: '#000000'
                     }}
                   />
                 </div>
@@ -1973,8 +2033,9 @@ export default function Events({ darkMode = false }: EventsProps) {
                     Start Time
           </label>
                   <input 
+                    key={`start-time-${editing?.id || 'new'}`}
                     type="time" 
-                    value={editing?.start_time || ''} 
+                    defaultValue={editing?.start_time ? editing.start_time.substring(0, 5) : ''} 
                     onChange={e=>updateEditing({ start_time: e.target.value})} 
                     style={{ 
                       width: '100%', 
@@ -1982,7 +2043,8 @@ export default function Events({ darkMode = false }: EventsProps) {
                       border: '1px solid #d1d5db', 
                       borderRadius: '8px',
                       fontSize: '14px',
-                      background: '#fff'
+                      background: '#fff',
+                      color: '#000000'
                     }}
                   />
                 </div>
@@ -1991,8 +2053,9 @@ export default function Events({ darkMode = false }: EventsProps) {
                     End Time
                   </label>
                   <input 
+                    key={`end-time-${editing?.id || 'new'}`}
                     type="time" 
-                    value={editing?.end_time || ''} 
+                    defaultValue={editing?.end_time ? editing.end_time.substring(0, 5) : ''} 
                     onChange={e=>updateEditing({ end_time: e.target.value})} 
                     style={{ 
                       width: '100%', 
@@ -2000,7 +2063,8 @@ export default function Events({ darkMode = false }: EventsProps) {
                       border: '1px solid #d1d5db', 
                       borderRadius: '8px',
                       fontSize: '14px',
-                      background: '#fff'
+                      background: '#fff',
+                      color: '#000000'
                     }}
                   />
                 </div>
