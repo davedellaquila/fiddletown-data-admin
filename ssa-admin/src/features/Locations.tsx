@@ -968,6 +968,7 @@ export default function Locations({ darkMode = false }: LocationsProps) {
                     borderRadius: '8px',
                     fontSize: '14px',
                     background: '#fff',
+                    color: '#000000',
                     minHeight: '80px',
                     resize: 'vertical'
                     }}
