@@ -577,7 +577,8 @@ export default function Locations({ darkMode = false }: LocationsProps) {
             {rows.map(r => (
               <tr 
                 key={r.id}
-                onClick={() => {
+                onClick={(e) => {
+                e.stopPropagation(); // Prevent click from bubbling to dialog overlay
                 console.log('🔍 Locations - Row clicked - Browser:', navigator.userAgent);
                 console.log('🔍 Locations - Row data:', r);
                 console.log('🔍 Locations - Current editing state before:', editing);
