@@ -47,63 +47,12 @@ export default function Locations({ darkMode = false }: LocationsProps) {
       console.log('📊 Locations - Region:', editing.region, 'Type:', typeof editing.region);
       console.log('📊 Locations - Status:', editing.status, 'Type:', typeof editing.status);
       
-      // Force field population with multiple attempts
-      const populateFields = () => {
-        console.log('🔧 Locations - Looking for fields with ID:', editing.id);
-        const nameField = document.querySelector(`input[data-key="name-${editing.id}"]`) as HTMLInputElement;
-        const slugField = document.querySelector(`input[data-key="slug-${editing.id}"]`) as HTMLInputElement;
-        const regionField = document.querySelector(`input[data-key="region-${editing.id}"]`) as HTMLInputElement;
-        const websiteField = document.querySelector(`input[data-key="website-${editing.id}"]`) as HTMLInputElement;
-        
-        console.log('🔧 Locations - Found nameField:', nameField);
-        console.log('🔧 Locations - Found slugField:', slugField);
-        console.log('🔧 Locations - Found regionField:', regionField);
-        console.log('🔧 Locations - Found websiteField:', websiteField);
-        
-        if (nameField) {
-          console.log('🔧 Locations - Manually setting name field value:', editing.name);
-          nameField.value = editing.name || '';
-          nameField.setAttribute('value', editing.name || '');
-          // Trigger change event
-          nameField.dispatchEvent(new Event('input', { bubbles: true }));
-          console.log('🔧 Locations - Name field value after setting:', nameField.value);
-        } else {
-          console.log('🔧 Locations - Name field not found!');
-        }
-        if (slugField) {
-          console.log('🔧 Locations - Manually setting slug field value:', editing.slug);
-          slugField.value = editing.slug || '';
-          slugField.setAttribute('value', editing.slug || '');
-          slugField.dispatchEvent(new Event('input', { bubbles: true }));
-          console.log('🔧 Locations - Slug field value after setting:', slugField.value);
-        } else {
-          console.log('🔧 Locations - Slug field not found!');
-        }
-        if (regionField) {
-          console.log('🔧 Locations - Manually setting region field value:', editing.region);
-          regionField.value = editing.region || '';
-          regionField.setAttribute('value', editing.region || '');
-          regionField.dispatchEvent(new Event('input', { bubbles: true }));
-          console.log('🔧 Locations - Region field value after setting:', regionField.value);
-        } else {
-          console.log('🔧 Locations - Region field not found!');
-        }
-        if (websiteField) {
-          console.log('🔧 Locations - Manually setting website field value:', editing.website_url);
-          websiteField.value = editing.website_url || '';
-          websiteField.setAttribute('value', editing.website_url || '');
-          websiteField.dispatchEvent(new Event('input', { bubbles: true }));
-          console.log('🔧 Locations - Website field value after setting:', websiteField.value);
-        } else {
-          console.log('🔧 Locations - Website field not found!');
-        }
-      };
-      
-      // Try multiple times with different delays
-      setTimeout(populateFields, 10);
-      setTimeout(populateFields, 50);
-      setTimeout(populateFields, 100);
-      setTimeout(populateFields, 200);
+      // Simple approach - just log the current state
+      console.log('🔧 Locations - Current editing state for form fields:');
+      console.log('🔧 Locations - Name:', editing.name);
+      console.log('🔧 Locations - Slug:', editing.slug);
+      console.log('🔧 Locations - Region:', editing.region);
+      console.log('🔧 Locations - Website:', editing.website_url);
     } else {
       console.log('📊 Locations - Editing state is now NULL - something reset it!');
       console.trace('📊 Locations - Call stack when editing became null:');
@@ -898,7 +847,7 @@ export default function Locations({ darkMode = false }: LocationsProps) {
                     Location Name *
                   </label>
                   <input 
-                    key={`name-${editing?.id || 'new'}-${Date.now()}`}
+                    key={`name-${editing?.id || 'new'}`}
                     data-key={`name-${editing?.id || 'new'}`}
                     value={editing?.name ?? ''}
                     onChange={e=>{
@@ -926,7 +875,7 @@ export default function Locations({ darkMode = false }: LocationsProps) {
                     Slug
                   </label>
                   <input 
-                    key={`slug-${editing?.id || 'new'}-${Date.now()}`}
+                    key={`slug-${editing?.id || 'new'}`}
                     data-key={`slug-${editing?.id || 'new'}`}
                     value={editing?.slug ?? ''} 
                     onChange={e=>setEditing({...editing, slug: e.target.value})} 
@@ -950,7 +899,7 @@ export default function Locations({ darkMode = false }: LocationsProps) {
                     Region
                   </label>
                   <input 
-                    key={`region-${editing?.id || 'new'}-${Date.now()}`}
+                    key={`region-${editing?.id || 'new'}`}
                     data-key={`region-${editing?.id || 'new'}`}
                     value={editing?.region ?? ''} 
                     onChange={e=>setEditing({...editing, region: e.target.value})} 
@@ -970,7 +919,7 @@ export default function Locations({ darkMode = false }: LocationsProps) {
                     Website URL
                   </label>
                   <input 
-                    key={`website-${editing?.id || 'new'}-${Date.now()}`}
+                    key={`website-${editing?.id || 'new'}`}
                     data-key={`website-${editing?.id || 'new'}`}
                     value={editing?.website_url ?? ''} 
                     onChange={e=>setEditing({...editing, website_url: e.target.value})} 
