@@ -887,7 +887,7 @@ export default function Locations({ darkMode = false }: LocationsProps) {
                       console.log('🔧 Locations - Current editing state:', editing);
                       setEditing({...editing, name: e.target.value});
                     }}
-                    onFocus={() => {
+                    onFocus={(e) => {
                       console.log('🔧 Locations - Name field focused, current value:', editing?.name);
                       console.log('🔧 Locations - Name field value prop:', editing?.name ?? '');
                       console.log('🔧 Locations - Name field DOM value:', (e.target as HTMLInputElement).value);
@@ -1083,6 +1083,7 @@ export default function Locations({ darkMode = false }: LocationsProps) {
               </div>
             </div>
           </div>
+        </div>
         </div>
       )}
     </div>
