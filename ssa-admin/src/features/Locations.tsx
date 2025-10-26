@@ -825,36 +825,53 @@ export default function Locations({ darkMode = false }: LocationsProps) {
             onClick={(e) => e.stopPropagation()}
             style={{ 
               background: 'white', 
-              padding: '32px', 
+              padding: '0', 
               borderRadius: '12px', 
               maxWidth: '600px', 
               width: '100%', 
               maxHeight: '90vh', 
-              overflow: 'auto',
-              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
+              overflow: 'hidden',
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+              display: 'flex',
+              flexDirection: 'column'
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
-              <h3 style={{ margin: 0, fontSize: '24px', fontWeight: '600', color: '#1f2937' }}>
-                {editing.id ? '✏️ Edit Location' : '➕ New Location'}
-              </h3>
-              <button 
-                onClick={()=>setEditing(null)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  fontSize: '24px',
-                  cursor: 'pointer',
-                  color: '#6b7280',
-                  padding: '4px'
-                }}
-                title="Close"
-              >
-                ✕
-              </button>
+            {/* Fixed Header */}
+            <div style={{
+              padding: '24px 32px 16px 32px',
+              borderBottom: '1px solid #e5e7eb',
+              background: 'white',
+              borderRadius: '12px 12px 0 0',
+              flexShrink: 0
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <h3 style={{ margin: 0, fontSize: '24px', fontWeight: '600', color: '#1f2937' }}>
+                  {editing.id ? '✏️ Edit Location' : '➕ New Location'}
+                </h3>
+                <button 
+                  onClick={()=>setEditing(null)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    fontSize: '24px',
+                    cursor: 'pointer',
+                    color: '#6b7280',
+                    padding: '4px'
+                  }}
+                  title="Close"
+                >
+                  ✕
+                </button>
+              </div>
             </div>
 
-            <div style={{ display: 'grid', gap: '20px' }}>
+            {/* Scrollable Content */}
+            <div style={{
+              flex: 1,
+              overflowY: 'auto',
+              padding: '24px 32px'
+            }}>
+              <div style={{ display: 'grid', gap: '20px' }}>
               {/* Name and Slug */}
               <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '16px' }}>
                 <div>
@@ -1021,43 +1038,52 @@ export default function Locations({ darkMode = false }: LocationsProps) {
               </div>
             </div>
 
-            <div style={{ 
-              marginTop: '32px', 
-              display: 'flex', 
-              gap: '12px', 
-              justifyContent: 'flex-end',
-              paddingTop: '20px',
-              borderTop: '1px solid #e5e7eb'
+              </div>
+            </div>
+
+            {/* Fixed Footer */}
+            <div style={{
+              padding: '16px 32px 24px 32px',
+              borderTop: '1px solid #e5e7eb',
+              background: 'white',
+              borderRadius: '0 0 12px 12px',
+              flexShrink: 0
             }}>
-              <button 
-                className="btn" 
-                onClick={()=>setEditing(null)}
-                style={{ 
-                  padding: '12px 24px', 
-                  fontSize: '14px',
-                  background: '#f9fafb',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  color: '#374151'
-                }}
-              >
-                Cancel
-              </button>
-              <button 
-                className="btn primary" 
-                onClick={save}
-                style={{ 
-                  padding: '12px 24px', 
-                  fontSize: '14px',
-                  background: '#3b82f6',
-                  border: '1px solid #3b82f6',
-                  borderRadius: '8px',
-                  color: 'white',
-                  fontWeight: '500'
-                }}
-              >
-                💾 Save Location
-              </button>
+              <div style={{ 
+                display: 'flex', 
+                gap: '12px', 
+                justifyContent: 'flex-end'
+              }}>
+                <button 
+                  className="btn" 
+                  onClick={()=>setEditing(null)}
+                  style={{ 
+                    padding: '12px 24px', 
+                    fontSize: '14px',
+                    background: '#f9fafb',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    color: '#374151'
+                  }}
+                >
+                  Cancel
+                </button>
+                <button 
+                  className="btn primary" 
+                  onClick={save}
+                  style={{ 
+                    padding: '12px 24px', 
+                    fontSize: '14px',
+                    background: '#3b82f6',
+                    border: '1px solid #3b82f6',
+                    borderRadius: '8px',
+                    color: 'white',
+                    fontWeight: '500'
+                  }}
+                >
+                  💾 Save Location
+                </button>
+              </div>
             </div>
           </div>
         </div>
