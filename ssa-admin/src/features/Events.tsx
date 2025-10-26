@@ -182,15 +182,21 @@ export default function Events({ darkMode = false }: EventsProps) {
 
   // Helper function to update editing state safely
   const updateEditing = (updates: Partial<EventRow>) => {
+    console.log('🔄 Events - updateEditing called with:', updates);
+    console.log('🔄 Events - Current editing state:', editing);
     if (editing) {
-      setEditing({...editing, ...updates});
+      const newState = {...editing, ...updates};
+      console.log('🔄 Events - New editing state (existing):', newState);
+      setEditing(newState);
     } else {
-      setEditing({
+      const newState = {
         name: '',
         status: 'draft',
         sort_order: 1000,
         ...updates
-      });
+      };
+      console.log('🔄 Events - New editing state (new):', newState);
+      setEditing(newState);
     }
   }
 
@@ -1573,7 +1579,10 @@ export default function Events({ darkMode = false }: EventsProps) {
           {rows.map((r) => (
             <tr 
               key={r.id ?? r.slug ?? r.name}
-              onClick={() => setEditing(r)}
+              onClick={() => {
+                console.log('🎯 Events - Clicked row data:', r);
+                updateEditing(r);
+              }}
               style={{ 
                 cursor: 'pointer',
                 transition: 'background-color 0.2s ease'
