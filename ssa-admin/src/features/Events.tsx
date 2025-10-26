@@ -233,6 +233,7 @@ export default function Events({ darkMode = false }: EventsProps) {
         const locationField = document.querySelector(`input[key="location-${editing.id}"]`) as HTMLInputElement;
         const websiteField = document.querySelector(`input[key="website-url-${editing.id}"]`) as HTMLInputElement;
         const recurrenceField = document.querySelector(`input[key="recurrence-${editing.id}"]`) as HTMLInputElement;
+        const sortOrderField = document.querySelector(`input[key="sort-order-${editing.id}"]`) as HTMLInputElement;
         
         // Find date and time fields by their type
         const startDateField = document.querySelector('input[type="date"]') as HTMLInputElement;
@@ -246,6 +247,7 @@ export default function Events({ darkMode = false }: EventsProps) {
         console.log('🔧 Events - Found locationField:', locationField);
         console.log('🔧 Events - Found websiteField:', websiteField);
         console.log('🔧 Events - Found recurrenceField:', recurrenceField);
+        console.log('🔧 Events - Found sortOrderField:', sortOrderField);
         console.log('🔧 Events - Found startDateField:', startDateField);
         console.log('🔧 Events - Found endDateField:', endDateField);
         console.log('🔧 Events - Found startTimeField:', startTimeField);
@@ -302,6 +304,15 @@ export default function Events({ darkMode = false }: EventsProps) {
           console.log('🔧 Events - Recurrence field value after setting:', recurrenceField.value);
         } else {
           console.log('🔧 Events - Recurrence field not found!');
+        }
+        
+        if (sortOrderField) {
+          console.log('🔧 Events - Manually setting sort order field value:', editing.sort_order);
+          sortOrderField.value = editing.sort_order?.toString() || '1000';
+          sortOrderField.style.color = '#000000';
+          console.log('🔧 Events - Sort order field value after setting:', sortOrderField.value);
+        } else {
+          console.log('🔧 Events - Sort order field not found!');
         }
         
         // Handle date fields - format dates properly
@@ -2286,8 +2297,9 @@ export default function Events({ darkMode = false }: EventsProps) {
                     Sort Order
                   </label>
                   <input 
+                    key={`sort-order-${editing?.id || 'new'}`}
                     type="number" 
-                    value={editing?.sort_order || 1000} 
+                    defaultValue={editing?.sort_order || 1000} 
                     onChange={e=>updateEditing({ sort_order: Number(e.target.value)})} 
                     style={{ 
                       width: '100%', 
@@ -2295,9 +2307,9 @@ export default function Events({ darkMode = false }: EventsProps) {
                       border: '1px solid #d1d5db', 
                       borderRadius: '8px',
                       fontSize: '14px',
-                      background: '#fff'
+                      background: '#fff',
+                      color: '#000000'
                     }}
-                    placeholder="1000"
                   />
                 </div>
               </div>
