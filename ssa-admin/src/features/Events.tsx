@@ -229,6 +229,8 @@ export default function Events({ darkMode = false }: EventsProps) {
         console.log('🔧 Events - Looking for fields with ID:', editing.id);
         const nameField = document.querySelector(`input[key="name-${editing.id}"]`) as HTMLInputElement;
         const slugField = document.querySelector(`input[key="slug-${editing.id}"]`) as HTMLInputElement;
+        const websiteField = document.querySelector(`input[key="website-url-${editing.id}"]`) as HTMLInputElement;
+        const recurrenceField = document.querySelector(`input[key="recurrence-${editing.id}"]`) as HTMLInputElement;
         
         // Find date and time fields by their type
         const startDateField = document.querySelector('input[type="date"]') as HTMLInputElement;
@@ -238,6 +240,8 @@ export default function Events({ darkMode = false }: EventsProps) {
         
         console.log('🔧 Events - Found nameField:', nameField);
         console.log('🔧 Events - Found slugField:', slugField);
+        console.log('🔧 Events - Found websiteField:', websiteField);
+        console.log('🔧 Events - Found recurrenceField:', recurrenceField);
         console.log('🔧 Events - Found startDateField:', startDateField);
         console.log('🔧 Events - Found endDateField:', endDateField);
         console.log('🔧 Events - Found startTimeField:', startTimeField);
@@ -258,6 +262,24 @@ export default function Events({ darkMode = false }: EventsProps) {
           console.log('🔧 Events - Slug field value after setting:', slugField.value);
         } else {
           console.log('🔧 Events - Slug field not found!');
+        }
+        
+        if (websiteField) {
+          console.log('🔧 Events - Manually setting website field value:', editing.website_url);
+          websiteField.value = editing.website_url || '';
+          websiteField.style.color = '#000000';
+          console.log('🔧 Events - Website field value after setting:', websiteField.value);
+        } else {
+          console.log('🔧 Events - Website field not found!');
+        }
+        
+        if (recurrenceField) {
+          console.log('🔧 Events - Manually setting recurrence field value:', editing.recurrence);
+          recurrenceField.value = editing.recurrence || '';
+          recurrenceField.style.color = '#000000';
+          console.log('🔧 Events - Recurrence field value after setting:', recurrenceField.value);
+        } else {
+          console.log('🔧 Events - Recurrence field not found!');
         }
         
         // Handle date fields - format dates properly
@@ -2077,7 +2099,8 @@ export default function Events({ darkMode = false }: EventsProps) {
                     Website URL
                   </label>
                   <input 
-                    value={editing?.website_url || ''} 
+                    key={`website-url-${editing?.id || 'new'}`}
+                    defaultValue={editing?.website_url || ''} 
                     onChange={e=>updateEditing({ website_url: e.target.value})} 
                     style={{ 
                       width: '100%', 
@@ -2085,9 +2108,9 @@ export default function Events({ darkMode = false }: EventsProps) {
                       border: '1px solid #d1d5db', 
                       borderRadius: '8px',
                       fontSize: '14px',
-                      background: '#fff'
+                      background: '#fff',
+                      color: '#000000'
                     }}
-                    placeholder="https://example.com"
                   />
           </div>
                 <div>
@@ -2095,7 +2118,8 @@ export default function Events({ darkMode = false }: EventsProps) {
                     Recurrence
                   </label>
                   <input 
-                    value={editing?.recurrence || ''} 
+                    key={`recurrence-${editing?.id || 'new'}`}
+                    defaultValue={editing?.recurrence || ''} 
                     onChange={e=>updateEditing({ recurrence: e.target.value})} 
                     style={{ 
                       width: '100%', 
@@ -2103,9 +2127,9 @@ export default function Events({ darkMode = false }: EventsProps) {
                       border: '1px solid #d1d5db', 
                       borderRadius: '8px',
                       fontSize: '14px',
-                      background: '#fff'
+                      background: '#fff',
+                      color: '#000000'
                     }}
-                    placeholder="Annual, Monthly, etc."
                   />
         </div>
               </div>
