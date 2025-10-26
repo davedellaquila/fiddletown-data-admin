@@ -1829,6 +1829,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                   </label>
                   <input 
                     key={`name-${editing?.id || 'new'}`}
+                    data-key={`name-${editing?.id || 'new'}`}
                     defaultValue={editing?.name || ''} 
                     onChange={e=>updateEditing({name: e.target.value})} 
                     style={{ 
@@ -1848,6 +1849,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                   </label>
                   <input 
                     key={`slug-${editing?.id || 'new'}`}
+                    data-key={`slug-${editing?.id || 'new'}`}
                     defaultValue={editing?.slug || ''} 
                     onChange={e=>updateEditing({slug: e.target.value})} 
                     style={{ 
@@ -1871,6 +1873,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                   </label>
                   <input 
                     key={`host-org-${editing?.id || 'new'}`}
+                    data-key={`host-org-${editing?.id || 'new'}`}
                     defaultValue={editing?.host_org || ''} 
                     onChange={e=>updateEditing({ host_org: e.target.value})} 
                     style={{ 
@@ -1890,6 +1893,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                   </label>
                   <input 
                     key={`location-${editing?.id || 'new'}`}
+                    data-key={`location-${editing?.id || 'new'}`}
                     defaultValue={editing?.location || ''} 
                     onChange={e=>updateEditing({ location: e.target.value})} 
                     style={{ 
@@ -1913,8 +1917,9 @@ export default function Events({ darkMode = false }: EventsProps) {
             </label>
                   <input 
                     key={`start-date-${editing?.id || 'new'}`}
-                    type="date" 
-                    defaultValue={editing?.start_date ? editing.start_date.split('T')[0] : ''} 
+                    data-key={`start-date-${editing?.id || 'new'}`}
+                    type="date"
+                    defaultValue={editing?.start_date ? editing.start_date.split('T')[0] : ''}
                     onChange={e=>updateEditing({ start_date: e.target.value})} 
                     style={{ 
                       width: '100%', 
@@ -1933,8 +1938,9 @@ export default function Events({ darkMode = false }: EventsProps) {
                   </label>
                   <input 
                     key={`end-date-${editing?.id || 'new'}`}
-                    type="date" 
-                    defaultValue={editing?.end_date ? editing.end_date.split('T')[0] : ''} 
+                    data-key={`end-date-${editing?.id || 'new'}`}
+                    type="date"
+                    defaultValue={editing?.end_date ? editing.end_date.split('T')[0] : ''}
                     onChange={e=>updateEditing({ end_date: e.target.value})} 
                     style={{ 
                       width: '100%', 
@@ -1957,8 +1963,9 @@ export default function Events({ darkMode = false }: EventsProps) {
           </label>
                   <input 
                     key={`start-time-${editing?.id || 'new'}`}
-                    type="time" 
-                    defaultValue={editing?.start_time ? editing.start_time.substring(0, 5) : ''} 
+                    data-key={`start-time-${editing?.id || 'new'}`}
+                    type="time"
+                    defaultValue={editing?.start_time ? editing.start_time.substring(0, 5) : ''}
                     onChange={e=>updateEditing({ start_time: e.target.value})} 
                     style={{ 
                       width: '100%', 
@@ -1977,8 +1984,9 @@ export default function Events({ darkMode = false }: EventsProps) {
                   </label>
                   <input 
                     key={`end-time-${editing?.id || 'new'}`}
-                    type="time" 
-                    defaultValue={editing?.end_time ? editing.end_time.substring(0, 5) : ''} 
+                    data-key={`end-time-${editing?.id || 'new'}`}
+                    type="time"
+                    defaultValue={editing?.end_time ? editing.end_time.substring(0, 5) : ''}
                     onChange={e=>updateEditing({ end_time: e.target.value})} 
                     style={{ 
                       width: '100%', 
@@ -2001,6 +2009,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                   </label>
                   <input 
                     key={`website-url-${editing?.id || 'new'}`}
+                    data-key={`website-url-${editing?.id || 'new'}`}
                     defaultValue={editing?.website_url || ''} 
                     onChange={e=>updateEditing({ website_url: e.target.value})} 
                     style={{ 
@@ -2020,6 +2029,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                   </label>
                   <input 
                     key={`recurrence-${editing?.id || 'new'}`}
+                    data-key={`recurrence-${editing?.id || 'new'}`}
                     defaultValue={editing?.recurrence || ''} 
                     onChange={e=>updateEditing({ recurrence: e.target.value})} 
                     style={{ 
@@ -2164,8 +2174,9 @@ export default function Events({ darkMode = false }: EventsProps) {
                   </label>
                   <input 
                     key={`sort-order-${editing?.id || 'new'}`}
-                    type="number" 
-                    defaultValue={editing?.sort_order || 1000} 
+                    data-key={`sort-order-${editing?.id || 'new'}`}
+                    type="number"
+                    defaultValue={editing?.sort_order || 1000}
                     onChange={e=>updateEditing({ sort_order: Number(e.target.value)})} 
                     style={{ 
                       width: '100%', 

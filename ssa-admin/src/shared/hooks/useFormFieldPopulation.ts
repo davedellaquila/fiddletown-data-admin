@@ -63,42 +63,42 @@ export const createFieldConfigs = {
   // Text input fields
   text: (fieldName: string, keyPrefix: string = '') => ({
     fieldName,
-    selector: `input[key="${keyPrefix}${fieldName}-${keyPrefix ? '{editing.id}' : ''}"]`,
+    selector: `input[data-key="${keyPrefix}${fieldName}-${keyPrefix ? '{editing.id}' : ''}"]`,
     formatter: (value: any) => value || ''
   }),
 
   // Date fields (formats to YYYY-MM-DD)
   date: (fieldName: string, keyPrefix: string = '') => ({
     fieldName,
-    selector: `input[key="${keyPrefix}${fieldName}-${keyPrefix ? '{editing.id}' : ''}"]`,
+    selector: `input[data-key="${keyPrefix}${fieldName}-${keyPrefix ? '{editing.id}' : ''}"]`,
     formatter: (value: any) => value ? value.split('T')[0] : ''
   }),
 
   // Time fields (formats to HH:MM)
   time: (fieldName: string, keyPrefix: string = '') => ({
     fieldName,
-    selector: `input[key="${keyPrefix}${fieldName}-${keyPrefix ? '{editing.id}' : ''}"]`,
+    selector: `input[data-key="${keyPrefix}${fieldName}-${keyPrefix ? '{editing.id}' : ''}"]`,
     formatter: (value: any) => value ? value.substring(0, 5) : ''
   }),
 
   // Number fields
   number: (fieldName: string, keyPrefix: string = '', defaultValue: number = 0) => ({
     fieldName,
-    selector: `input[key="${keyPrefix}${fieldName}-${keyPrefix ? '{editing.id}' : ''}"]`,
+    selector: `input[data-key="${keyPrefix}${fieldName}-${keyPrefix ? '{editing.id}' : ''}"]`,
     formatter: (value: any) => value?.toString() || defaultValue.toString()
   }),
 
   // Select fields
   select: (fieldName: string, keyPrefix: string = '') => ({
     fieldName,
-    selector: `select[key="${keyPrefix}${fieldName}-${keyPrefix ? '{editing.id}' : ''}"]`,
+    selector: `select[data-key="${keyPrefix}${fieldName}-${keyPrefix ? '{editing.id}' : ''}"]`,
     formatter: (value: any) => value || ''
   }),
 
   // Textarea fields
   textarea: (fieldName: string, keyPrefix: string = '') => ({
     fieldName,
-    selector: `textarea[key="${keyPrefix}${fieldName}-${keyPrefix ? '{editing.id}' : ''}"]`,
+    selector: `textarea[data-key="${keyPrefix}${fieldName}-${keyPrefix ? '{editing.id}' : ''}"]`,
     formatter: (value: any) => value || ''
   })
 }
@@ -107,25 +107,85 @@ export const createFieldConfigs = {
  * Helper function to create field configurations for Events module
  */
 export const createEventsFieldConfigs = (editingId: string): FormFieldConfig[] => [
-  createFieldConfigs.text('name', ''),
-  createFieldConfigs.text('slug', ''),
-  createFieldConfigs.text('host_org', 'host-org-'),
-  createFieldConfigs.text('location', ''),
-  createFieldConfigs.date('start_date', 'start-date-'),
-  createFieldConfigs.date('end_date', 'end-date-'),
-  createFieldConfigs.time('start_time', 'start-time-'),
-  createFieldConfigs.time('end_time', 'end-time-'),
-  createFieldConfigs.text('website_url', 'website-url-'),
-  createFieldConfigs.text('recurrence', ''),
-  createFieldConfigs.number('sort_order', 'sort-order-', 1000)
+  {
+    fieldName: 'name',
+    selector: `input[data-key="name-${editingId}"]`,
+    formatter: (value: any) => value || ''
+  },
+  {
+    fieldName: 'slug',
+    selector: `input[data-key="slug-${editingId}"]`,
+    formatter: (value: any) => value || ''
+  },
+  {
+    fieldName: 'host_org',
+    selector: `input[data-key="host-org-${editingId}"]`,
+    formatter: (value: any) => value || ''
+  },
+  {
+    fieldName: 'location',
+    selector: `input[data-key="location-${editingId}"]`,
+    formatter: (value: any) => value || ''
+  },
+  {
+    fieldName: 'start_date',
+    selector: `input[data-key="start-date-${editingId}"]`,
+    formatter: (value: any) => value ? value.split('T')[0] : ''
+  },
+  {
+    fieldName: 'end_date',
+    selector: `input[data-key="end-date-${editingId}"]`,
+    formatter: (value: any) => value ? value.split('T')[0] : ''
+  },
+  {
+    fieldName: 'start_time',
+    selector: `input[data-key="start-time-${editingId}"]`,
+    formatter: (value: any) => value ? value.substring(0, 5) : ''
+  },
+  {
+    fieldName: 'end_time',
+    selector: `input[data-key="end-time-${editingId}"]`,
+    formatter: (value: any) => value ? value.substring(0, 5) : ''
+  },
+  {
+    fieldName: 'website_url',
+    selector: `input[data-key="website-url-${editingId}"]`,
+    formatter: (value: any) => value || ''
+  },
+  {
+    fieldName: 'recurrence',
+    selector: `input[data-key="recurrence-${editingId}"]`,
+    formatter: (value: any) => value || ''
+  },
+  {
+    fieldName: 'sort_order',
+    selector: `input[data-key="sort-order-${editingId}"]`,
+    formatter: (value: any) => value?.toString() || '1000'
+  }
 ]
 
 /**
  * Helper function to create field configurations for Locations module
  */
 export const createLocationsFieldConfigs = (editingId: string): FormFieldConfig[] => [
-  createFieldConfigs.text('name', ''),
-  createFieldConfigs.text('slug', ''),
-  createFieldConfigs.text('region', ''),
-  createFieldConfigs.textarea('description', '')
+  {
+    fieldName: 'name',
+    selector: `input[data-key="name-${editingId}"]`,
+    formatter: (value: any) => value || ''
+  },
+  {
+    fieldName: 'slug',
+    selector: `input[data-key="slug-${editingId}"]`,
+    formatter: (value: any) => value || ''
+  },
+  {
+    fieldName: 'region',
+    selector: `input[data-key="region-${editingId}"]`,
+    formatter: (value: any) => value || ''
+  },
+  {
+    fieldName: 'description',
+    selector: `textarea[data-key="description-${editingId}"]`,
+    formatter: (value: any) => value || ''
+  }
 ]
