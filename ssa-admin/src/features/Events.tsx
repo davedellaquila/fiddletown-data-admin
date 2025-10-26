@@ -222,6 +222,37 @@ export default function Events({ darkMode = false }: EventsProps) {
     }
   }, [editing, ocrOpen])
 
+  // Manually set field values to ensure they display correctly
+  useEffect(() => {
+    if (editing) {
+      setTimeout(() => {
+        console.log('🔧 Events - Looking for fields with ID:', editing.id);
+        const nameField = document.querySelector(`input[key="name-${editing.id}"]`) as HTMLInputElement;
+        const slugField = document.querySelector(`input[key="slug-${editing.id}"]`) as HTMLInputElement;
+        
+        console.log('🔧 Events - Found nameField:', nameField);
+        console.log('🔧 Events - Found slugField:', slugField);
+
+        if (nameField) {
+          console.log('🔧 Events - Manually setting name field value:', editing.name);
+          nameField.value = editing.name || '';
+          nameField.style.color = '#000000';
+          console.log('🔧 Events - Name field value after setting:', nameField.value);
+        } else {
+          console.log('🔧 Events - Name field not found!');
+        }
+        if (slugField) {
+          console.log('🔧 Events - Manually setting slug field value:', editing.slug);
+          slugField.value = editing.slug || '';
+          slugField.style.color = '#000000';
+          console.log('🔧 Events - Slug field value after setting:', slugField.value);
+        } else {
+          console.log('🔧 Events - Slug field not found!');
+        }
+      }, 50);
+    }
+  }, [editing])
+
   const [editingImageUrl, setEditingImageUrl] = useState<string | null>(null)
   const pasteRef = useRef<HTMLDivElement | null>(null)
 
@@ -1820,7 +1851,8 @@ export default function Events({ darkMode = false }: EventsProps) {
                     Event Name *
                   </label>
                   <input 
-                    value={editing?.name || ''} 
+                    key={`name-${editing?.id || 'new'}`}
+                    defaultValue={editing?.name || ''} 
                     onChange={e=>updateEditing({name: e.target.value})} 
                     style={{ 
                       width: '100%', 
@@ -1828,9 +1860,9 @@ export default function Events({ darkMode = false }: EventsProps) {
                       border: '1px solid #d1d5db', 
                       borderRadius: '8px',
                       fontSize: '14px',
-                      background: '#fff'
+                      background: '#fff',
+                      color: '#000000'
                     }}
-                    placeholder="Enter event name"
                   />
                 </div>
                 <div>
@@ -1838,7 +1870,8 @@ export default function Events({ darkMode = false }: EventsProps) {
                     Slug
                   </label>
                   <input 
-                    value={editing?.slug || ''} 
+                    key={`slug-${editing?.id || 'new'}`}
+                    defaultValue={editing?.slug || ''} 
                     onChange={e=>updateEditing({slug: e.target.value})} 
                     style={{ 
                       width: '100%', 
@@ -1846,9 +1879,9 @@ export default function Events({ darkMode = false }: EventsProps) {
                       border: '1px solid #d1d5db', 
                       borderRadius: '8px',
                       fontSize: '14px',
-                      background: '#fff'
+                      background: '#fff',
+                      color: '#000000'
                     }}
-                    placeholder="event-slug"
                   />
                 </div>
               </div>
