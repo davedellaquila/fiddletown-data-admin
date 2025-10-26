@@ -751,7 +751,13 @@ export default function Locations({ darkMode = false }: LocationsProps) {
         </table>
       ) : (
         <div 
-          onClick={() => setEditing(null)}
+          onClick={(e) => {
+            console.log('🚨 Locations - Dialog overlay clicked!', e.target);
+            console.log('🚨 Locations - Event target:', e.target);
+            console.log('🚨 Locations - Current target:', e.currentTarget);
+            console.log('🚨 Locations - Event type:', e.type);
+            setEditing(null);
+          }}
           style={{ 
             position: 'fixed', 
             top: 0, 
