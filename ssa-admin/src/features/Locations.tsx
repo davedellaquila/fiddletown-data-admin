@@ -858,6 +858,7 @@ export default function Locations({ darkMode = false }: LocationsProps) {
                     onFocus={() => {
                       console.log('🔧 Locations - Name field focused, current value:', editing?.name);
                       console.log('🔧 Locations - Name field value prop:', editing?.name ?? '');
+                      console.log('🔧 Locations - Name field DOM value:', (e.target as HTMLInputElement).value);
                     }} 
                     style={{ 
                       width: '100%', 
@@ -869,6 +870,9 @@ export default function Locations({ darkMode = false }: LocationsProps) {
                     }}
                     placeholder="Enter location name"
                   />
+                  <div style={{ fontSize: '10px', color: '#666', marginTop: '4px' }}>
+                    Debug: React value = "{editing?.name ?? 'undefined'}"
+                  </div>
                 </div>
                 <div>
                   <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
@@ -889,6 +893,9 @@ export default function Locations({ darkMode = false }: LocationsProps) {
                     }}
                     placeholder="location-slug"
                   />
+                  <div style={{ fontSize: '10px', color: '#666', marginTop: '4px' }}>
+                    Debug: React value = "{editing?.slug ?? 'undefined'}"
+                  </div>
                 </div>
               </div>
 
