@@ -49,21 +49,35 @@ export default function Locations({ darkMode = false }: LocationsProps) {
       
       // Try to manually set field values after a short delay
       setTimeout(() => {
+        console.log('🔧 Locations - Looking for fields with ID:', editing.id);
         const nameField = document.querySelector(`input[data-key="name-${editing.id}"]`) as HTMLInputElement;
         const slugField = document.querySelector(`input[data-key="slug-${editing.id}"]`) as HTMLInputElement;
         const regionField = document.querySelector(`input[data-key="region-${editing.id}"]`) as HTMLInputElement;
         
+        console.log('🔧 Locations - Found nameField:', nameField);
+        console.log('🔧 Locations - Found slugField:', slugField);
+        console.log('🔧 Locations - Found regionField:', regionField);
+        
         if (nameField) {
           console.log('🔧 Locations - Manually setting name field value:', editing.name);
           nameField.value = editing.name || '';
+          console.log('🔧 Locations - Name field value after setting:', nameField.value);
+        } else {
+          console.log('🔧 Locations - Name field not found!');
         }
         if (slugField) {
           console.log('🔧 Locations - Manually setting slug field value:', editing.slug);
           slugField.value = editing.slug || '';
+          console.log('🔧 Locations - Slug field value after setting:', slugField.value);
+        } else {
+          console.log('🔧 Locations - Slug field not found!');
         }
         if (regionField) {
           console.log('🔧 Locations - Manually setting region field value:', editing.region);
           regionField.value = editing.region || '';
+          console.log('🔧 Locations - Region field value after setting:', regionField.value);
+        } else {
+          console.log('🔧 Locations - Region field not found!');
         }
       }, 50);
     } else {
