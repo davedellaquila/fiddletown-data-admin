@@ -47,8 +47,8 @@ export default function Locations({ darkMode = false }: LocationsProps) {
       console.log('📊 Locations - Region:', editing.region, 'Type:', typeof editing.region);
       console.log('📊 Locations - Status:', editing.status, 'Type:', typeof editing.status);
       
-      // Try to manually set field values after a short delay
-      setTimeout(() => {
+      // Force field population with multiple attempts
+      const populateFields = () => {
         console.log('🔧 Locations - Looking for fields with ID:', editing.id);
         const nameField = document.querySelector(`input[data-key="name-${editing.id}"]`) as HTMLInputElement;
         const slugField = document.querySelector(`input[data-key="slug-${editing.id}"]`) as HTMLInputElement;
@@ -63,6 +63,9 @@ export default function Locations({ darkMode = false }: LocationsProps) {
         if (nameField) {
           console.log('🔧 Locations - Manually setting name field value:', editing.name);
           nameField.value = editing.name || '';
+          nameField.setAttribute('value', editing.name || '');
+          // Trigger change event
+          nameField.dispatchEvent(new Event('input', { bubbles: true }));
           console.log('🔧 Locations - Name field value after setting:', nameField.value);
         } else {
           console.log('🔧 Locations - Name field not found!');
@@ -70,6 +73,8 @@ export default function Locations({ darkMode = false }: LocationsProps) {
         if (slugField) {
           console.log('🔧 Locations - Manually setting slug field value:', editing.slug);
           slugField.value = editing.slug || '';
+          slugField.setAttribute('value', editing.slug || '');
+          slugField.dispatchEvent(new Event('input', { bubbles: true }));
           console.log('🔧 Locations - Slug field value after setting:', slugField.value);
         } else {
           console.log('🔧 Locations - Slug field not found!');
@@ -77,6 +82,8 @@ export default function Locations({ darkMode = false }: LocationsProps) {
         if (regionField) {
           console.log('🔧 Locations - Manually setting region field value:', editing.region);
           regionField.value = editing.region || '';
+          regionField.setAttribute('value', editing.region || '');
+          regionField.dispatchEvent(new Event('input', { bubbles: true }));
           console.log('🔧 Locations - Region field value after setting:', regionField.value);
         } else {
           console.log('🔧 Locations - Region field not found!');
@@ -84,11 +91,19 @@ export default function Locations({ darkMode = false }: LocationsProps) {
         if (websiteField) {
           console.log('🔧 Locations - Manually setting website field value:', editing.website_url);
           websiteField.value = editing.website_url || '';
+          websiteField.setAttribute('value', editing.website_url || '');
+          websiteField.dispatchEvent(new Event('input', { bubbles: true }));
           console.log('🔧 Locations - Website field value after setting:', websiteField.value);
         } else {
           console.log('🔧 Locations - Website field not found!');
         }
-      }, 50);
+      };
+      
+      // Try multiple times with different delays
+      setTimeout(populateFields, 10);
+      setTimeout(populateFields, 50);
+      setTimeout(populateFields, 100);
+      setTimeout(populateFields, 200);
     } else {
       console.log('📊 Locations - Editing state is now NULL - something reset it!');
       console.trace('📊 Locations - Call stack when editing became null:');
@@ -883,9 +898,9 @@ export default function Locations({ darkMode = false }: LocationsProps) {
                     Location Name *
                   </label>
                   <input 
-                    key={`name-${editing?.id || 'new'}`}
+                    key={`name-${editing?.id || 'new'}-${Date.now()}`}
                     data-key={`name-${editing?.id || 'new'}`}
-                    defaultValue={editing?.name ?? ''}
+                    value={editing?.name ?? ''}
                     onChange={e=>{
                       console.log('🔧 Locations - Name field changed:', e.target.value);
                       console.log('🔧 Locations - Current editing state:', editing);
@@ -911,9 +926,9 @@ export default function Locations({ darkMode = false }: LocationsProps) {
                     Slug
                   </label>
                   <input 
-                    key={`slug-${editing?.id || 'new'}`}
+                    key={`slug-${editing?.id || 'new'}-${Date.now()}`}
                     data-key={`slug-${editing?.id || 'new'}`}
-                    defaultValue={editing?.slug ?? ''} 
+                    value={editing?.slug ?? ''} 
                     onChange={e=>setEditing({...editing, slug: e.target.value})} 
                     style={{ 
                       width: '100%', 
@@ -935,9 +950,9 @@ export default function Locations({ darkMode = false }: LocationsProps) {
                     Region
                   </label>
                   <input 
-                    key={`region-${editing?.id || 'new'}`}
+                    key={`region-${editing?.id || 'new'}-${Date.now()}`}
                     data-key={`region-${editing?.id || 'new'}`}
-                    defaultValue={editing?.region ?? ''} 
+                    value={editing?.region ?? ''} 
                     onChange={e=>setEditing({...editing, region: e.target.value})} 
                     style={{ 
                       width: '100%', 
@@ -955,9 +970,9 @@ export default function Locations({ darkMode = false }: LocationsProps) {
                     Website URL
                   </label>
                   <input 
-                    key={`website-${editing?.id || 'new'}`}
+                    key={`website-${editing?.id || 'new'}-${Date.now()}`}
                     data-key={`website-${editing?.id || 'new'}`}
-                    defaultValue={editing?.website_url ?? ''} 
+                    value={editing?.website_url ?? ''} 
                     onChange={e=>setEditing({...editing, website_url: e.target.value})} 
                     style={{ 
                       width: '100%', 
