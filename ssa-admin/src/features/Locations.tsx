@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import { useFormFieldPopulation, createLocationsFieldConfigs } from '../shared/hooks/useFormFieldPopulation'
 import { STICKY_HEADER_TOP_OFFSETS } from '../shared/constants/layout'
 
 const slugify = (s: string) =>
@@ -54,50 +55,19 @@ export default function Locations({ darkMode = false }: LocationsProps) {
       console.log('🔧 Locations - Region:', editing.region);
       console.log('🔧 Locations - Website:', editing.website_url);
       
-      // Force field values after a delay
-      setTimeout(() => {
-        console.log('🔧 Locations - Attempting to force field values...');
-        const nameField = document.querySelector(`input[data-key="name-${editing.id}"]`) as HTMLInputElement;
-        const slugField = document.querySelector(`input[data-key="slug-${editing.id}"]`) as HTMLInputElement;
-        const regionField = document.querySelector(`input[data-key="region-${editing.id}"]`) as HTMLInputElement;
-        const websiteField = document.querySelector(`input[data-key="website-${editing.id}"]`) as HTMLInputElement;
-        
-        console.log('🔧 Locations - Found fields:', { nameField, slugField, regionField, websiteField });
-        
-        if (nameField) {
-          console.log('🔧 Locations - Setting name field to:', editing.name);
-          nameField.value = editing.name || '';
-          nameField.style.color = '#000000';
-          nameField.style.backgroundColor = '#ffffff';
-          console.log('🔧 Locations - Name field after setting:', nameField.value, nameField.style.color);
-        }
-        if (slugField) {
-          console.log('🔧 Locations - Setting slug field to:', editing.slug);
-          slugField.value = editing.slug || '';
-          slugField.style.color = '#000000';
-          slugField.style.backgroundColor = '#ffffff';
-          console.log('🔧 Locations - Slug field after setting:', slugField.value, slugField.style.color);
-        }
-        if (regionField) {
-          console.log('🔧 Locations - Setting region field to:', editing.region);
-          regionField.value = editing.region || '';
-          regionField.style.color = '#000000';
-          regionField.style.backgroundColor = '#ffffff';
-          console.log('🔧 Locations - Region field after setting:', regionField.value, regionField.style.color);
-        }
-        if (websiteField) {
-          console.log('🔧 Locations - Setting website field to:', editing.website_url);
-          websiteField.value = editing.website_url || '';
-          websiteField.style.color = '#000000';
-          websiteField.style.backgroundColor = '#ffffff';
-          console.log('🔧 Locations - Website field after setting:', websiteField.value, websiteField.style.color);
-        }
-      }, 100);
+      // Field population is now handled by the centralized useFormFieldPopulation hook
     } else {
       console.log('📊 Locations - Editing state is now NULL - something reset it!');
       console.trace('📊 Locations - Call stack when editing became null:');
     }
   }, [editing]);
+
+  // Use centralized form field population
+  useFormFieldPopulation({
+    editing,
+    fieldConfigs: editing ? createLocationsFieldConfigs(editing.id?.toString() || 'new') : [],
+    debugPrefix: 'Locations'
+  })
 
   // Handle escape key and click outside to cancel editing
   useEffect(() => {

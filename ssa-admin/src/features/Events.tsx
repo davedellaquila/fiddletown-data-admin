@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import { useFormFieldPopulation, createEventsFieldConfigs } from '../shared/hooks/useFormFieldPopulation'
 import { STICKY_HEADER_TOP_OFFSETS } from '../shared/constants/layout'
 
 type EventRow = {
@@ -222,147 +223,12 @@ export default function Events({ darkMode = false }: EventsProps) {
     }
   }, [editing, ocrOpen])
 
-  // Manually set field values to ensure they display correctly
-  useEffect(() => {
-    if (editing) {
-      setTimeout(() => {
-        console.log('🔧 Events - Looking for fields with ID:', editing.id);
-        const nameField = document.querySelector(`input[key="name-${editing.id}"]`) as HTMLInputElement;
-        const slugField = document.querySelector(`input[key="slug-${editing.id}"]`) as HTMLInputElement;
-        const hostOrgField = document.querySelector(`input[key="host-org-${editing.id}"]`) as HTMLInputElement;
-        const locationField = document.querySelector(`input[key="location-${editing.id}"]`) as HTMLInputElement;
-        const websiteField = document.querySelector(`input[key="website-url-${editing.id}"]`) as HTMLInputElement;
-        const recurrenceField = document.querySelector(`input[key="recurrence-${editing.id}"]`) as HTMLInputElement;
-        const sortOrderField = document.querySelector(`input[key="sort-order-${editing.id}"]`) as HTMLInputElement;
-        
-        // Find date and time fields by their type
-        const startDateField = document.querySelector('input[type="date"]') as HTMLInputElement;
-        const endDateField = document.querySelectorAll('input[type="date"]')[1] as HTMLInputElement;
-        const startTimeField = document.querySelector('input[type="time"]') as HTMLInputElement;
-        const endTimeField = document.querySelectorAll('input[type="time"]')[1] as HTMLInputElement;
-        
-        console.log('🔧 Events - Found nameField:', nameField);
-        console.log('🔧 Events - Found slugField:', slugField);
-        console.log('🔧 Events - Found hostOrgField:', hostOrgField);
-        console.log('🔧 Events - Found locationField:', locationField);
-        console.log('🔧 Events - Found websiteField:', websiteField);
-        console.log('🔧 Events - Found recurrenceField:', recurrenceField);
-        console.log('🔧 Events - Found sortOrderField:', sortOrderField);
-        console.log('🔧 Events - Found startDateField:', startDateField);
-        console.log('🔧 Events - Found endDateField:', endDateField);
-        console.log('🔧 Events - Found startTimeField:', startTimeField);
-        console.log('🔧 Events - Found endTimeField:', endTimeField);
-
-        if (nameField) {
-          console.log('🔧 Events - Manually setting name field value:', editing.name);
-          nameField.value = editing.name || '';
-          nameField.style.color = '#000000';
-          console.log('🔧 Events - Name field value after setting:', nameField.value);
-        } else {
-          console.log('🔧 Events - Name field not found!');
-        }
-        if (slugField) {
-          console.log('🔧 Events - Manually setting slug field value:', editing.slug);
-          slugField.value = editing.slug || '';
-          slugField.style.color = '#000000';
-          console.log('🔧 Events - Slug field value after setting:', slugField.value);
-        } else {
-          console.log('🔧 Events - Slug field not found!');
-        }
-        
-        if (hostOrgField) {
-          console.log('🔧 Events - Manually setting host org field value:', editing.host_org);
-          hostOrgField.value = editing.host_org || '';
-          hostOrgField.style.color = '#000000';
-          console.log('🔧 Events - Host org field value after setting:', hostOrgField.value);
-        } else {
-          console.log('🔧 Events - Host org field not found!');
-        }
-        
-        if (locationField) {
-          console.log('🔧 Events - Manually setting location field value:', editing.location);
-          locationField.value = editing.location || '';
-          locationField.style.color = '#000000';
-          console.log('🔧 Events - Location field value after setting:', locationField.value);
-        } else {
-          console.log('🔧 Events - Location field not found!');
-        }
-        
-        if (websiteField) {
-          console.log('🔧 Events - Manually setting website field value:', editing.website_url);
-          websiteField.value = editing.website_url || '';
-          websiteField.style.color = '#000000';
-          console.log('🔧 Events - Website field value after setting:', websiteField.value);
-        } else {
-          console.log('🔧 Events - Website field not found!');
-        }
-        
-        if (recurrenceField) {
-          console.log('🔧 Events - Manually setting recurrence field value:', editing.recurrence);
-          recurrenceField.value = editing.recurrence || '';
-          recurrenceField.style.color = '#000000';
-          console.log('🔧 Events - Recurrence field value after setting:', recurrenceField.value);
-        } else {
-          console.log('🔧 Events - Recurrence field not found!');
-        }
-        
-        if (sortOrderField) {
-          console.log('🔧 Events - Manually setting sort order field value:', editing.sort_order);
-          sortOrderField.value = editing.sort_order?.toString() || '1000';
-          sortOrderField.style.color = '#000000';
-          console.log('🔧 Events - Sort order field value after setting:', sortOrderField.value);
-        } else {
-          console.log('🔧 Events - Sort order field not found!');
-        }
-        
-        // Handle date fields - format dates properly
-        if (startDateField && editing.start_date) {
-          console.log('🔧 Events - Manually setting start date field value:', editing.start_date);
-          // Ensure date is in YYYY-MM-DD format
-          const formattedDate = editing.start_date.split('T')[0]; // Remove time part if present
-          startDateField.value = formattedDate;
-          startDateField.style.color = '#000000';
-          console.log('🔧 Events - Start date field value after setting:', startDateField.value);
-        } else {
-          console.log('🔧 Events - Start date field not found or no date value!');
-        }
-        
-        if (endDateField && editing.end_date) {
-          console.log('🔧 Events - Manually setting end date field value:', editing.end_date);
-          // Ensure date is in YYYY-MM-DD format
-          const formattedDate = editing.end_date.split('T')[0]; // Remove time part if present
-          endDateField.value = formattedDate;
-          endDateField.style.color = '#000000';
-          console.log('🔧 Events - End date field value after setting:', endDateField.value);
-        } else {
-          console.log('🔧 Events - End date field not found or no date value!');
-        }
-        
-        // Handle time fields - format times properly
-        if (startTimeField && editing.start_time) {
-          console.log('🔧 Events - Manually setting start time field value:', editing.start_time);
-          // Ensure time is in HH:MM format
-          const formattedTime = editing.start_time.substring(0, 5); // Take only HH:MM part
-          startTimeField.value = formattedTime;
-          startTimeField.style.color = '#000000';
-          console.log('🔧 Events - Start time field value after setting:', startTimeField.value);
-        } else {
-          console.log('🔧 Events - Start time field not found or no time value!');
-        }
-        
-        if (endTimeField && editing.end_time) {
-          console.log('🔧 Events - Manually setting end time field value:', editing.end_time);
-          // Ensure time is in HH:MM format
-          const formattedTime = editing.end_time.substring(0, 5); // Take only HH:MM part
-          endTimeField.value = formattedTime;
-          endTimeField.style.color = '#000000';
-          console.log('🔧 Events - End time field value after setting:', endTimeField.value);
-        } else {
-          console.log('🔧 Events - End time field not found or no time value!');
-        }
-      }, 50);
-    }
-  }, [editing])
+  // Use centralized form field population
+  useFormFieldPopulation({
+    editing,
+    fieldConfigs: editing ? createEventsFieldConfigs(editing.id?.toString() || 'new') : [],
+    debugPrefix: 'Events'
+  })
 
   const [editingImageUrl, setEditingImageUrl] = useState<string | null>(null)
   const pasteRef = useRef<HTMLDivElement | null>(null)
