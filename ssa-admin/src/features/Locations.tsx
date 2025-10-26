@@ -832,6 +832,7 @@ export default function Locations({ darkMode = false }: LocationsProps) {
                     Location Name *
                   </label>
                   <input 
+                    key={`name-${editing?.id || 'new'}`}
                     value={editing?.name ?? ''} 
                     onChange={e=>{
                       console.log('🔧 Locations - Name field changed:', e.target.value);
@@ -858,6 +859,7 @@ export default function Locations({ darkMode = false }: LocationsProps) {
                     Slug
                   </label>
                   <input 
+                    key={`slug-${editing?.id || 'new'}`}
                     value={editing?.slug ?? ''} 
                     onChange={e=>setEditing({...editing, slug: e.target.value})} 
                     style={{ 
@@ -880,6 +882,7 @@ export default function Locations({ darkMode = false }: LocationsProps) {
                     Region
                   </label>
                   <input 
+                    key={`region-${editing?.id || 'new'}`}
                     value={editing?.region ?? ''} 
                     onChange={e=>setEditing({...editing, region: e.target.value})} 
                     style={{ 
@@ -898,6 +901,7 @@ export default function Locations({ darkMode = false }: LocationsProps) {
                     Website URL
                   </label>
                   <input 
+                    key={`website-${editing?.id || 'new'}`}
                     value={editing?.website_url ?? ''} 
                     onChange={e=>setEditing({...editing, website_url: e.target.value})} 
                     style={{ 
@@ -919,6 +923,7 @@ export default function Locations({ darkMode = false }: LocationsProps) {
                   Short Description
                 </label>
                 <textarea 
+                  key={`description-${editing?.id || 'new'}`}
                   value={editing?.short_description ?? ''} 
                   onChange={e=>setEditing({...editing, short_description: e.target.value})} 
                   style={{ 
@@ -942,6 +947,7 @@ export default function Locations({ darkMode = false }: LocationsProps) {
                     Status
                   </label>
                   <select 
+                    key={`status-${editing?.id || 'new'}`}
                     value={editing?.status ?? 'draft'} 
                     onChange={e=>setEditing({...editing, status: e.target.value as any})} 
                     style={{ 
@@ -963,6 +969,7 @@ export default function Locations({ darkMode = false }: LocationsProps) {
                     Sort Order
                   </label>
                   <input 
+                    key={`sort_order-${editing?.id || 'new'}`}
                     type="number" 
                     value={editing?.sort_order ?? 1000} 
                     onChange={e=>setEditing({...editing, sort_order: Number(e.target.value)})} 
