@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import FormField from '../shared/components/FormField'
 
 type EventRow = {
   id?: number
@@ -2326,14 +2327,22 @@ export default function Events({ darkMode = false }: EventsProps) {
         background: darkMode ? '#1f2937' : '#ffffff',
         color: darkMode ? '#f9fafb' : '#1f2937'
       }}>
-          <thead>
+          <thead style={{
+            position: 'sticky',
+            top: '176px',
+            zIndex: 110,
+            background: darkMode ? '#374151' : '#f8f9fa'
+          }}>
             <tr>
             <th style={{ 
               textAlign: 'left', 
               padding: '8px 6px', 
               borderBottom: `1px solid ${darkMode ? '#374151' : '#ddd'}`,
               background: darkMode ? '#374151' : '#f8f9fa',
-              color: darkMode ? '#f9fafb' : '#1f2937'
+              color: darkMode ? '#f9fafb' : '#1f2937',
+              position: 'sticky',
+              top: '176px',
+              zIndex: 110
             }}>
               <input 
                 type="checkbox" 
@@ -2353,7 +2362,9 @@ export default function Events({ darkMode = false }: EventsProps) {
                 color: darkMode ? '#f9fafb' : '#1f2937',
                 cursor: 'pointer',
                 userSelect: 'none',
-                position: 'relative'
+                position: 'sticky',
+                top: '176px',
+                zIndex: 110
               }}
             >
               Name {sortBy === 'name' && (sortOrder === 'asc' ? '↑' : '↓')}
@@ -2367,7 +2378,10 @@ export default function Events({ darkMode = false }: EventsProps) {
                 background: darkMode ? '#374151' : '#f8f9fa',
                 color: darkMode ? '#f9fafb' : '#1f2937',
                 cursor: 'pointer',
-                userSelect: 'none'
+                userSelect: 'none',
+                position: 'sticky',
+                top: '176px',
+                zIndex: 110
               }}
             >
               Start {sortBy === 'start_date' && (sortOrder === 'asc' ? '↑' : '↓')}
@@ -2381,7 +2395,10 @@ export default function Events({ darkMode = false }: EventsProps) {
                 background: darkMode ? '#374151' : '#f8f9fa',
                 color: darkMode ? '#f9fafb' : '#1f2937',
                 cursor: 'pointer',
-                userSelect: 'none'
+                userSelect: 'none',
+                position: 'sticky',
+                top: '176px',
+                zIndex: 110
               }}
             >
               End {sortBy === 'end_date' && (sortOrder === 'asc' ? '↑' : '↓')}
@@ -2395,7 +2412,10 @@ export default function Events({ darkMode = false }: EventsProps) {
                 background: darkMode ? '#374151' : '#f8f9fa',
                 color: darkMode ? '#f9fafb' : '#1f2937',
                 cursor: 'pointer',
-                userSelect: 'none'
+                userSelect: 'none',
+                position: 'sticky',
+                top: '176px',
+                zIndex: 110
               }}
             >
               Start Time {sortBy === 'start_time' && (sortOrder === 'asc' ? '↑' : '↓')}
@@ -2409,7 +2429,10 @@ export default function Events({ darkMode = false }: EventsProps) {
                 background: darkMode ? '#374151' : '#f8f9fa',
                 color: darkMode ? '#f9fafb' : '#1f2937',
                 cursor: 'pointer',
-                userSelect: 'none'
+                userSelect: 'none',
+                position: 'sticky',
+                top: '176px',
+                zIndex: 110
               }}
             >
               End Time {sortBy === 'end_time' && (sortOrder === 'asc' ? '↑' : '↓')}
@@ -2423,7 +2446,10 @@ export default function Events({ darkMode = false }: EventsProps) {
                 background: darkMode ? '#374151' : '#f8f9fa',
                 color: darkMode ? '#f9fafb' : '#1f2937',
                 cursor: 'pointer',
-                userSelect: 'none'
+                userSelect: 'none',
+                position: 'sticky',
+                top: '176px',
+                zIndex: 110
               }}
             >
               Location {sortBy === 'location' && (sortOrder === 'asc' ? '↑' : '↓')}
@@ -2437,7 +2463,10 @@ export default function Events({ darkMode = false }: EventsProps) {
                 background: darkMode ? '#374151' : '#f8f9fa',
                 color: darkMode ? '#f9fafb' : '#1f2937',
                 cursor: 'pointer',
-                userSelect: 'none'
+                userSelect: 'none',
+                position: 'sticky',
+                top: '176px',
+                zIndex: 110
               }}
             >
               Status {sortBy === 'status' && (sortOrder === 'asc' ? '↑' : '↓')}
@@ -2447,14 +2476,20 @@ export default function Events({ darkMode = false }: EventsProps) {
               padding: '8px 6px', 
               borderBottom: `1px solid ${darkMode ? '#374151' : '#ddd'}`,
               background: darkMode ? '#374151' : '#f8f9fa',
-              color: darkMode ? '#f9fafb' : '#1f2937'
+              color: darkMode ? '#f9fafb' : '#1f2937',
+              position: 'sticky',
+              top: '176px',
+              zIndex: 110
             }}>Website</th>
             <th style={{ 
               textAlign: 'left', 
               padding: '8px 6px', 
               borderBottom: `1px solid ${darkMode ? '#374151' : '#ddd'}`,
               background: darkMode ? '#374151' : '#f8f9fa',
-              color: darkMode ? '#f9fafb' : '#1f2937'
+              color: darkMode ? '#f9fafb' : '#1f2937',
+              position: 'sticky',
+              top: '176px',
+              zIndex: 110
             }}>Image</th>
             <th style={{ 
               textAlign: 'left', 
@@ -2462,6 +2497,9 @@ export default function Events({ darkMode = false }: EventsProps) {
               borderBottom: `1px solid ${darkMode ? '#374151' : '#ddd'}`,
               background: darkMode ? '#374151' : '#f8f9fa',
               color: darkMode ? '#f9fafb' : '#1f2937',
+              position: 'sticky',
+              top: '176px',
+              zIndex: 110,
               minWidth: '200px' 
             }}>Actions</th>
             </tr>
@@ -2704,97 +2742,101 @@ export default function Events({ darkMode = false }: EventsProps) {
         <div 
           onClick={() => setEditing(null)}
           style={{ 
-          position: 'fixed', 
-          top: 0, 
-          left: 0, 
-          right: 0, 
-          bottom: 0, 
-          background: 'rgba(0,0,0,0.5)', 
-          zIndex: 1000, 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'center',
-          padding: '20px'
+            position: 'fixed', 
+            top: 0, 
+            left: 0, 
+            right: 0, 
+            bottom: 0, 
+            background: 'rgba(0,0,0,0.5)', 
+            zIndex: 1000, 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            padding: '20px'
           }}
         >
           <div 
             onClick={(e) => e.stopPropagation()}
             style={{ 
-            background: 'white', 
-            borderRadius: '12px', 
-            maxWidth: '800px', 
-            width: '100%', 
-            maxHeight: '90vh', 
+              background: 'white', 
+              padding: '0',
+              borderRadius: '12px', 
+              maxWidth: '800px', 
+              width: '100%', 
+              maxHeight: '90vh', 
+              overflow: 'hidden',
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
               display: 'flex',
-              flexDirection: 'column',
-            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
+              flexDirection: 'column'
             }}
           >
-            {/* Header */}
-            <div style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'space-between', 
-              padding: '32px 32px 24px 32px',
-              borderBottom: '1px solid #e5e7eb'
+            {/* Fixed Header */}
+            <div style={{
+              padding: '24px 32px 16px 32px',
+              borderBottom: '1px solid #e5e7eb',
+              background: 'white',
+              borderRadius: '12px 12px 0 0',
+              flexShrink: 0
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-              <h3 style={{ margin: 0, fontSize: '24px', fontWeight: '600', color: '#1f2937' }}>
-                {editing.id ? '✏️ Edit Event' : '➕ New Event'}
-              </h3>
-                {editing.id && (
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <button 
-                      onClick={navigateToPrevious}
-                      disabled={rows.findIndex(r => r.id === editing.id) === 0}
-                      style={{
-                        background: '#f3f4f6',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '6px',
-                        padding: '6px 12px',
-                        fontSize: '14px',
-                        cursor: rows.findIndex(r => r.id === editing.id) === 0 ? 'not-allowed' : 'pointer',
-                        color: rows.findIndex(r => r.id === editing.id) === 0 ? '#9ca3af' : '#374151',
-                        opacity: rows.findIndex(r => r.id === editing.id) === 0 ? 0.5 : 1
-                      }}
-                      title="Previous event"
-                    >
-                      ← Previous
-                    </button>
-                    <button 
-                      onClick={navigateToNext}
-                      disabled={rows.findIndex(r => r.id === editing.id) === rows.length - 1}
-                      style={{
-                        background: '#f3f4f6',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '6px',
-                        padding: '6px 12px',
-                        fontSize: '14px',
-                        cursor: rows.findIndex(r => r.id === editing.id) === rows.length - 1 ? 'not-allowed' : 'pointer',
-                        color: rows.findIndex(r => r.id === editing.id) === rows.length - 1 ? '#9ca3af' : '#374151',
-                        opacity: rows.findIndex(r => r.id === editing.id) === rows.length - 1 ? 0.5 : 1
-                      }}
-                      title="Next event"
-                    >
-                      Next →
-                    </button>
-                  </div>
-                )}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                  <h3 style={{ margin: 0, fontSize: '24px', fontWeight: '600', color: '#1f2937' }}>
+                    {editing.id ? '✏️ Edit Event' : '➕ New Event'}
+                  </h3>
+                  {editing.id && (
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button 
+                        onClick={navigateToPrevious}
+                        disabled={rows.findIndex(r => r.id === editing.id) === 0}
+                        style={{
+                          background: '#f3f4f6',
+                          border: '1px solid #d1d5db',
+                          borderRadius: '6px',
+                          padding: '6px 12px',
+                          fontSize: '14px',
+                          cursor: rows.findIndex(r => r.id === editing.id) === 0 ? 'not-allowed' : 'pointer',
+                          color: rows.findIndex(r => r.id === editing.id) === 0 ? '#9ca3af' : '#374151',
+                          opacity: rows.findIndex(r => r.id === editing.id) === 0 ? 0.5 : 1
+                        }}
+                        title="Previous event"
+                      >
+                        ← Previous
+                      </button>
+                      <button 
+                        onClick={navigateToNext}
+                        disabled={rows.findIndex(r => r.id === editing.id) === rows.length - 1}
+                        style={{
+                          background: '#f3f4f6',
+                          border: '1px solid #d1d5db',
+                          borderRadius: '6px',
+                          padding: '6px 12px',
+                          fontSize: '14px',
+                          cursor: rows.findIndex(r => r.id === editing.id) === rows.length - 1 ? 'not-allowed' : 'pointer',
+                          color: rows.findIndex(r => r.id === editing.id) === rows.length - 1 ? '#9ca3af' : '#374151',
+                          opacity: rows.findIndex(r => r.id === editing.id) === rows.length - 1 ? 0.5 : 1
+                        }}
+                        title="Next event"
+                      >
+                        Next →
+                      </button>
+                    </div>
+                  )}
+                </div>
+                <button 
+                  onClick={()=>setEditing(null)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    fontSize: '24px',
+                    cursor: 'pointer',
+                    color: '#6b7280',
+                    padding: '4px'
+                  }}
+                  title="Close"
+                >
+                  ✕
+                </button>
               </div>
-              <button 
-                onClick={()=>setEditing(null)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  fontSize: '24px',
-                  cursor: 'pointer',
-                  color: '#6b7280',
-                  padding: '4px'
-                }}
-                title="Close"
-              >
-                ✕
-              </button>
             </div>
 
             {/* Scrollable Content */}
@@ -2806,298 +2848,190 @@ export default function Events({ darkMode = false }: EventsProps) {
             <div style={{ display: 'grid', gap: '20px' }}>
               {/* Event Name and Slug */}
               <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '16px' }}>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
-                    Event Name *
-                  </label>
-                  <input 
-                    value={editing?.name || ''} 
-                    onChange={e=>setEditing({...editing, name: e.target.value, slug: slugify(e.target.value)})} 
-                    style={{ 
-                      width: '100%', 
-                      padding: '12px', 
-                      border: '1px solid #d1d5db', 
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      background: '#fff'
-                    }}
-                    placeholder="Enter event name"
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
-                    Slug
-                  </label>
-                  <input 
-                    value={editing?.slug || ''} 
-                    onChange={e=>setEditing({...editing, slug: slugify(e.target.value)})} 
-                    onPaste={e=>{
-                      e.preventDefault()
-                      const pastedText = e.clipboardData.getData('text')
-                      setEditing({...editing, slug: slugify(pastedText)})
-                    }}
-                    style={{ 
-                      width: '100%', 
-                      padding: '12px', 
-                      border: '1px solid #d1d5db', 
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      background: '#fff'
-                    }}
-                    placeholder="event-slug"
-                  />
-                </div>
-              </div>
-
-              {/* Description */}
-              <div>
-                <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
-                  Description
-                </label>
-                <textarea 
-                  value={editing?.description || ''} 
-                  onChange={e=>setEditing({...editing, description: e.target.value})} 
-                  style={{ 
-                    width: '100%', 
-                    padding: '12px', 
-                    border: '1px solid #d1d5db', 
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    background: '#fff',
-                    minHeight: '100px',
-                    resize: 'vertical'
-                  }}
-                  placeholder="Enter event description"
+                <FormField
+                  label="Event Name"
+                  name="name"
+                  value={editing?.name || ''}
+                  onChange={(value) => setEditing({...editing!, name: value as string, slug: slugify(value as string)})}
+                  required
+                  editingId={editing?.id?.toString()}
+                />
+                <FormField
+                  label="Slug"
+                  name="slug"
+                  value={editing?.slug || ''}
+                  onChange={(value) => setEditing({...editing!, slug: slugify(value as string)})}
+                  editingId={editing?.id?.toString()}
                 />
               </div>
 
+              <FormField
+                label="Description"
+                name="description"
+                value={editing?.description || ''}
+                onChange={(value) => setEditing({...editing!, description: value as string})}
+                type="textarea"
+                minHeight="100px"
+                editingId={editing?.id?.toString()}
+              />
+
               {/* Host Org and Location */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
-                    Host Organization
-                  </label>
-                  <input 
-                    value={editing?.host_org || ''} 
-                    onChange={e=>setEditing({...editing, host_org: e.target.value})} 
-                    style={{ 
-                      width: '100%', 
-                      padding: '12px', 
-                      border: '1px solid #d1d5db', 
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      background: '#fff'
-                    }}
-                    placeholder="Organization name"
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
-                    Location
-                  </label>
-                  <input 
-                    value={editing?.location || ''} 
-                    onChange={e=>setEditing({...editing, location: e.target.value})} 
-                    style={{ 
-                      width: '100%', 
-                      padding: '12px', 
-                      border: '1px solid #d1d5db', 
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      background: '#fff'
-                    }}
-                    placeholder="Event location"
-                  />
-                </div>
+                <FormField
+                  label="Host Organization"
+                  name="host_org"
+                  value={editing?.host_org || ''}
+                  onChange={(value) => setEditing({...editing!, host_org: value as string})}
+                  editingId={editing?.id?.toString()}
+                />
+                <FormField
+                  label="Location"
+                  name="location"
+                  value={editing?.location || ''}
+                  onChange={(value) => setEditing({...editing!, location: value as string})}
+                  editingId={editing?.id?.toString()}
+                />
               </div>
 
               {/* Dates */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
-                    Start Date
-            </label>
-                  <input 
-                    type="date" 
-                    value={editing?.start_date || ''} 
-                    onChange={e=>{
-                      const newStartDate = e.target.value
-                      const currentEndDate = editing?.end_date
-                      const today = new Date().toISOString().slice(0, 10)
-                      
-                      console.log('Start date changed to:', newStartDate)
-                      
-                      let updatedEndDate = currentEndDate
-                      
-                      // If end date is today, blank, or null, set it to the start date
-                      if (!currentEndDate || currentEndDate === '' || currentEndDate === today) {
-                        updatedEndDate = newStartDate
-                        console.log('End date is today/blank/null, setting to start date:', newStartDate)
-                      }
-                      // If end date exists and is before the new start date, set it to the start date
-                      else if (currentEndDate && newStartDate && currentEndDate < newStartDate) {
-                        updatedEndDate = newStartDate
-                        console.log('End date is before start date, adjusting to start date')
-                      }
-                      
-                      setEditing({
-                        ...editing,
-                        start_date: newStartDate,
-                        end_date: updatedEndDate
-                      })
-                    }}
-                    onInput={e=>{
-                      const newStartDate = e.currentTarget.value
-                      const currentEndDate = editing?.end_date
-                      
-                      console.log('Start date input to:', newStartDate)
-                      
-                      // If end date exists and is before the new start date, set it to the start date
-                      let updatedEndDate = currentEndDate
-                      if (currentEndDate && newStartDate && currentEndDate < newStartDate) {
-                        updatedEndDate = newStartDate
-                      }
-                      
-                      setEditing({
-                        ...editing,
-                        start_date: newStartDate,
-                        end_date: updatedEndDate
-                      })
-                    }}
-                    style={{ 
-                      width: '100%', 
-                      padding: '12px', 
-                      border: '1px solid #d1d5db', 
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      background: '#fff'
-                    }}
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
-                    End Date
-                  </label>
-                  <input 
-                    type="date" 
-                    value={editing?.end_date || ''} 
-                    onChange={e=>{
-                      console.log('End date changed to:', e.target.value)
-                      setEditing({...editing, end_date: e.target.value})
-                    }}
-                    onInput={e=>{
-                      console.log('End date input to:', e.currentTarget.value)
-                      setEditing({...editing, end_date: e.currentTarget.value})
-                    }} 
-                    style={{ 
-                      width: '100%', 
-                      padding: '12px', 
-                      border: '1px solid #d1d5db', 
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      background: '#fff'
-                    }}
-                  />
-                </div>
+                <FormField
+                  label="Start Date"
+                  name="start_date"
+                  value={editing?.start_date || ''}
+                  onChange={(value) => {
+                    const newStartDate = value as string
+                    const currentEndDate = editing?.end_date
+                    const today = new Date().toISOString().slice(0, 10)
+                    
+                    console.log('Start date changed to:', newStartDate)
+                    
+                    let updatedEndDate = currentEndDate
+                    
+                    // If end date is today, blank, or null, set it to the start date
+                    if (!currentEndDate || currentEndDate === '' || currentEndDate === today) {
+                      updatedEndDate = newStartDate
+                      console.log('End date is today/blank/null, setting to start date:', newStartDate)
+                    }
+                    // If end date exists and is before the new start date, set it to the start date
+                    else if (currentEndDate && newStartDate && currentEndDate < newStartDate) {
+                      updatedEndDate = newStartDate
+                      console.log('End date is before start date, adjusting to start date')
+                    }
+                    
+                    setEditing({
+                      ...editing!,
+                      start_date: newStartDate,
+                      end_date: updatedEndDate
+                    })
+                  }}
+                  onInput={(value) => {
+                    const newStartDate = value as string
+                    const currentEndDate = editing?.end_date
+                    
+                    console.log('Start date input to:', newStartDate)
+                    
+                    // If end date exists and is before the new start date, set it to the start date
+                    let updatedEndDate = currentEndDate
+                    if (currentEndDate && newStartDate && currentEndDate < newStartDate) {
+                      updatedEndDate = newStartDate
+                    }
+                    
+                    setEditing({
+                      ...editing!,
+                      start_date: newStartDate,
+                      end_date: updatedEndDate
+                    })
+                  }}
+                  type="date"
+                  editingId={editing?.id?.toString()}
+                />
+                <FormField
+                  label="End Date"
+                  name="end_date"
+                  value={editing?.end_date || ''}
+                  onChange={(value) => {
+                    console.log('End date changed to:', value)
+                    setEditing({...editing!, end_date: value as string})
+                  }}
+                  onInput={(value) => {
+                    console.log('End date input to:', value)
+                    setEditing({...editing!, end_date: value as string})
+                  }}
+                  type="date"
+                  editingId={editing?.id?.toString()}
+                />
           </div>
 
               {/* Times */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
-                    Start Time
-          </label>
-                  <input 
-                    type="text" 
-                    value={editing?.start_time ?? ''} 
-                    onChange={e=>{
-                      const inputValue = e.target.value
-                      console.log('Start time input:', inputValue)
-                      
-                      // Store the raw input value without conversion, convert empty string to null
-                      setEditing({
-                        ...editing,
-                        start_time: inputValue === '' ? null : inputValue
-                      })
-                    }}
-                    onBlur={e=>{
-                      const inputValue = e.target.value
-                      const convertedTime = convertTo24Hour(inputValue, false)
-                      console.log('Start time blur - converting:', inputValue, 'to:', convertedTime)
-                      
-                      // If end time exists and is before the new start time, set it to the start time
-                      const currentEndTime = editing?.end_time
-                      let updatedEndTime = currentEndTime
-                      if (currentEndTime && convertedTime && currentEndTime < convertedTime) {
-                        console.log('End time is before new start time, adjusting end time to start time')
-                        updatedEndTime = convertedTime
-                      }
-                      
-                      setEditing({
-                        ...editing,
-                        start_time: convertedTime,
-                        end_time: updatedEndTime
-                      })
-                    }}
-                    placeholder="HH:MM (e.g., 14:30)"
-                    pattern="[0-9]{2}:[0-9]{2}"
-                    title="Enter time in HH:MM format (24-hour)"
-                    style={{ 
-                      width: '100%', 
-                      padding: '12px', 
-                      border: '1px solid #d1d5db', 
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      background: '#fff',
-                      cursor: 'pointer'
-                    }}
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
-                    End Time
-                  </label>
-                  <input 
-                    type="text" 
-                    value={editing?.end_time ?? ''} 
-                    onChange={e=>{
-                      const inputValue = e.target.value
-                      console.log('End time input:', inputValue)
-                      
-                      // Store the raw input value without conversion, convert empty string to null
-                      setEditing({
-                        ...editing,
-                        end_time: inputValue === '' ? null : inputValue
-                      })
-                    }}
-                    onBlur={e=>{
-                      const inputValue = e.target.value
-                      const convertedTime = convertTo24Hour(inputValue, true, editing?.start_time)
-                      console.log('End time blur - converting:', inputValue, 'to:', convertedTime)
-                      
-                      // Check if end time is before start time
-                      const startTime = editing?.start_time
-                      if (startTime && convertedTime && convertedTime < startTime) {
-                        console.log('End time is before start time, adjusting...')
-                        setEditing({...editing, end_time: startTime})
-                      } else {
-                        setEditing({...editing, end_time: convertedTime})
-                      }
-                    }}
-                    placeholder="HH:MM (e.g., 16:30)"
-                    pattern="[0-9]{2}:[0-9]{2}"
-                    title="Enter time in HH:MM format (24-hour)"
-                    style={{ 
-                      width: '100%', 
-                      padding: '12px', 
-                      border: '1px solid #d1d5db', 
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      background: '#fff',
-                      cursor: 'pointer'
-                    }}
-                  />
-                </div>
+                <FormField
+                  label="Start Time"
+                  name="start_time"
+                  value={editing?.start_time ?? ''}
+                  onChange={(value) => {
+                    const inputValue = value as string
+                    console.log('Start time input:', inputValue)
+                    
+                    // Store the raw input value without conversion, convert empty string to null
+                    setEditing({
+                      ...editing!,
+                      start_time: inputValue === '' ? null : inputValue
+                    })
+                  }}
+                  onBlur={(value) => {
+                    const inputValue = value as string
+                    const convertedTime = convertTo24Hour(inputValue, false)
+                    console.log('Start time blur - converting:', inputValue, 'to:', convertedTime)
+                    
+                    // If end time exists and is before the new start time, set it to the start time
+                    const currentEndTime = editing?.end_time
+                    let updatedEndTime = currentEndTime
+                    if (currentEndTime && convertedTime && currentEndTime < convertedTime) {
+                      console.log('End time is before new start time, adjusting end time to start time')
+                      updatedEndTime = convertedTime
+                    }
+                    
+                    setEditing({
+                      ...editing!,
+                      start_time: convertedTime,
+                      end_time: updatedEndTime
+                    })
+                  }}
+                  placeholder="HH:MM (e.g., 14:30)"
+                  editingId={editing?.id?.toString()}
+                />
+                <FormField
+                  label="End Time"
+                  name="end_time"
+                  value={editing?.end_time ?? ''}
+                  onChange={(value) => {
+                    const inputValue = value as string
+                    console.log('End time input:', inputValue)
+                    
+                    // Store the raw input value without conversion, convert empty string to null
+                    setEditing({
+                      ...editing!,
+                      end_time: inputValue === '' ? null : inputValue
+                    })
+                  }}
+                  onBlur={(value) => {
+                    const inputValue = value as string
+                    const convertedTime = convertTo24Hour(inputValue, true, editing?.start_time)
+                    console.log('End time blur - converting:', inputValue, 'to:', convertedTime)
+                    
+                    // Check if end time is before start time
+                    const startTime = editing?.start_time
+                    if (startTime && convertedTime && convertedTime < startTime) {
+                      console.log('End time is before start time, adjusting...')
+                      setEditing({...editing!, end_time: startTime})
+                    } else {
+                      setEditing({...editing!, end_time: convertedTime})
+                    }
+                  }}
+                  placeholder="HH:MM (e.g., 16:30)"
+                  editingId={editing?.id?.toString()}
+                />
               </div>
 
               {/* Website and Recurrence */}
@@ -3107,19 +3041,14 @@ export default function Events({ darkMode = false }: EventsProps) {
                     Website URL
                   </label>
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                  <input 
-                    value={editing?.website_url || ''} 
-                    onChange={e=>setEditing({...editing, website_url: e.target.value})} 
-                    style={{ 
-                        flex: 1,
-                      padding: '12px', 
-                      border: '1px solid #d1d5db', 
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      background: '#fff'
-                    }}
-                    placeholder="https://example.com"
-                  />
+                    <FormField
+                      label=""
+                      name="website_url"
+                      value={editing?.website_url || ''}
+                      onChange={(value) => setEditing({...editing!, website_url: value as string})}
+                      type="url"
+                      editingId={editing?.id?.toString()}
+                    />
                     {editing?.website_url && (
                       <button
                         type="button"
@@ -3152,24 +3081,13 @@ export default function Events({ darkMode = false }: EventsProps) {
                     )}
                   </div>
           </div>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
-                    Recurrence
-                  </label>
-                  <input 
-                    value={editing?.recurrence || ''} 
-                    onChange={e=>setEditing({...editing, recurrence: e.target.value})} 
-                    style={{ 
-                      width: '100%', 
-                      padding: '12px', 
-                      border: '1px solid #d1d5db', 
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      background: '#fff'
-                    }}
-                    placeholder="Annual, Monthly, etc."
-                  />
-        </div>
+                <FormField
+                  label="Recurrence"
+                  name="recurrence"
+                  value={editing?.recurrence || ''}
+                  onChange={(value) => setEditing({...editing!, recurrence: value as string})}
+                  editingId={editing?.id?.toString()}
+                />
               </div>
 
               {/* Image Upload */}
@@ -3367,46 +3285,28 @@ export default function Events({ darkMode = false }: EventsProps) {
 
               {/* Status and Sort Order */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
-                    Status
-                  </label>
-                  <select 
-                    value={editing?.status || 'draft'} 
-                    onChange={e=>setEditing({...editing, status: e.target.value as any})} 
-                    style={{ 
-                      width: '100%', 
-                      padding: '12px', 
-                      border: '1px solid #d1d5db', 
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      background: '#fff'
-                    }}
-                  >
-                    <option value="draft">📝 Draft</option>
-                    <option value="published">✅ Published</option>
-                    <option value="archived">📦 Archived</option>
-                  </select>
-                </div>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
-                    Sort Order
-                  </label>
-                  <input 
-                    type="number" 
-                    value={editing?.sort_order || 1000} 
-                    onChange={e=>setEditing({...editing, sort_order: Number(e.target.value)})} 
-                    style={{ 
-                      width: '100%', 
-                      padding: '12px', 
-                      border: '1px solid #d1d5db', 
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      background: '#fff'
-                    }}
-                    placeholder="1000"
-                  />
-                </div>
+                <FormField
+                
+                  label="Status"
+                  name="status"
+                  value={editing?.status || 'draft'}
+                  onChange={(value) => setEditing({...editing!, status: value as any})}
+                  type="select"
+                  options={[
+                    { value: 'draft', label: '📝 Draft' },
+                    { value: 'published', label: '✅ Published' },
+                    { value: 'archived', label: '📦 Archived' }
+                  ]}
+                  editingId={editing?.id?.toString()}
+                />
+                <FormField
+                  label="Sort Order"
+                  name="sort_order"
+                  value={editing?.sort_order ?? 1000}
+                  onChange={(value) => setEditing({...editing!, sort_order: value as number})}
+                  type="number"
+                  editingId={editing?.id?.toString()}
+                />
               </div>
             </div>
 
@@ -3529,15 +3429,16 @@ export default function Events({ darkMode = false }: EventsProps) {
               )}
             </div>
 
-            {/* Bottom Action Buttons */}
+            {/* Fixed Footer */}
             <div style={{ 
               background: '#ffffff',
               padding: '16px 32px',
               borderTop: '1px solid #e5e7eb',
+              borderRadius: '0 0 12px 12px',
+              flexShrink: 0,
               display: 'flex', 
               gap: '12px', 
-              justifyContent: 'flex-end',
-              borderRadius: '0 0 12px 12px'
+              justifyContent: 'flex-end'
             }}>
               <button 
                 className="btn" 

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import FormField from '../shared/components/FormField'
 
 const slugify = (s: string) =>
   s.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
@@ -529,7 +530,8 @@ export default function Locations({ darkMode = false }: LocationsProps) {
       )}
 
       {!editing ? (
-        <table>
+        <div>
+          <table>
           <thead>
             <tr>
               <th>Name</th>
@@ -543,7 +545,9 @@ export default function Locations({ darkMode = false }: LocationsProps) {
             {rows.map(r => (
               <tr 
                 key={r.id}
-                onClick={() => setEditing(r)}
+                onClick={(e) => {
+                  setEditing(r);
+                }}
                 style={{
                   cursor: 'pointer',
                   transition: 'background-color 0.2s ease'
@@ -682,6 +686,7 @@ export default function Locations({ darkMode = false }: LocationsProps) {
             )}
           </tbody>
         </table>
+        </div>
       ) : (
         <div 
           onClick={() => setEditing(null)}
@@ -712,6 +717,7 @@ export default function Locations({ darkMode = false }: LocationsProps) {
               boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
             }}
           >
+            
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
               <h3 style={{ margin: 0, fontSize: '24px', fontWeight: '600', color: '#1f2937' }}>
                 {editing.id ? '✏️ Edit Location' : '➕ New Location'}
@@ -735,148 +741,74 @@ export default function Locations({ darkMode = false }: LocationsProps) {
             <div style={{ display: 'grid', gap: '20px' }}>
               {/* Name and Slug */}
               <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '16px' }}>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
-                    Location Name *
-                  </label>
-                  <input 
-                    value={editing.name} 
-                    onChange={e=>setEditing({...editing, name: e.target.value})} 
-                    style={{ 
-                      width: '100%', 
-                      padding: '12px', 
-                      border: '1px solid #d1d5db', 
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      background: '#fff'
-                    }}
-                    placeholder="Enter location name"
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
-                    Slug
-                  </label>
-                  <input 
-                    value={editing.slug ?? ''} 
-                    onChange={e=>setEditing({...editing, slug: e.target.value})} 
-                    style={{ 
-                      width: '100%', 
-                      padding: '12px', 
-                      border: '1px solid #d1d5db', 
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      background: '#fff'
-                    }}
-                    placeholder="location-slug"
-                  />
-                </div>
+                <FormField
+                  label="Location Name"
+                  name="name"
+                  value={editing?.name || ''}
+                  onChange={(value) => setEditing({...editing!, name: value as string})}
+                  required
+                  editingId={editing?.id}
+                />
+                <FormField
+                  label="Slug"
+                  name="slug"
+                  value={editing?.slug || ''}
+                  onChange={(value) => setEditing({...editing!, slug: value as string})}
+                  editingId={editing?.id}
+                />
               </div>
 
               {/* Region and Website */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
-                    Region
-                  </label>
-                  <input 
-                    value={editing.region ?? ''} 
-                    onChange={e=>setEditing({...editing, region: e.target.value})} 
-                    style={{ 
-                      width: '100%', 
-                      padding: '12px', 
-                      border: '1px solid #d1d5db', 
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      background: '#fff'
-                    }}
-                    placeholder="Region name"
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
-                    Website URL
-                  </label>
-                  <input 
-                    value={editing.website_url ?? ''} 
-                    onChange={e=>setEditing({...editing, website_url: e.target.value})} 
-                    style={{ 
-                      width: '100%', 
-                      padding: '12px', 
-                      border: '1px solid #d1d5db', 
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      background: '#fff'
-                    }}
-                    placeholder="https://example.com"
-                  />
-                </div>
-              </div>
-
-              {/* Description */}
-              <div>
-                <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
-                  Short Description
-                </label>
-                <textarea 
-                  value={editing.short_description ?? ''} 
-                  onChange={e=>setEditing({...editing, short_description: e.target.value})} 
-                  style={{ 
-                    width: '100%', 
-                    padding: '12px', 
-                    border: '1px solid #d1d5db', 
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    background: '#fff',
-                    minHeight: '80px',
-                    resize: 'vertical'
-                  }}
-                  placeholder="Brief description of the location"
+                <FormField
+                  label="Region"
+                  name="region"
+                  value={editing?.region || ''}
+                  onChange={(value) => setEditing({...editing!, region: value as string})}
+                  editingId={editing?.id}
+                />
+                <FormField
+                  label="Website URL"
+                  name="website_url"
+                  value={editing?.website_url || ''}
+                  onChange={(value) => setEditing({...editing!, website_url: value as string})}
+                  type="url"
+                  editingId={editing?.id}
                 />
               </div>
 
+              <FormField
+                label="Short Description"
+                name="short_description"
+                value={editing?.short_description || ''}
+                onChange={(value) => setEditing({...editing!, short_description: value as string})}
+                type="textarea"
+                editingId={editing?.id}
+              />
+
               {/* Status and Sort Order */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
-                    Status
-                  </label>
-                  <select 
-                    value={editing.status} 
-                    onChange={e=>setEditing({...editing, status: e.target.value as any})} 
-                    style={{ 
-                      width: '100%', 
-                      padding: '12px', 
-                      border: '1px solid #d1d5db', 
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      background: '#fff'
-                    }}
-                  >
-                    <option value="draft">📝 Draft</option>
-                    <option value="published">✅ Published</option>
-                    <option value="archived">📦 Archived</option>
-                  </select>
-                </div>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
-                    Sort Order
-                  </label>
-                  <input 
-                    type="number" 
-                    value={editing.sort_order ?? 1000} 
-                    onChange={e=>setEditing({...editing, sort_order: Number(e.target.value)})} 
-                    style={{ 
-                      width: '100%', 
-                      padding: '12px', 
-                      border: '1px solid #d1d5db', 
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      background: '#fff'
-                    }}
-                    placeholder="1000"
-                  />
-                </div>
+                <FormField
+                  label="Status"
+                  name="status"
+                  value={editing?.status || 'draft'}
+                  onChange={(value) => setEditing({...editing!, status: value as any})}
+                  type="select"
+                  options={[
+                    { value: 'draft', label: '📝 Draft' },
+                    { value: 'published', label: '✅ Published' },
+                    { value: 'archived', label: '📦 Archived' }
+                  ]}
+                  editingId={editing?.id}
+                />
+                <FormField
+                  label="Sort Order"
+                  name="sort_order"
+                  value={editing?.sort_order ?? 1000}
+                  onChange={(value) => setEditing({...editing!, sort_order: value as number})}
+                  type="number"
+                  editingId={editing?.id}
+                />
               </div>
             </div>
 
@@ -919,8 +851,8 @@ export default function Locations({ darkMode = false }: LocationsProps) {
               </button>
             </div>
           </div>
-        </div>
-      )}
+       </div>
+    )}
     </div>
   )
 }

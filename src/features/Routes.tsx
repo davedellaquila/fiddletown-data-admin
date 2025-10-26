@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import FormField from '../shared/components/FormField'
+import ModalDialog from '../shared/components/ModalDialog'
 
 type Difficulty = 'easy' | 'moderate' | 'challenging'
 type Status = 'draft' | 'published' | 'archived'
@@ -313,49 +315,49 @@ export default function Routes({ darkMode = false }: RoutesProps) {
     if (!editing) return
     setBusy(true)
     try {
-      const payload = { ...editing }
+    const payload = { ...editing }
 
       if (!payload.name) { pushToast('Name is required', 'err'); return }
-      if (!payload.slug) payload.slug = slugify(payload.name)
+    if (!payload.slug) payload.slug = slugify(payload.name)
 
-      // If a file is selected, upload first and set gpx_url
-      const file = fileRef.current?.files?.[0]
-      if (file) {
+    // If a file is selected, upload first and set gpx_url
+    const file = fileRef.current?.files?.[0]
+    if (file) {
         pushToast('Uploading GPX…', 'info')
-        const url = await uploadGpx(file)
-        if (!url) return
-        payload.gpx_url = url
+      const url = await uploadGpx(file)
+      if (!url) return
+      payload.gpx_url = url
         pushToast('GPX uploaded', 'ok')
-      }
+    }
 
-      if (payload.id) {
-        // UPDATE – send only editable columns
-        const { error } = await supabase.from('routes')
-          .update({
-            name: payload.name,
-            slug: payload.slug,
-            gpx_url: payload.gpx_url,
-            duration_minutes: payload.duration_minutes,
-            start_point: payload.start_point,
-            end_point: payload.end_point,
-            difficulty: payload.difficulty,
-            notes: payload.notes,
-            status: payload.status,
-            sort_order: payload.sort_order
-          })
-          .eq('id', payload.id)
+    if (payload.id) {
+      // UPDATE – send only editable columns
+      const { error } = await supabase.from('routes')
+        .update({
+          name: payload.name,
+          slug: payload.slug,
+          gpx_url: payload.gpx_url,
+          duration_minutes: payload.duration_minutes,
+          start_point: payload.start_point,
+          end_point: payload.end_point,
+          difficulty: payload.difficulty,
+          notes: payload.notes,
+          status: payload.status,
+          sort_order: payload.sort_order
+        })
+        .eq('id', payload.id)
         if (error) { pushToast(error.message, 'err'); return }
-      } else {
-        // INSERT – strip id/timestamps so Postgres generates them
-        const { id, created_at, updated_at, deleted_at, ...insertable } = payload
-        const { data, error } = await supabase.from('routes').insert(insertable).select().single()
+    } else {
+      // INSERT – strip id/timestamps so Postgres generates them
+      const { id, created_at, updated_at, deleted_at, ...insertable } = payload
+      const { data, error } = await supabase.from('routes').insert(insertable).select().single()
         if (error) { pushToast(error.message, 'err'); return }
-        payload.id = data!.id
-      }
+      payload.id = data!.id
+    }
 
-      setEditing(null)
-      fileRef.current && (fileRef.current.value = '')
-      await load()
+    setEditing(null)
+    fileRef.current && (fileRef.current.value = '')
+    await load()
       pushToast('Saved', 'ok')
     } finally {
       setBusy(false)
@@ -770,202 +772,90 @@ export default function Routes({ darkMode = false }: RoutesProps) {
           </tbody>
         </table>
       ) : (
-        <div style={{ 
-          position: 'fixed', 
-          top: 0, 
-          left: 0, 
-          right: 0, 
-          bottom: 0, 
-          background: 'rgba(0,0,0,0.5)', 
-          zIndex: 1000, 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'center',
-          padding: '20px'
-        }}>
-          <div style={{ 
-            background: 'white', 
-            padding: '32px', 
-            borderRadius: '12px', 
-            maxWidth: '700px', 
-            width: '100%', 
-            maxHeight: '90vh', 
-            overflow: 'auto',
-            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
-              <h3 style={{ margin: 0, fontSize: '24px', fontWeight: '600', color: '#1f2937' }}>
-                {editing.id ? '✏️ Edit Route' : '➕ New Route'}
-              </h3>
-              <button 
-                onClick={()=>{ if (!busy) { setEditing(null); fileRef.current && (fileRef.current.value='') }}}
-                disabled={busy}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  fontSize: '24px',
-                  cursor: busy ? 'not-allowed' : 'pointer',
-                  color: busy ? '#9ca3af' : '#6b7280',
-                  padding: '4px'
-                }}
-                title="Close"
-              >
-                ✕
-              </button>
-            </div>
+        <ModalDialog
+          isOpen={!!editing}
+          onClose={() => { if (!busy) { setEditing(null); fileRef.current && (fileRef.current.value='') }}}
+          title={editing?.id ? '✏️ Edit Route' : '➕ New Route'}
+          busy={busy}
+        >
 
             <div style={{ display: 'grid', gap: '20px' }}>
               {/* Name and Slug */}
               <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '16px' }}>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
-                    Route Name *
-                  </label>
-                  <input 
-                    value={editing.name} 
-                    onChange={e=>setEditing({...editing, name: e.target.value})} 
-                    style={{ 
-                      width: '100%', 
-                      padding: '12px', 
-                      border: '1px solid #d1d5db', 
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      background: '#fff'
-                    }}
-                    placeholder="Enter route name"
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
-                    Slug
-                  </label>
-                  <input 
-                    value={editing.slug ?? ''} 
-                    onChange={e=>setEditing({...editing, slug: e.target.value})} 
-                    style={{ 
-                      width: '100%', 
-                      padding: '12px', 
-                      border: '1px solid #d1d5db', 
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      background: '#fff'
-                    }}
-                    placeholder="route-slug"
-                  />
-                </div>
+                <FormField
+                  label="Route Name"
+                  name="name"
+                  value={editing?.name || ''}
+                  onChange={(value) => setEditing({...editing!, name: value as string})}
+                  required
+                  editingId={editing?.id}
+                />
+                <FormField
+                  label="Slug"
+                  name="slug"
+                  value={editing?.slug ?? ''}
+                  onChange={(value) => setEditing({...editing!, slug: value as string})}
+                  editingId={editing?.id}
+                />
               </div>
 
               {/* Duration and Difficulty */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
-                    Duration (minutes)
-                  </label>
-                  <input 
-                    type="number" 
-                    value={editing.duration_minutes ?? 120} 
-                    onChange={e=>setEditing({...editing, duration_minutes: Number(e.target.value)})} 
-                    style={{ 
-                      width: '100%', 
-                      padding: '12px', 
-                      border: '1px solid #d1d5db', 
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      background: '#fff'
-                    }}
-                    placeholder="120"
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
-                    Difficulty
-                  </label>
-                  <select 
-                    value={editing.difficulty ?? 'moderate'} 
-                    onChange={e=>setEditing({...editing, difficulty: e.target.value as Difficulty})} 
-                    style={{ 
-                      width: '100%', 
-                      padding: '12px', 
-                      border: '1px solid #d1d5db', 
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      background: '#fff'
-                    }}
-                  >
-                    <option value="easy">🟢 Easy</option>
-                    <option value="moderate">🟡 Moderate</option>
-                    <option value="challenging">🔴 Challenging</option>
-                  </select>
-                </div>
+                <FormField
+                  label="Duration (minutes)"
+                  name="duration_minutes"
+                  value={editing?.duration_minutes ?? 120}
+                  onChange={(value) => setEditing({...editing!, duration_minutes: value as number})}
+                  type="number"
+                  editingId={editing?.id}
+                />
+                <FormField
+                  label="Difficulty"
+                  name="difficulty"
+                  value={editing?.difficulty ?? 'moderate'}
+                  onChange={(value) => setEditing({...editing!, difficulty: value as Difficulty})}
+                  type="select"
+                  options={[
+                    { value: 'easy', label: '🟢 Easy' },
+                    { value: 'moderate', label: '🟡 Moderate' },
+                    { value: 'challenging', label: '🔴 Challenging' }
+                  ]}
+                  editingId={editing?.id}
+                />
               </div>
 
               {/* Start and End Points */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
-                    Start Point
-                  </label>
-                  <input 
-                    value={editing.start_point ?? ''} 
-                    onChange={e=>setEditing({...editing, start_point: e.target.value})} 
-                    style={{ 
-                      width: '100%', 
-                      padding: '12px', 
-                      border: '1px solid #d1d5db', 
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      background: '#fff'
-                    }}
-                    placeholder="Starting location"
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
-                    End Point
-                  </label>
-                  <input 
-                    value={editing.end_point ?? ''} 
-                    onChange={e=>setEditing({...editing, end_point: e.target.value})} 
-                    style={{ 
-                      width: '100%', 
-                      padding: '12px', 
-                      border: '1px solid #d1d5db', 
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      background: '#fff'
-                    }}
-                    placeholder="Ending location"
-                  />
-                </div>
-              </div>
-
-              {/* Notes */}
-              <div>
-                <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
-                  Notes
-                </label>
-                <textarea 
-                  value={editing.notes ?? ''} 
-                  onChange={e=>setEditing({...editing, notes: e.target.value})} 
-                  style={{ 
-                    width: '100%', 
-                    padding: '12px', 
-                    border: '1px solid #d1d5db', 
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    background: '#fff',
-                    minHeight: '80px',
-                    resize: 'vertical'
-                  }}
-                  placeholder="Route description and notes"
+                <FormField
+                  label="Start Point"
+                  name="start_point"
+                  value={editing?.start_point ?? ''}
+                  onChange={(value) => setEditing({...editing!, start_point: value as string})}
+                  editingId={editing?.id}
                 />
-              </div>
+                <FormField
+                  label="End Point"
+                  name="end_point"
+                  value={editing?.end_point ?? ''}
+                  onChange={(value) => setEditing({...editing!, end_point: value as string})}
+                  editingId={editing?.id}
+                />
+          </div>
+
+              <FormField
+                label="Notes"
+                name="notes"
+                value={editing?.notes ?? ''}
+                onChange={(value) => setEditing({...editing!, notes: value as string})}
+                type="textarea"
+                editingId={editing?.id}
+              />
 
               {/* GPX File Upload */}
               <div>
                 <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
                   GPX File
-                </label>
+            </label>
                 <input 
                   ref={fileRef} 
                   type="file" 
@@ -979,7 +869,7 @@ export default function Routes({ darkMode = false }: RoutesProps) {
                     background: '#fff'
                   }}
                 />
-                {editing.gpx_url && (
+            {editing.gpx_url && (
                   <div style={{ 
                     marginTop: '8px', 
                     padding: '8px 12px', 
@@ -988,52 +878,33 @@ export default function Routes({ darkMode = false }: RoutesProps) {
                     fontSize: '12px'
                   }}>
                     <strong>Current:</strong> <a href={editing.gpx_url} target="_blank" rel="noreferrer" style={{ color: '#3b82f6' }}>{editing.gpx_url}</a>
-                  </div>
-                )}
               </div>
+            )}
+          </div>
 
               {/* Status and Sort Order */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
-                    Status
-                  </label>
-                  <select 
-                    value={editing.status} 
-                    onChange={e=>setEditing({...editing, status: e.target.value as Status})} 
-                    style={{ 
-                      width: '100%', 
-                      padding: '12px', 
-                      border: '1px solid #d1d5db', 
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      background: '#fff'
-                    }}
-                  >
-                    <option value="draft">📝 Draft</option>
-                    <option value="published">✅ Published</option>
-                    <option value="archived">📦 Archived</option>
-                  </select>
-                </div>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
-                    Sort Order
-                  </label>
-                  <input 
-                    type="number" 
-                    value={editing.sort_order ?? 1000} 
-                    onChange={e=>setEditing({...editing, sort_order: Number(e.target.value)})} 
-                    style={{ 
-                      width: '100%', 
-                      padding: '12px', 
-                      border: '1px solid #d1d5db', 
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      background: '#fff'
-                    }}
-                    placeholder="1000"
-                  />
-                </div>
+                <FormField
+                  label="Status"
+                  name="status"
+                  value={editing?.status || 'draft'}
+                  onChange={(value) => setEditing({...editing!, status: value as Status})}
+                  type="select"
+                  options={[
+                    { value: 'draft', label: '📝 Draft' },
+                    { value: 'published', label: '✅ Published' },
+                    { value: 'archived', label: '📦 Archived' }
+                  ]}
+                  editingId={editing?.id}
+                />
+                <FormField
+                  label="Sort Order"
+                  name="sort_order"
+                  value={editing?.sort_order ?? 1000}
+                  onChange={(value) => setEditing({...editing!, sort_order: value as number})}
+                  type="number"
+                  editingId={editing?.id}
+                />
               </div>
             </div>
 
@@ -1080,8 +951,7 @@ export default function Routes({ darkMode = false }: RoutesProps) {
                 {busy ? '⏳ Saving…' : '💾 Save Route'}
               </button>
             </div>
-          </div>
-        </div>
+        </ModalDialog>
       )}
     </div>
   )
