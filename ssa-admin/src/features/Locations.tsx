@@ -1038,9 +1038,6 @@ export default function Locations({ darkMode = false }: LocationsProps) {
               </div>
             </div>
 
-              </div>
-            </div>
-
             {/* Fixed Footer */}
             <div style={{
               padding: '16px 32px 24px 32px',
