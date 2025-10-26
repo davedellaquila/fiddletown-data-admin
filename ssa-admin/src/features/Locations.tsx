@@ -868,7 +868,6 @@ export default function Locations({ darkMode = false }: LocationsProps) {
                       fontSize: '14px',
                       background: '#fff'
                     }}
-                    placeholder="Enter location name"
                   />
                   <div style={{ fontSize: '10px', color: '#666', marginTop: '4px' }}>
                     Debug: React value = "{editing?.name ?? 'undefined'}"
@@ -891,7 +890,6 @@ export default function Locations({ darkMode = false }: LocationsProps) {
                       fontSize: '14px',
                       background: '#fff'
                     }}
-                    placeholder="location-slug"
                   />
                   <div style={{ fontSize: '10px', color: '#666', marginTop: '4px' }}>
                     Debug: React value = "{editing?.slug ?? 'undefined'}"
@@ -918,7 +916,6 @@ export default function Locations({ darkMode = false }: LocationsProps) {
                       fontSize: '14px',
                       background: '#fff'
                     }}
-                    placeholder="Region name"
                   />
                 </div>
                 <div>
@@ -938,7 +935,6 @@ export default function Locations({ darkMode = false }: LocationsProps) {
                       fontSize: '14px',
                       background: '#fff'
                     }}
-                    placeholder="https://example.com"
                   />
                 </div>
               </div>
@@ -961,9 +957,8 @@ export default function Locations({ darkMode = false }: LocationsProps) {
                     background: '#fff',
                     minHeight: '80px',
                     resize: 'vertical'
-                  }}
-                  placeholder="Brief description of the location"
-                />
+                    }}
+                  />
               </div>
 
               {/* Status and Sort Order */}
@@ -1007,7 +1002,6 @@ export default function Locations({ darkMode = false }: LocationsProps) {
                       fontSize: '14px',
                       background: '#fff'
                     }}
-                    placeholder="1000"
                   />
                 </div>
               </div>
