@@ -849,7 +849,7 @@ export default function Locations({ darkMode = false }: LocationsProps) {
                   <input 
                     key={`name-${editing?.id || 'new'}`}
                     data-key={`name-${editing?.id || 'new'}`}
-                    value={editing?.name ?? ''}
+                    defaultValue={editing?.name ?? ''}
                     onChange={e=>{
                       console.log('🔧 Locations - Name field changed:', e.target.value);
                       console.log('🔧 Locations - Current editing state:', editing);
@@ -866,7 +866,8 @@ export default function Locations({ darkMode = false }: LocationsProps) {
                       border: '1px solid #d1d5db', 
                       borderRadius: '8px',
                       fontSize: '14px',
-                      background: '#fff'
+                      background: '#fff',
+                      color: '#000 !important'
                     }}
                   />
                   <div style={{ fontSize: '10px', color: '#666', marginTop: '4px' }}>
@@ -880,7 +881,7 @@ export default function Locations({ darkMode = false }: LocationsProps) {
                   <input 
                     key={`slug-${editing?.id || 'new'}`}
                     data-key={`slug-${editing?.id || 'new'}`}
-                    value={editing?.slug ?? ''} 
+                    defaultValue={editing?.slug ?? ''} 
                     onChange={e=>setEditing({...editing, slug: e.target.value})} 
                     style={{ 
                       width: '100%', 
@@ -888,7 +889,8 @@ export default function Locations({ darkMode = false }: LocationsProps) {
                       border: '1px solid #d1d5db', 
                       borderRadius: '8px',
                       fontSize: '14px',
-                      background: '#fff'
+                      background: '#fff',
+                      color: '#000 !important'
                     }}
                   />
                   <div style={{ fontSize: '10px', color: '#666', marginTop: '4px' }}>
@@ -906,7 +908,7 @@ export default function Locations({ darkMode = false }: LocationsProps) {
                   <input 
                     key={`region-${editing?.id || 'new'}`}
                     data-key={`region-${editing?.id || 'new'}`}
-                    value={editing?.region ?? ''} 
+                    defaultValue={editing?.region ?? ''} 
                     onChange={e=>setEditing({...editing, region: e.target.value})} 
                     style={{ 
                       width: '100%', 
@@ -914,7 +916,8 @@ export default function Locations({ darkMode = false }: LocationsProps) {
                       border: '1px solid #d1d5db', 
                       borderRadius: '8px',
                       fontSize: '14px',
-                      background: '#fff'
+                      background: '#fff',
+                      color: '#000 !important'
                     }}
                   />
                 </div>
@@ -925,7 +928,7 @@ export default function Locations({ darkMode = false }: LocationsProps) {
                   <input 
                     key={`website-${editing?.id || 'new'}`}
                     data-key={`website-${editing?.id || 'new'}`}
-                    value={editing?.website_url ?? ''} 
+                    defaultValue={editing?.website_url ?? ''} 
                     onChange={e=>setEditing({...editing, website_url: e.target.value})} 
                     style={{ 
                       width: '100%', 
@@ -933,7 +936,8 @@ export default function Locations({ darkMode = false }: LocationsProps) {
                       border: '1px solid #d1d5db', 
                       borderRadius: '8px',
                       fontSize: '14px',
-                      background: '#fff'
+                      background: '#fff',
+                      color: '#000 !important'
                     }}
                   />
                 </div>
