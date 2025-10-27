@@ -3,8 +3,8 @@ import React, { useState, useEffect, useRef } from 'react'
 interface NavigationButtonsProps<T> {
   editing: T | null
   rows: T[]
-  onNavigateToPrevious: () => void
-  onNavigateToNext: () => void
+  onNavigateToPrevious: () => Promise<void>
+  onNavigateToNext: () => Promise<void>
   darkMode: boolean
   itemType: string // e.g., "event", "location", "route"
 }
@@ -62,7 +62,7 @@ export function NavigationButtons<T extends { id?: number | string }>({
   return (
     <div ref={containerRef} style={{ display: 'flex', gap: '8px' }}>
       <button 
-        onClick={onNavigateToPrevious}
+        onClick={() => onNavigateToPrevious()}
         disabled={isFirst}
         style={isFirst ? disabledStyle : buttonStyle}
         title={isCompact ? `Previous ${itemType}` : `Previous ${itemType}`}
@@ -70,7 +70,7 @@ export function NavigationButtons<T extends { id?: number | string }>({
         {isCompact ? '←' : '← Previous'}
       </button>
       <button 
-        onClick={onNavigateToNext}
+        onClick={() => onNavigateToNext()}
         disabled={isLast}
         style={isLast ? disabledStyle : buttonStyle}
         title={isCompact ? `Next ${itemType}` : `Next ${itemType}`}

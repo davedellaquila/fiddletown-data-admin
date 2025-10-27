@@ -370,16 +370,24 @@ export default function Routes({ darkMode = false }: RoutesProps) {
     }
   }
 
-  const navigateToNext = () => {
+  const navigateToNext = async () => {
     if (!editing?.id) return
+    
+    // Auto-save current changes before navigating
+    await save()
+    
     const currentIndex = rows.findIndex(r => r.id === editing.id)
     if (currentIndex < rows.length - 1) {
       setEditing(rows[currentIndex + 1])
     }
   }
 
-  const navigateToPrevious = () => {
+  const navigateToPrevious = async () => {
     if (!editing?.id) return
+    
+    // Auto-save current changes before navigating
+    await save()
+    
     const currentIndex = rows.findIndex(r => r.id === editing.id)
     if (currentIndex > 0) {
       setEditing(rows[currentIndex - 1])
