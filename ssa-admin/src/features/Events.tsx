@@ -1052,7 +1052,7 @@ export default function Events({ darkMode = false }: EventsProps) {
           <div 
             onClick={(e) => e.stopPropagation()}
             style={{ 
-              background: 'white', 
+              background: darkMode ? '#1f2937' : 'white', 
               padding: '32px', 
               borderRadius: '12px', 
               maxWidth: '900px', 
@@ -1062,7 +1062,7 @@ export default function Events({ darkMode = false }: EventsProps) {
               boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
             }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
-              <h3 style={{ margin: 0, fontSize: '24px', fontWeight: '600', color: '#1f2937' }}>
+              <h3 style={{ margin: 0, fontSize: '24px', fontWeight: '600', color: darkMode ? '#f9fafb' : '#1f2937' }}>
                 📷 Add Event from Image
               </h3>
               <button 
@@ -1078,7 +1078,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                   border: 'none',
                   fontSize: '24px',
                   cursor: 'pointer',
-                  color: '#6b7280',
+                  color: darkMode ? '#6b7280' : '#6b7280',
                   padding: '4px'
                 }}
                 title="Close"
@@ -1090,10 +1090,10 @@ export default function Events({ darkMode = false }: EventsProps) {
             <div style={{ display: 'grid', gap: '20px' }}>
               {/* Image Upload Section */}
               <div style={{ 
-                border: '1px dashed #c8b68a',
+                border: `1px dashed ${darkMode ? '#6b7280' : '#c8b68a'}`,
                 padding: '20px',
                 borderRadius: '8px',
-                background: '#fff9ef',
+                background: darkMode ? '#374151' : '#fff9ef',
                 textAlign: 'center'
               }}>
                 <div
@@ -1129,10 +1129,10 @@ export default function Events({ darkMode = false }: EventsProps) {
                     <div style={{ marginBottom: 8 }}>
                       <input type="file" accept="image/*" onChange={handleFileSelect} />
                     </div>
-                    <p style={{ margin: 0, fontSize: '14px', color: '#6b7280' }}>
+                    <p style={{ margin: 0, fontSize: '14px', color: darkMode ? '#d1d5db' : '#6b7280' }}>
                       Paste an image here (⌘/Ctrl+V) or choose a file. We'll OCR the text, parse it, and let you verify before saving.
                     </p>
-                    <small style={{ color: '#8b6b34' }}>
+                    <small style={{ color: darkMode ? '#9ca3af' : '#8b6b34' }}>
                       Tip: click inside this box and press <strong>⌘/Ctrl+V</strong> to paste from clipboard.
                     </small>
                   </div>
@@ -1152,14 +1152,14 @@ export default function Events({ darkMode = false }: EventsProps) {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
                   {/* Left side - Form fields */}
                   <div>
-                    <h4 style={{ margin: '0 0 16px 0', fontSize: '16px', fontWeight: '600', color: '#374151' }}>
+                    <h4 style={{ margin: '0 0 16px 0', fontSize: '16px', fontWeight: '600', color: darkMode ? '#f9fafb' : '#374151' }}>
                       Event Details
                     </h4>
                     <div style={{ display: 'grid', gap: '16px' }}>
                       {/* Name and Slug row */}
                       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '12px' }}>
                         <div>
-                          <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
+                          <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: darkMode ? '#f9fafb' : '#374151' }}>
                             Event Name *
                           </label>
                           <input 
@@ -1168,15 +1168,17 @@ export default function Events({ darkMode = false }: EventsProps) {
                             style={{ 
                               width: '100%', 
                               padding: '12px', 
-                              border: '1px solid #d1d5db', 
+                              border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`, 
                               borderRadius: '8px',
-                              fontSize: '14px'
+                              fontSize: '14px',
+                              background: darkMode ? '#374151' : '#ffffff',
+                              color: darkMode ? '#ffffff' : '#000000'
                             }} 
                             placeholder="Enter event name"
                           />
                         </div>
                         <div>
-                          <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
+                          <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: darkMode ? '#f9fafb' : '#374151' }}>
                             Slug
                           </label>
                           <input 
@@ -1185,9 +1187,11 @@ export default function Events({ darkMode = false }: EventsProps) {
                             style={{ 
                               width: '100%', 
                               padding: '12px', 
-                              border: '1px solid #d1d5db', 
+                              border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`, 
                               borderRadius: '8px',
-                              fontSize: '14px'
+                              fontSize: '14px',
+                              background: darkMode ? '#374151' : '#ffffff',
+                              color: darkMode ? '#ffffff' : '#000000'
                             }} 
                             placeholder="event-slug"
                           />
@@ -1197,7 +1201,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                       {/* Host Org and Location row */}
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                         <div>
-                          <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
+                          <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: darkMode ? '#f9fafb' : '#374151' }}>
                             Host Organization
                           </label>
                           <input 
@@ -1206,15 +1210,17 @@ export default function Events({ darkMode = false }: EventsProps) {
                             style={{ 
                               width: '100%', 
                               padding: '12px', 
-                              border: '1px solid #d1d5db', 
+                              border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`, 
                               borderRadius: '8px',
-                              fontSize: '14px'
+                              fontSize: '14px',
+                              background: darkMode ? '#374151' : '#ffffff',
+                              color: darkMode ? '#ffffff' : '#000000'
                             }} 
                             placeholder="Host organization"
                           />
                         </div>
                         <div>
-                          <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
+                          <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: darkMode ? '#f9fafb' : '#374151' }}>
                             Location
                           </label>
                           <input 
@@ -1223,9 +1229,11 @@ export default function Events({ darkMode = false }: EventsProps) {
                             style={{ 
                               width: '100%', 
                               padding: '12px', 
-                              border: '1px solid #d1d5db', 
+                              border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`, 
                               borderRadius: '8px',
-                              fontSize: '14px'
+                              fontSize: '14px',
+                              background: darkMode ? '#374151' : '#ffffff',
+                              color: darkMode ? '#ffffff' : '#000000'
                             }} 
                             placeholder="Event location"
                           />
@@ -1235,7 +1243,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                       {/* Date and Time row */}
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '12px' }}>
                         <div>
-                          <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
+                          <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: darkMode ? '#f9fafb' : '#374151' }}>
                             Start Date
                           </label>
                           <input 
@@ -1245,14 +1253,16 @@ export default function Events({ darkMode = false }: EventsProps) {
                             style={{ 
                               width: '100%', 
                               padding: '12px', 
-                              border: '1px solid #d1d5db', 
+                              border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`, 
                               borderRadius: '8px',
-                              fontSize: '14px'
+                              fontSize: '14px',
+                              background: darkMode ? '#374151' : '#ffffff',
+                              color: darkMode ? '#ffffff' : '#000000'
                             }} 
                           />
                         </div>
                         <div>
-                          <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
+                          <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: darkMode ? '#f9fafb' : '#374151' }}>
                             End Date
                           </label>
                           <input 
@@ -1262,14 +1272,16 @@ export default function Events({ darkMode = false }: EventsProps) {
                             style={{ 
                               width: '100%', 
                               padding: '12px', 
-                              border: '1px solid #d1d5db', 
+                              border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`, 
                               borderRadius: '8px',
-                              fontSize: '14px'
+                              fontSize: '14px',
+                              background: darkMode ? '#374151' : '#ffffff',
+                              color: darkMode ? '#ffffff' : '#000000'
                             }} 
                           />
                         </div>
                         <div>
-                          <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
+                          <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: darkMode ? '#f9fafb' : '#374151' }}>
                             Start Time
                           </label>
                           <input 
@@ -1279,14 +1291,16 @@ export default function Events({ darkMode = false }: EventsProps) {
                             style={{ 
                               width: '100%', 
                               padding: '12px', 
-                              border: '1px solid #d1d5db', 
+                              border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`, 
                               borderRadius: '8px',
-                              fontSize: '14px'
+                              fontSize: '14px',
+                              background: darkMode ? '#374151' : '#ffffff',
+                              color: darkMode ? '#ffffff' : '#000000'
                             }} 
                           />
                         </div>
                         <div>
-                          <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
+                          <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: darkMode ? '#f9fafb' : '#374151' }}>
                             End Time
                           </label>
                           <input 
@@ -1296,9 +1310,11 @@ export default function Events({ darkMode = false }: EventsProps) {
                             style={{ 
                               width: '100%', 
                               padding: '12px', 
-                              border: '1px solid #d1d5db', 
+                              border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`, 
                               borderRadius: '8px',
-                              fontSize: '14px'
+                              fontSize: '14px',
+                              background: darkMode ? '#374151' : '#ffffff',
+                              color: darkMode ? '#ffffff' : '#000000'
                             }} 
                           />
                         </div>
@@ -1307,7 +1323,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                       {/* Website and Status row */}
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                         <div>
-                          <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
+                          <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: darkMode ? '#f9fafb' : '#374151' }}>
                             Website URL
                           </label>
                           <input 
@@ -1317,15 +1333,17 @@ export default function Events({ darkMode = false }: EventsProps) {
                             style={{ 
                               width: '100%', 
                               padding: '12px', 
-                              border: '1px solid #d1d5db', 
+                              border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`, 
                               borderRadius: '8px',
-                              fontSize: '14px'
+                              fontSize: '14px',
+                              background: darkMode ? '#374151' : '#ffffff',
+                              color: darkMode ? '#ffffff' : '#000000'
                             }} 
                             placeholder="https://example.com"
                           />
                         </div>
                         <div>
-                          <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
+                          <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: darkMode ? '#f9fafb' : '#374151' }}>
                             Status
                           </label>
                           <select 
@@ -1334,9 +1352,11 @@ export default function Events({ darkMode = false }: EventsProps) {
                             style={{ 
                               width: '100%', 
                               padding: '12px', 
-                              border: '1px solid #d1d5db', 
+                              border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`, 
                               borderRadius: '8px',
-                              fontSize: '14px'
+                              fontSize: '14px',
+                              background: darkMode ? '#374151' : '#ffffff',
+                              color: darkMode ? '#ffffff' : '#000000'
                             }}
                           >
                             <option value="draft">📝 Draft</option>
@@ -1350,7 +1370,7 @@ export default function Events({ darkMode = false }: EventsProps) {
 
                   {/* Right side - Raw OCR text */}
                   <div>
-                    <h4 style={{ margin: '0 0 16px 0', fontSize: '16px', fontWeight: '600', color: '#374151' }}>
+                    <h4 style={{ margin: '0 0 16px 0', fontSize: '16px', fontWeight: '600', color: darkMode ? '#f9fafb' : '#374151' }}>
                       Raw OCR Text
                     </h4>
                     <textarea 
@@ -1360,21 +1380,22 @@ export default function Events({ darkMode = false }: EventsProps) {
                         width: '100%', 
                         height: 300, 
                         padding: '12px', 
-                        border: '1px solid #d1d5db', 
+                        border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`, 
                         borderRadius: '8px',
                         fontSize: '12px',
                         fontFamily: 'monospace',
-                        background: '#f9fafb'
+                        background: darkMode ? '#374151' : '#f9fafb',
+                        color: darkMode ? '#ffffff' : '#000000'
                       }} 
                       placeholder="OCR text will appear here..."
                     />
                     <div style={{ 
                       marginTop: 12, 
                       padding: 12, 
-                      background: '#f3f4f6', 
+                      background: darkMode ? '#4b5563' : '#f3f4f6', 
                       borderRadius: 8, 
                       fontSize: '12px', 
-                      color: '#6b7280' 
+                      color: darkMode ? '#d1d5db' : '#6b7280' 
                     }}>
                       <div style={{ marginBottom: 8, fontWeight: '600' }}>
                         <strong>Parsed from OCR:</strong>
@@ -1406,7 +1427,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                 gap: '12px', 
                 justifyContent: 'flex-end',
                 paddingTop: '20px',
-                borderTop: '1px solid #e5e7eb'
+                borderTop: `1px solid ${darkMode ? '#374151' : '#e5e7eb'}`
               }}>
                 <button 
                   className="btn" 
@@ -1420,10 +1441,10 @@ export default function Events({ darkMode = false }: EventsProps) {
                   style={{ 
                     padding: '12px 24px', 
                     fontSize: '14px',
-                    background: '#f9fafb',
-                    border: '1px solid #d1d5db',
+                    background: darkMode ? '#374151' : '#f9fafb',
+                    border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`,
                     borderRadius: '8px',
-                    color: '#374151'
+                    color: darkMode ? '#f9fafb' : '#374151'
                   }}
                 >
                   Cancel
@@ -2078,24 +2099,55 @@ export default function Events({ darkMode = false }: EventsProps) {
                   <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: darkMode ? '#f9fafb' : '#374151' }}>
                     Website URL
                   </label>
-                  <input 
-                    key={`website-url-${editing?.id || 'new'}`}
-                    data-key={`website-url-${editing?.id || 'new'}`}
-                    className={darkMode ? 'form-field-white-text' : ''}
-                    defaultValue={editing?.website_url || ''} 
-                    onChange={e=>updateEditing({ website_url: e.target.value})} 
-                    style={{ 
-                      width: '100%', 
-                      padding: '12px', 
-                      border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`, 
-                      borderRadius: '8px',
-                      background: darkMode ? '#374151' : '#ffffff',
-                      color: darkMode ? '#ffffff !important' : '#000000 !important',
-                      WebkitTextFillColor: darkMode ? '#ffffff !important' : '#000000 !important',
-                      WebkitOpacity: 1,
-                      caretColor: darkMode ? '#ffffff !important' : '#000000 !important'
-                    }}
-                  />
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <input 
+                      key={`website-url-${editing?.id || 'new'}`}
+                      data-key={`website-url-${editing?.id || 'new'}`}
+                      className={darkMode ? 'form-field-white-text' : ''}
+                      defaultValue={editing?.website_url || ''} 
+                      onChange={e=>updateEditing({ website_url: e.target.value})} 
+                      style={{ 
+                        flex: 1,
+                        padding: '12px', 
+                        border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`, 
+                        borderRadius: '8px',
+                        background: darkMode ? '#374151' : '#ffffff',
+                        color: darkMode ? '#ffffff !important' : '#000000 !important',
+                        WebkitTextFillColor: darkMode ? '#ffffff !important' : '#000000 !important',
+                        WebkitOpacity: 1,
+                        caretColor: darkMode ? '#ffffff !important' : '#000000 !important'
+                      }}
+                    />
+                    {editing?.website_url && (
+                      <button
+                        onClick={() => {
+                          const url = editing.website_url?.startsWith('http') 
+                            ? editing.website_url 
+                            : `https://${editing.website_url}`;
+                          window.open(url, '_blank', 'noopener,noreferrer');
+                        }}
+                        style={{
+                          padding: '8px',
+                          background: darkMode ? '#374151' : '#f3f4f6',
+                          border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`,
+                          borderRadius: '6px',
+                          color: darkMode ? '#f9fafb' : '#374151',
+                          cursor: 'pointer',
+                          fontSize: '14px',
+                          fontWeight: '500',
+                          width: '36px',
+                          height: '36px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0
+                        }}
+                        title="Open website in new tab"
+                      >
+                        🔗
+                      </button>
+                    )}
+                  </div>
           </div>
                 <div>
                   <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: darkMode ? '#f9fafb' : '#374151' }}>
