@@ -903,7 +903,6 @@ export default function Locations({ darkMode = false }: LocationsProps) {
                       background: darkMode ? '#374151' : '#ffffff',
                       color: darkMode ? '#ffffff !important' : '#000000 !important',
                       WebkitTextFillColor: darkMode ? '#ffffff !important' : '#000000 !important',
-                      WebkitOpacity: 1,
                       caretColor: darkMode ? '#ffffff !important' : '#000000 !important'
                     }}
                   />
@@ -926,7 +925,6 @@ export default function Locations({ darkMode = false }: LocationsProps) {
                       background: darkMode ? '#374151' : '#ffffff',
                       color: darkMode ? '#ffffff !important' : '#000000 !important',
                       WebkitTextFillColor: darkMode ? '#ffffff !important' : '#000000 !important',
-                      WebkitOpacity: 1,
                       caretColor: darkMode ? '#ffffff !important' : '#000000 !important'
                     }}
                   />
@@ -953,7 +951,6 @@ export default function Locations({ darkMode = false }: LocationsProps) {
                       background: darkMode ? '#374151' : '#ffffff',
                       color: darkMode ? '#ffffff !important' : '#000000 !important',
                       WebkitTextFillColor: darkMode ? '#ffffff !important' : '#000000 !important',
-                      WebkitOpacity: 1,
                       caretColor: darkMode ? '#ffffff !important' : '#000000 !important'
                     }}
                   />
@@ -976,7 +973,6 @@ export default function Locations({ darkMode = false }: LocationsProps) {
                       background: darkMode ? '#374151' : '#ffffff',
                       color: darkMode ? '#ffffff !important' : '#000000 !important',
                       WebkitTextFillColor: darkMode ? '#ffffff !important' : '#000000 !important',
-                      WebkitOpacity: 1,
                       caretColor: darkMode ? '#ffffff !important' : '#000000 !important'
                     }}
                   />
@@ -1022,7 +1018,6 @@ export default function Locations({ darkMode = false }: LocationsProps) {
                       padding: '12px', 
                       border: '1px solid #d1d5db', 
                       borderRadius: '8px',
-                      background: darkMode ? '#374151' : '#ffffff',
                       background: darkMode ? '#374151' : '#ffffff'
                     }}
                   >

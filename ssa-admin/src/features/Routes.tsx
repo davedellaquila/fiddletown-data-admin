@@ -928,7 +928,6 @@ export default function Routes({ darkMode = false }: RoutesProps) {
                       background: darkMode ? '#374151' : '#ffffff',
                       color: darkMode ? '#ffffff !important' : '#000000 !important',
                       WebkitTextFillColor: darkMode ? '#ffffff !important' : '#000000 !important',
-                      WebkitOpacity: 1,
                       caretColor: darkMode ? '#ffffff !important' : '#000000 !important'
                     }}
                     placeholder="Enter route name"
@@ -950,7 +949,6 @@ export default function Routes({ darkMode = false }: RoutesProps) {
                       background: darkMode ? '#374151' : '#ffffff',
                       color: darkMode ? '#ffffff !important' : '#000000 !important',
                       WebkitTextFillColor: darkMode ? '#ffffff !important' : '#000000 !important',
-                      WebkitOpacity: 1,
                       caretColor: darkMode ? '#ffffff !important' : '#000000 !important'
                     }}
                     placeholder="route-slug"
@@ -977,7 +975,6 @@ export default function Routes({ darkMode = false }: RoutesProps) {
                       background: darkMode ? '#374151' : '#ffffff',
                       color: darkMode ? '#ffffff !important' : '#000000 !important',
                       WebkitTextFillColor: darkMode ? '#ffffff !important' : '#000000 !important',
-                      WebkitOpacity: 1,
                       caretColor: darkMode ? '#ffffff !important' : '#000000 !important'
                     }}
                     placeholder="120"
@@ -999,7 +996,6 @@ export default function Routes({ darkMode = false }: RoutesProps) {
                       background: darkMode ? '#374151' : '#ffffff',
                       color: darkMode ? '#ffffff !important' : '#000000 !important',
                       WebkitTextFillColor: darkMode ? '#ffffff !important' : '#000000 !important',
-                      WebkitOpacity: 1,
                       caretColor: darkMode ? '#ffffff !important' : '#000000 !important'
                     }}
                   >
@@ -1028,7 +1024,6 @@ export default function Routes({ darkMode = false }: RoutesProps) {
                       background: darkMode ? '#374151' : '#ffffff',
                       color: darkMode ? '#ffffff !important' : '#000000 !important',
                       WebkitTextFillColor: darkMode ? '#ffffff !important' : '#000000 !important',
-                      WebkitOpacity: 1,
                       caretColor: darkMode ? '#ffffff !important' : '#000000 !important'
                     }}
                     placeholder="Starting location"
@@ -1050,7 +1045,6 @@ export default function Routes({ darkMode = false }: RoutesProps) {
                       background: darkMode ? '#374151' : '#ffffff',
                       color: darkMode ? '#ffffff !important' : '#000000 !important',
                       WebkitTextFillColor: darkMode ? '#ffffff !important' : '#000000 !important',
-                      WebkitOpacity: 1,
                       caretColor: darkMode ? '#ffffff !important' : '#000000 !important'
                     }}
                     placeholder="Ending location"
@@ -1126,7 +1120,6 @@ export default function Routes({ darkMode = false }: RoutesProps) {
                       padding: '12px', 
                       border: '1px solid #d1d5db', 
                       borderRadius: '8px',
-                      background: darkMode ? '#374151' : '#ffffff',
                       background: darkMode ? '#374151' : '#ffffff'
                     }}
                   >
@@ -1148,7 +1141,6 @@ export default function Routes({ darkMode = false }: RoutesProps) {
                       padding: '12px', 
                       border: '1px solid #d1d5db', 
                       borderRadius: '8px',
-                      background: darkMode ? '#374151' : '#ffffff',
                       background: darkMode ? '#374151' : '#ffffff'
                     }}
                     placeholder="1000"

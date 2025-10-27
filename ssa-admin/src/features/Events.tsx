@@ -1907,7 +1907,6 @@ export default function Events({ darkMode = false }: EventsProps) {
                       background: darkMode ? '#374151' : '#ffffff',
                       color: darkMode ? '#ffffff !important' : '#000000 !important',
                       WebkitTextFillColor: darkMode ? '#ffffff !important' : '#000000 !important',
-                      WebkitOpacity: 1,
                       caretColor: darkMode ? '#ffffff !important' : '#000000 !important'
                     }}
                   />
@@ -1930,7 +1929,6 @@ export default function Events({ darkMode = false }: EventsProps) {
                       background: darkMode ? '#374151' : '#ffffff',
                       color: darkMode ? '#ffffff !important' : '#000000 !important',
                       WebkitTextFillColor: darkMode ? '#ffffff !important' : '#000000 !important',
-                      WebkitOpacity: 1,
                       caretColor: darkMode ? '#ffffff !important' : '#000000 !important'
                     }}
                   />
@@ -1957,7 +1955,6 @@ export default function Events({ darkMode = false }: EventsProps) {
                       background: darkMode ? '#374151' : '#ffffff',
                       color: darkMode ? '#ffffff !important' : '#000000 !important',
                       WebkitTextFillColor: darkMode ? '#ffffff !important' : '#000000 !important',
-                      WebkitOpacity: 1,
                       caretColor: darkMode ? '#ffffff !important' : '#000000 !important'
                     }}
                   />
@@ -1980,7 +1977,6 @@ export default function Events({ darkMode = false }: EventsProps) {
                       background: darkMode ? '#374151' : '#ffffff',
                       color: darkMode ? '#ffffff !important' : '#000000 !important',
                       WebkitTextFillColor: darkMode ? '#ffffff !important' : '#000000 !important',
-                      WebkitOpacity: 1,
                       caretColor: darkMode ? '#ffffff !important' : '#000000 !important'
                     }}
                   />
@@ -2008,7 +2004,6 @@ export default function Events({ darkMode = false }: EventsProps) {
                       background: darkMode ? '#374151' : '#ffffff',
                       color: darkMode ? '#ffffff !important' : '#000000 !important',
                       WebkitTextFillColor: darkMode ? '#ffffff !important' : '#000000 !important',
-                      WebkitOpacity: 1,
                       caretColor: darkMode ? '#ffffff !important' : '#000000 !important'
                     }}
                   />
@@ -2032,7 +2027,6 @@ export default function Events({ darkMode = false }: EventsProps) {
                       background: darkMode ? '#374151' : '#ffffff',
                       color: darkMode ? '#ffffff !important' : '#000000 !important',
                       WebkitTextFillColor: darkMode ? '#ffffff !important' : '#000000 !important',
-                      WebkitOpacity: 1,
                       caretColor: darkMode ? '#ffffff !important' : '#000000 !important'
                     }}
                   />
@@ -2060,7 +2054,6 @@ export default function Events({ darkMode = false }: EventsProps) {
                       background: darkMode ? '#374151' : '#ffffff',
                       color: darkMode ? '#ffffff !important' : '#000000 !important',
                       WebkitTextFillColor: darkMode ? '#ffffff !important' : '#000000 !important',
-                      WebkitOpacity: 1,
                       caretColor: darkMode ? '#ffffff !important' : '#000000 !important'
                     }}
                   />
@@ -2084,7 +2077,6 @@ export default function Events({ darkMode = false }: EventsProps) {
                       background: darkMode ? '#374151' : '#ffffff',
                       color: darkMode ? '#ffffff !important' : '#000000 !important',
                       WebkitTextFillColor: darkMode ? '#ffffff !important' : '#000000 !important',
-                      WebkitOpacity: 1,
                       caretColor: darkMode ? '#ffffff !important' : '#000000 !important'
                     }}
                   />
@@ -2112,7 +2104,6 @@ export default function Events({ darkMode = false }: EventsProps) {
                         background: darkMode ? '#374151' : '#ffffff',
                         color: darkMode ? '#ffffff !important' : '#000000 !important',
                         WebkitTextFillColor: darkMode ? '#ffffff !important' : '#000000 !important',
-                        WebkitOpacity: 1,
                         caretColor: darkMode ? '#ffffff !important' : '#000000 !important'
                       }}
                     />
@@ -2165,7 +2156,6 @@ export default function Events({ darkMode = false }: EventsProps) {
                       background: darkMode ? '#374151' : '#ffffff',
                       color: darkMode ? '#ffffff !important' : '#000000 !important',
                       WebkitTextFillColor: darkMode ? '#ffffff !important' : '#000000 !important',
-                      WebkitOpacity: 1,
                       caretColor: darkMode ? '#ffffff !important' : '#000000 !important'
                     }}
                   />
@@ -2291,7 +2281,6 @@ export default function Events({ darkMode = false }: EventsProps) {
                       background: darkMode ? '#374151' : '#ffffff',
                       color: darkMode ? '#ffffff !important' : '#000000 !important',
                       WebkitTextFillColor: darkMode ? '#ffffff !important' : '#000000 !important',
-                      WebkitOpacity: 1,
                       caretColor: darkMode ? '#ffffff !important' : '#000000 !important'
                     }}
                   >
@@ -2319,7 +2308,6 @@ export default function Events({ darkMode = false }: EventsProps) {
                       background: darkMode ? '#374151' : '#ffffff',
                       color: darkMode ? '#ffffff !important' : '#000000 !important',
                       WebkitTextFillColor: darkMode ? '#ffffff !important' : '#000000 !important',
-                      WebkitOpacity: 1,
                       caretColor: darkMode ? '#ffffff !important' : '#000000 !important'
                     }}
                   />
