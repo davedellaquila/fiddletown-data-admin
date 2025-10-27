@@ -1827,11 +1827,15 @@ export default function Events({ darkMode = false }: EventsProps) {
               flexShrink: 0
             }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ flex: 1 }}></div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                {/* Title - Left aligned */}
+                <div style={{ flex: 1 }}>
                   <h3 style={{ margin: 0, fontSize: '24px', fontWeight: '600', color: darkMode ? '#f9fafb' : '#1f2937' }}>
                     {editing.id ? '✏️ Edit Event' : '➕ New Event'}
                   </h3>
+                </div>
+                
+                {/* Navigation buttons - Centered */}
+                <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
                   {editing.id && (
                     <div style={{ display: 'flex', gap: '8px' }}>
                       <button 
@@ -1846,7 +1850,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                           cursor: rows.findIndex(r => r.id === editing.id) === 0 ? 'not-allowed' : 'pointer',
                           color: rows.findIndex(r => r.id === editing.id) === 0 ? (darkMode ? '#6b7280' : '#9ca3af') : (darkMode ? '#f9fafb' : '#374151'),
                           opacity: rows.findIndex(r => r.id === editing.id) === 0 ? 0.5 : 1,
-                          minWidth: '80px',
+                          minWidth: '100px',
                           textAlign: 'center'
                         }}
                         title="Previous event"
@@ -1865,7 +1869,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                           cursor: rows.findIndex(r => r.id === editing.id) === rows.length - 1 ? 'not-allowed' : 'pointer',
                           color: rows.findIndex(r => r.id === editing.id) === rows.length - 1 ? (darkMode ? '#6b7280' : '#9ca3af') : (darkMode ? '#f9fafb' : '#374151'),
                           opacity: rows.findIndex(r => r.id === editing.id) === rows.length - 1 ? 0.5 : 1,
-                          minWidth: '80px',
+                          minWidth: '100px',
                           textAlign: 'center'
                         }}
                         title="Next event"
@@ -1875,6 +1879,8 @@ export default function Events({ darkMode = false }: EventsProps) {
                     </div>
                   )}
                 </div>
+                
+                {/* Close button - Right aligned */}
                 <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end' }}>
                   <button 
                     onClick={()=>setEditing(null)}
@@ -2321,6 +2327,7 @@ export default function Events({ darkMode = false }: EventsProps) {
               </div>
             </div>
           </div>
+        </div>
         </div>
       )}
     </div>
