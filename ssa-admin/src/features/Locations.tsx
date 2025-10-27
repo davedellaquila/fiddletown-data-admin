@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { useFormFieldPopulation, createLocationsFieldConfigs } from '../shared/hooks/useFormFieldPopulation'
+import { ModalDialog } from '../shared/components/ModalDialog'
+import { NavigationButtons } from '../shared/components/NavigationButtons'
 import { STICKY_HEADER_TOP_OFFSETS } from '../shared/constants/layout'
 
 const slugify = (s: string) =>
@@ -320,6 +322,22 @@ export default function Locations({ darkMode = false }: LocationsProps) {
     console.log('💾 Locations - About to call setEditing(null) in save function');
     setEditing(null)
     await load()
+  }
+
+  const navigateToNext = () => {
+    if (!editing?.id) return
+    const currentIndex = rows.findIndex(r => r.id === editing.id)
+    if (currentIndex < rows.length - 1) {
+      setEditing(rows[currentIndex + 1])
+    }
+  }
+
+  const navigateToPrevious = () => {
+    if (!editing?.id) return
+    const currentIndex = rows.findIndex(r => r.id === editing.id)
+    if (currentIndex > 0) {
+      setEditing(rows[currentIndex - 1])
+    }
   }
 
   const publishRow = async (id: string) => {
@@ -793,64 +811,82 @@ export default function Locations({ darkMode = false }: LocationsProps) {
         >
           <div 
             onClick={(e) => e.stopPropagation()}
-            style={{ 
-              background: 'white', 
-              padding: '0', 
-              borderRadius: '12px', 
+            style={{
+              background: darkMode ? '#1f2937' : 'white',
+              padding: '32px',
+              borderRadius: '12px',
               maxWidth: '600px', 
               width: '100%', 
               maxHeight: '90vh', 
               overflow: 'hidden',
-              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
               display: 'flex',
-              flexDirection: 'column'
+              flexDirection: 'column',
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
             }}
           >
             {/* Fixed Header */}
             <div style={{
-              padding: '24px 32px 16px 32px',
-              borderBottom: '1px solid #e5e7eb',
-              background: 'white',
+              padding: '0 0 16px 0',
+              borderBottom: `1px solid ${darkMode ? '#374151' : '#e5e7eb'}`,
+              background: darkMode ? '#1f2937' : 'white',
               borderRadius: '12px 12px 0 0',
               flexShrink: 0
             }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <h3 style={{ margin: 0, fontSize: '24px', fontWeight: '600', color: '#1f2937' }}>
-                  {editing.id ? '✏️ Edit Location' : '➕ New Location'}
-                </h3>
-                <button 
-                  onClick={()=>setEditing(null)}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    fontSize: '24px',
-                    cursor: 'pointer',
-                    color: '#6b7280',
-                    padding: '4px'
-                  }}
-                  title="Close"
-                >
-                  ✕
-                </button>
+                {/* Title - Left aligned */}
+                <div style={{ flex: 1 }}>
+                  <h3 style={{ margin: 0, fontSize: '24px', fontWeight: '600', color: darkMode ? '#f9fafb' : '#1f2937' }}>
+                    {editing.id ? '✏️ Edit Location' : '➕ New Location'}
+                  </h3>
+                </div>
+
+                {/* Navigation buttons - Centered */}
+                <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
+                  <NavigationButtons
+                    editing={editing}
+                    rows={rows}
+                    onNavigateToPrevious={navigateToPrevious}
+                    onNavigateToNext={navigateToNext}
+                    darkMode={darkMode}
+                    itemType="location"
+                  />
+                </div>
+
+                {/* Close button - Right aligned */}
+                <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end' }}>
+                  <button 
+                    onClick={()=>setEditing(null)}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      fontSize: '24px',
+                      cursor: 'pointer',
+                      color: darkMode ? '#6b7280' : '#6b7280',
+                      padding: '4px'
+                    }}
+                    title="Close dialog"
+                  >
+                    ✕
+                  </button>
+                </div>
               </div>
-            </div>
 
             {/* Scrollable Content */}
             <div style={{
               flex: 1,
               overflowY: 'auto',
-              padding: '24px 32px'
+              padding: '24px 0'
             }}>
-              <div style={{ display: 'grid', gap: '20px' }}>
               {/* Name and Slug */}
               <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '16px' }}>
                 <div>
-                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
+                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: darkMode ? '#f9fafb' : '#374151' }}>
                     Location Name *
                   </label>
                   <input 
                     key={`name-${editing?.id || 'new'}`}
                     data-key={`name-${editing?.id || 'new'}`}
+                    className={darkMode ? 'form-field-white-text' : ''}
                     defaultValue={editing?.name ?? ''}
                     onChange={e=>{
                       console.log('🔧 Locations - Name field changed:', e.target.value);
@@ -865,31 +901,36 @@ export default function Locations({ darkMode = false }: LocationsProps) {
                     style={{ 
                       width: '100%', 
                       padding: '12px', 
-                      border: '1px solid #d1d5db', 
+                      border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`, 
                       borderRadius: '8px',
-                      fontSize: '14px',
-                      background: '#fff',
-                      color: '#000 !important'
+                      background: darkMode ? '#374151' : '#ffffff',
+                      color: darkMode ? '#ffffff !important' : '#000000 !important',
+                      WebkitTextFillColor: darkMode ? '#ffffff !important' : '#000000 !important',
+                      WebkitOpacity: 1,
+                      caretColor: darkMode ? '#ffffff !important' : '#000000 !important'
                     }}
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
+                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: darkMode ? '#f9fafb' : '#374151' }}>
                     Slug
                   </label>
                   <input 
                     key={`slug-${editing?.id || 'new'}`}
                     data-key={`slug-${editing?.id || 'new'}`}
+                    className={darkMode ? 'form-field-white-text' : ''}
                     defaultValue={editing?.slug ?? ''} 
                     onChange={e=>setEditing({...editing, slug: e.target.value})} 
                     style={{ 
                       width: '100%', 
                       padding: '12px', 
-                      border: '1px solid #d1d5db', 
+                      border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`, 
                       borderRadius: '8px',
-                      fontSize: '14px',
-                      background: '#fff',
-                      color: '#000 !important'
+                      background: darkMode ? '#374151' : '#ffffff',
+                      color: darkMode ? '#ffffff !important' : '#000000 !important',
+                      WebkitTextFillColor: darkMode ? '#ffffff !important' : '#000000 !important',
+                      WebkitOpacity: 1,
+                      caretColor: darkMode ? '#ffffff !important' : '#000000 !important'
                     }}
                   />
                 </div>
@@ -898,42 +939,48 @@ export default function Locations({ darkMode = false }: LocationsProps) {
               {/* Region and Website */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 <div>
-                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
+                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: darkMode ? '#f9fafb' : '#374151' }}>
                     Region
                   </label>
                   <input 
                     key={`region-${editing?.id || 'new'}`}
                     data-key={`region-${editing?.id || 'new'}`}
+                    className={darkMode ? 'form-field-white-text' : ''}
                     defaultValue={editing?.region ?? ''} 
                     onChange={e=>setEditing({...editing, region: e.target.value})} 
                     style={{ 
                       width: '100%', 
                       padding: '12px', 
-                      border: '1px solid #d1d5db', 
+                      border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`, 
                       borderRadius: '8px',
-                      fontSize: '14px',
-                      background: '#fff',
-                      color: '#000 !important'
+                      background: darkMode ? '#374151' : '#ffffff',
+                      color: darkMode ? '#ffffff !important' : '#000000 !important',
+                      WebkitTextFillColor: darkMode ? '#ffffff !important' : '#000000 !important',
+                      WebkitOpacity: 1,
+                      caretColor: darkMode ? '#ffffff !important' : '#000000 !important'
                     }}
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
+                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: darkMode ? '#f9fafb' : '#374151' }}>
                     Website URL
                   </label>
                   <input 
                     key={`website-${editing?.id || 'new'}`}
                     data-key={`website-${editing?.id || 'new'}`}
+                    className={darkMode ? 'form-field-white-text' : ''}
                     defaultValue={editing?.website_url ?? ''} 
                     onChange={e=>setEditing({...editing, website_url: e.target.value})} 
                     style={{ 
                       width: '100%', 
                       padding: '12px', 
-                      border: '1px solid #d1d5db', 
+                      border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`, 
                       borderRadius: '8px',
-                      fontSize: '14px',
-                      background: '#fff',
-                      color: '#000 !important'
+                      background: darkMode ? '#374151' : '#ffffff',
+                      color: darkMode ? '#ffffff !important' : '#000000 !important',
+                      WebkitTextFillColor: darkMode ? '#ffffff !important' : '#000000 !important',
+                      WebkitOpacity: 1,
+                      caretColor: darkMode ? '#ffffff !important' : '#000000 !important'
                     }}
                   />
                 </div>
@@ -941,21 +988,21 @@ export default function Locations({ darkMode = false }: LocationsProps) {
 
               {/* Description */}
               <div>
-                <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
+                <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: darkMode ? '#f9fafb' : '#374151' }}>
                   Short Description
                 </label>
                 <textarea 
                   key={`description-${editing?.id || 'new'}`}
+                  className={darkMode ? 'form-field-white-text' : ''}
                   value={editing?.short_description ?? ''} 
                   onChange={e=>setEditing({...editing, short_description: e.target.value})} 
                   style={{ 
                     width: '100%', 
                     padding: '12px', 
-                    border: '1px solid #d1d5db', 
+                    border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`, 
                     borderRadius: '8px',
                     fontSize: '14px',
-                    background: '#fff',
-                    color: '#000000',
+                    color: darkMode ? '#e0e0e0' : '#000000',
                     minHeight: '80px',
                     resize: 'vertical'
                     }}
@@ -970,6 +1017,7 @@ export default function Locations({ darkMode = false }: LocationsProps) {
                   </label>
                   <select 
                     key={`status-${editing?.id || 'new'}`}
+                    className={darkMode ? 'form-field-white-text' : ''}
                     value={editing?.status ?? 'draft'} 
                     onChange={e=>setEditing({...editing, status: e.target.value as any})} 
                     style={{ 
@@ -977,8 +1025,8 @@ export default function Locations({ darkMode = false }: LocationsProps) {
                       padding: '12px', 
                       border: '1px solid #d1d5db', 
                       borderRadius: '8px',
-                      fontSize: '14px',
-                      background: '#fff'
+                      background: darkMode ? '#374151' : '#ffffff',
+                      background: darkMode ? '#374151' : '#ffffff'
                     }}
                   >
                     <option value="draft">📝 Draft</option>
@@ -993,6 +1041,7 @@ export default function Locations({ darkMode = false }: LocationsProps) {
                   <input 
                     key={`sort_order-${editing?.id || 'new'}`}
                     type="number" 
+                    className={darkMode ? 'form-field-white-text' : ''} 
                     value={editing?.sort_order ?? 1000} 
                     onChange={e=>setEditing({...editing, sort_order: Number(e.target.value)})} 
                     style={{ 
@@ -1000,60 +1049,14 @@ export default function Locations({ darkMode = false }: LocationsProps) {
                       padding: '12px', 
                       border: '1px solid #d1d5db', 
                       borderRadius: '8px',
-                      fontSize: '14px',
-                      background: '#fff'
+                      background: darkMode ? '#374151' : '#ffffff'
                     }}
                   />
                 </div>
               </div>
-            </div>
-
-            {/* Fixed Footer */}
-            <div style={{
-              padding: '16px 32px 24px 32px',
-              borderTop: '1px solid #e5e7eb',
-              background: 'white',
-              borderRadius: '0 0 12px 12px',
-              flexShrink: 0
-            }}>
-              <div style={{ 
-                display: 'flex', 
-                gap: '12px', 
-                justifyContent: 'flex-end'
-              }}>
-                <button 
-                  className="btn" 
-                  onClick={()=>setEditing(null)}
-                  style={{ 
-                    padding: '12px 24px', 
-                    fontSize: '14px',
-                    background: '#f9fafb',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '8px',
-                    color: '#374151'
-                  }}
-                >
-                  Cancel
-                </button>
-                <button 
-                  className="btn primary" 
-                  onClick={save}
-                  style={{ 
-                    padding: '12px 24px', 
-                    fontSize: '14px',
-                    background: '#3b82f6',
-                    border: '1px solid #3b82f6',
-                    borderRadius: '8px',
-                    color: 'white',
-                    fontWeight: '500'
-                  }}
-                >
-                  💾 Save Location
-                </button>
               </div>
             </div>
           </div>
-        </div>
         </div>
       )}
     </div>

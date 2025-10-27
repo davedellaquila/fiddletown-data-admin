@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import { NavigationButtons } from '../shared/components/NavigationButtons'
 import { STICKY_HEADER_TOP_OFFSETS } from '../shared/constants/layout'
 
 type Difficulty = 'easy' | 'moderate' | 'challenging'
@@ -362,6 +363,22 @@ export default function Routes({ darkMode = false }: RoutesProps) {
       pushToast('Saved', 'ok')
     } finally {
       setBusy(false)
+    }
+  }
+
+  const navigateToNext = () => {
+    if (!editing?.id) return
+    const currentIndex = rows.findIndex(r => r.id === editing.id)
+    if (currentIndex < rows.length - 1) {
+      setEditing(rows[currentIndex + 1])
+    }
+  }
+
+  const navigateToPrevious = () => {
+    if (!editing?.id) return
+    const currentIndex = rows.findIndex(r => r.id === editing.id)
+    if (currentIndex > 0) {
+      setEditing(rows[currentIndex - 1])
     }
   }
 
@@ -844,7 +861,7 @@ export default function Routes({ darkMode = false }: RoutesProps) {
           <div 
             onClick={(e) => e.stopPropagation()}
             style={{ 
-              background: 'white', 
+              background: darkMode ? '#1f2937' : 'white', 
               padding: '32px', 
               borderRadius: '12px', 
               maxWidth: '700px', 
@@ -855,61 +872,88 @@ export default function Routes({ darkMode = false }: RoutesProps) {
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
-              <h3 style={{ margin: 0, fontSize: '24px', fontWeight: '600', color: '#1f2937' }}>
-                {editing.id ? '✏️ Edit Route' : '➕ New Route'}
-              </h3>
-              <button 
-                onClick={()=>{ if (!busy) { setEditing(null); fileRef.current && (fileRef.current.value='') }}}
-                disabled={busy}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  fontSize: '24px',
-                  cursor: busy ? 'not-allowed' : 'pointer',
-                  color: busy ? '#9ca3af' : '#6b7280',
-                  padding: '4px'
-                }}
-                title="Close"
-              >
-                ✕
-              </button>
+              {/* Title - Left aligned */}
+              <div style={{ flex: 1 }}>
+                <h3 style={{ margin: 0, fontSize: '24px', fontWeight: '600', color: darkMode ? '#f9fafb' : '#1f2937' }}>
+                  {editing.id ? '✏️ Edit Route' : '➕ New Route'}
+                </h3>
+              </div>
+
+              {/* Navigation buttons - Centered */}
+              <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
+                <NavigationButtons
+                  editing={editing}
+                  rows={rows}
+                  onNavigateToPrevious={navigateToPrevious}
+                  onNavigateToNext={navigateToNext}
+                  darkMode={darkMode}
+                  itemType="route"
+                />
+              </div>
+
+              {/* Close button - Right aligned */}
+              <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end' }}>
+                <button 
+                  onClick={()=>{ if (!busy) { setEditing(null); fileRef.current && (fileRef.current.value='') }}}
+                  disabled={busy}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    fontSize: '24px',
+                    cursor: busy ? 'not-allowed' : 'pointer',
+                    color: busy ? '#9ca3af' : '#6b7280',
+                    padding: '4px'
+                  }}
+                  title="Close dialog"
+                >
+                  ✕
+                </button>
+              </div>
             </div>
 
             <div style={{ display: 'grid', gap: '20px' }}>
               {/* Name and Slug */}
               <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '16px' }}>
                 <div>
-                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
+                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: darkMode ? '#f9fafb' : '#374151' }}>
                     Route Name *
                   </label>
                   <input 
                     value={editing.name} 
+                    className={darkMode ? 'form-field-white-text' : ''} 
                     onChange={e=>setEditing({...editing, name: e.target.value})} 
                     style={{ 
                       width: '100%', 
                       padding: '12px', 
-                      border: '1px solid #d1d5db', 
+                      border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`, 
                       borderRadius: '8px',
-                      fontSize: '14px',
-                      background: '#fff'
+                      background: darkMode ? '#374151' : '#ffffff',
+                      color: darkMode ? '#ffffff !important' : '#000000 !important',
+                      WebkitTextFillColor: darkMode ? '#ffffff !important' : '#000000 !important',
+                      WebkitOpacity: 1,
+                      caretColor: darkMode ? '#ffffff !important' : '#000000 !important'
                     }}
                     placeholder="Enter route name"
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
+                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: darkMode ? '#f9fafb' : '#374151' }}>
                     Slug
                   </label>
                   <input 
                     value={editing.slug ?? ''} 
+                    className={darkMode ? 'form-field-white-text' : ''} 
                     onChange={e=>setEditing({...editing, slug: e.target.value})} 
                     style={{ 
                       width: '100%', 
                       padding: '12px', 
-                      border: '1px solid #d1d5db', 
+                      border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`, 
                       borderRadius: '8px',
-                      fontSize: '14px',
-                      background: '#fff'
+                      background: darkMode ? '#374151' : '#ffffff',
+                      color: darkMode ? '#ffffff !important' : '#000000 !important',
+                      WebkitTextFillColor: darkMode ? '#ffffff !important' : '#000000 !important',
+                      WebkitOpacity: 1,
+                      caretColor: darkMode ? '#ffffff !important' : '#000000 !important'
                     }}
                     placeholder="route-slug"
                   />
@@ -919,38 +963,46 @@ export default function Routes({ darkMode = false }: RoutesProps) {
               {/* Duration and Difficulty */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 <div>
-                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
+                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: darkMode ? '#f9fafb' : '#374151' }}>
                     Duration (minutes)
                   </label>
                   <input 
                     type="number" 
                     value={editing.duration_minutes ?? 120} 
+                    className={darkMode ? 'form-field-white-text' : ''} 
                     onChange={e=>setEditing({...editing, duration_minutes: Number(e.target.value)})} 
                     style={{ 
                       width: '100%', 
                       padding: '12px', 
-                      border: '1px solid #d1d5db', 
+                      border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`, 
                       borderRadius: '8px',
-                      fontSize: '14px',
-                      background: '#fff'
+                      background: darkMode ? '#374151' : '#ffffff',
+                      color: darkMode ? '#ffffff !important' : '#000000 !important',
+                      WebkitTextFillColor: darkMode ? '#ffffff !important' : '#000000 !important',
+                      WebkitOpacity: 1,
+                      caretColor: darkMode ? '#ffffff !important' : '#000000 !important'
                     }}
                     placeholder="120"
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
+                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: darkMode ? '#f9fafb' : '#374151' }}>
                     Difficulty
                   </label>
                   <select 
                     value={editing.difficulty ?? 'moderate'} 
+                    className={darkMode ? 'form-field-white-text' : ''} 
                     onChange={e=>setEditing({...editing, difficulty: e.target.value as Difficulty})} 
                     style={{ 
                       width: '100%', 
                       padding: '12px', 
-                      border: '1px solid #d1d5db', 
+                      border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`, 
                       borderRadius: '8px',
-                      fontSize: '14px',
-                      background: '#fff'
+                      background: darkMode ? '#374151' : '#ffffff',
+                      color: darkMode ? '#ffffff !important' : '#000000 !important',
+                      WebkitTextFillColor: darkMode ? '#ffffff !important' : '#000000 !important',
+                      WebkitOpacity: 1,
+                      caretColor: darkMode ? '#ffffff !important' : '#000000 !important'
                     }}
                   >
                     <option value="easy">🟢 Easy</option>
@@ -963,37 +1015,45 @@ export default function Routes({ darkMode = false }: RoutesProps) {
               {/* Start and End Points */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 <div>
-                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
+                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: darkMode ? '#f9fafb' : '#374151' }}>
                     Start Point
                   </label>
                   <input 
                     value={editing.start_point ?? ''} 
+                    className={darkMode ? 'form-field-white-text' : ''} 
                     onChange={e=>setEditing({...editing, start_point: e.target.value})} 
                     style={{ 
                       width: '100%', 
                       padding: '12px', 
-                      border: '1px solid #d1d5db', 
+                      border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`, 
                       borderRadius: '8px',
-                      fontSize: '14px',
-                      background: '#fff'
+                      background: darkMode ? '#374151' : '#ffffff',
+                      color: darkMode ? '#ffffff !important' : '#000000 !important',
+                      WebkitTextFillColor: darkMode ? '#ffffff !important' : '#000000 !important',
+                      WebkitOpacity: 1,
+                      caretColor: darkMode ? '#ffffff !important' : '#000000 !important'
                     }}
                     placeholder="Starting location"
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
+                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: darkMode ? '#f9fafb' : '#374151' }}>
                     End Point
                   </label>
                   <input 
                     value={editing.end_point ?? ''} 
+                    className={darkMode ? 'form-field-white-text' : ''} 
                     onChange={e=>setEditing({...editing, end_point: e.target.value})} 
                     style={{ 
                       width: '100%', 
                       padding: '12px', 
-                      border: '1px solid #d1d5db', 
+                      border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`, 
                       borderRadius: '8px',
-                      fontSize: '14px',
-                      background: '#fff'
+                      background: darkMode ? '#374151' : '#ffffff',
+                      color: darkMode ? '#ffffff !important' : '#000000 !important',
+                      WebkitTextFillColor: darkMode ? '#ffffff !important' : '#000000 !important',
+                      WebkitOpacity: 1,
+                      caretColor: darkMode ? '#ffffff !important' : '#000000 !important'
                     }}
                     placeholder="Ending location"
                   />
@@ -1002,19 +1062,20 @@ export default function Routes({ darkMode = false }: RoutesProps) {
 
               {/* Notes */}
               <div>
-                <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
+                <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: darkMode ? '#f9fafb' : '#374151' }}>
                   Notes
                 </label>
                 <textarea 
                   value={editing.notes ?? ''} 
+                  className={darkMode ? 'form-field-white-text' : ''} 
                   onChange={e=>setEditing({...editing, notes: e.target.value})} 
                   style={{ 
                     width: '100%', 
                     padding: '12px', 
-                    border: '1px solid #d1d5db', 
+                    border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`, 
                     borderRadius: '8px',
                     fontSize: '14px',
-                    background: '#fff',
+                    color: darkMode ? '#e0e0e0' : '#000000',
                     minHeight: '80px',
                     resize: 'vertical'
                   }}
@@ -1037,7 +1098,7 @@ export default function Routes({ darkMode = false }: RoutesProps) {
                     border: '1px solid #d1d5db', 
                     borderRadius: '8px',
                     fontSize: '14px',
-                    background: '#fff'
+                    background: darkMode ? '#374151' : '#ffffff'
                   }}
                 />
                 {editing.gpx_url && (
@@ -1067,8 +1128,8 @@ export default function Routes({ darkMode = false }: RoutesProps) {
                       padding: '12px', 
                       border: '1px solid #d1d5db', 
                       borderRadius: '8px',
-                      fontSize: '14px',
-                      background: '#fff'
+                      background: darkMode ? '#374151' : '#ffffff',
+                      background: darkMode ? '#374151' : '#ffffff'
                     }}
                   >
                     <option value="draft">📝 Draft</option>
@@ -1089,57 +1150,13 @@ export default function Routes({ darkMode = false }: RoutesProps) {
                       padding: '12px', 
                       border: '1px solid #d1d5db', 
                       borderRadius: '8px',
-                      fontSize: '14px',
-                      background: '#fff'
+                      background: darkMode ? '#374151' : '#ffffff',
+                      background: darkMode ? '#374151' : '#ffffff'
                     }}
                     placeholder="1000"
                   />
                 </div>
               </div>
-            </div>
-
-            <div style={{ 
-              marginTop: '32px', 
-              display: 'flex', 
-              gap: '12px', 
-              justifyContent: 'flex-end',
-              paddingTop: '20px',
-              borderTop: '1px solid #e5e7eb'
-            }}>
-              <button 
-                className="btn" 
-                onClick={()=>{ if (!busy) { setEditing(null); fileRef.current && (fileRef.current.value='') }}}
-                disabled={busy}
-                style={{ 
-                  padding: '12px 24px', 
-                  fontSize: '14px',
-                  background: '#f9fafb',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  color: '#374151',
-                  opacity: busy ? 0.6 : 1,
-                  cursor: busy ? 'not-allowed' : 'pointer'
-                }}
-              >
-                Cancel
-              </button>
-              <button 
-                className="btn primary" 
-                onClick={save} 
-                disabled={busy}
-                style={{ 
-                  padding: '12px 24px', 
-                  fontSize: '14px',
-                  background: busy ? '#9ca3af' : '#3b82f6',
-                  border: `1px solid ${busy ? '#9ca3af' : '#3b82f6'}`,
-                  borderRadius: '8px',
-                  color: 'white',
-                  fontWeight: '500',
-                  cursor: busy ? 'not-allowed' : 'pointer'
-                }}
-              >
-                {busy ? '⏳ Saving…' : '💾 Save Route'}
-              </button>
             </div>
           </div>
         </div>

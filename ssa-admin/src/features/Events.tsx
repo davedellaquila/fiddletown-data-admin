@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { useFormFieldPopulation, createEventsFieldConfigs } from '../shared/hooks/useFormFieldPopulation'
+import { NavigationButtons } from '../shared/components/NavigationButtons'
 import { STICKY_HEADER_TOP_OFFSETS } from '../shared/constants/layout'
 
 type EventRow = {
@@ -135,7 +136,6 @@ export default function Events({ darkMode = false }: EventsProps) {
   // Helper function for button styles
   const getButtonStyle = (baseStyle: any = {}) => ({
     ...baseStyle,
-    background: darkMode ? '#374151' : '#ffffff',
     border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`,
     color: darkMode ? '#f9fafb' : '#374151',
     borderRadius: '6px'
@@ -947,7 +947,6 @@ export default function Events({ darkMode = false }: EventsProps) {
               flex: 1, 
               minWidth: 220, 
               padding: 8,
-              background: darkMode ? '#374151' : '#ffffff',
               border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`,
               borderRadius: '6px',
               color: darkMode ? '#f9fafb' : '#1f2937'
@@ -959,7 +958,6 @@ export default function Events({ darkMode = false }: EventsProps) {
               value={from} 
               onChange={e=>setFrom(e.target.value)} 
               style={{
-                background: darkMode ? '#374151' : '#ffffff',
                 border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`,
                 borderRadius: '6px',
                 color: darkMode ? '#f9fafb' : '#1f2937',
@@ -973,7 +971,6 @@ export default function Events({ darkMode = false }: EventsProps) {
               value={to} 
               onChange={e=>setTo(e.target.value)} 
               style={{
-                background: darkMode ? '#374151' : '#ffffff',
                 border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`,
                 borderRadius: '6px',
                 color: darkMode ? '#f9fafb' : '#1f2937',
@@ -1806,27 +1803,25 @@ export default function Events({ darkMode = false }: EventsProps) {
           <div 
             onClick={(e) => e.stopPropagation()}
             style={{ 
-              background: 'white', 
-              padding: '0',
+              background: darkMode ? '#1f2937' : 'white', 
+              padding: '32px',
               borderRadius: '12px', 
               maxWidth: '800px', 
               width: '100%', 
               maxHeight: '90vh', 
               overflow: 'hidden',
-              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
               display: 'flex',
-              flexDirection: 'column'
+              flexDirection: 'column',
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
             }}
           >
-            {/* Fixed Header */}
-            <div style={{
-              padding: '24px 32px 16px 32px',
-              borderBottom: `1px solid ${darkMode ? '#374151' : '#e5e7eb'}`,
-              background: darkMode ? '#1f2937' : 'white',
-              borderRadius: '12px 12px 0 0',
-              flexShrink: 0
+            {/* Header */}
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'space-between',
+              marginBottom: '24px'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 {/* Title - Left aligned */}
                 <div style={{ flex: 1 }}>
                   <h3 style={{ margin: 0, fontSize: '24px', fontWeight: '600', color: darkMode ? '#f9fafb' : '#1f2937' }}>
@@ -1836,48 +1831,14 @@ export default function Events({ darkMode = false }: EventsProps) {
                 
                 {/* Navigation buttons - Centered */}
                 <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
-                  {editing.id && (
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <button 
-                        onClick={navigateToPrevious}
-                        disabled={rows.findIndex(r => r.id === editing.id) === 0}
-                        style={{
-                          background: darkMode ? '#374151' : '#f3f4f6',
-                          border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`,
-                          borderRadius: '6px',
-                          padding: '6px 12px',
-                          fontSize: '14px',
-                          cursor: rows.findIndex(r => r.id === editing.id) === 0 ? 'not-allowed' : 'pointer',
-                          color: rows.findIndex(r => r.id === editing.id) === 0 ? (darkMode ? '#6b7280' : '#9ca3af') : (darkMode ? '#f9fafb' : '#374151'),
-                          opacity: rows.findIndex(r => r.id === editing.id) === 0 ? 0.5 : 1,
-                          minWidth: '100px',
-                          textAlign: 'center'
-                        }}
-                        title="Previous event"
-                      >
-                        ← Previous
-                      </button>
-                      <button 
-                        onClick={navigateToNext}
-                        disabled={rows.findIndex(r => r.id === editing.id) === rows.length - 1}
-                        style={{
-                          background: darkMode ? '#374151' : '#f3f4f6',
-                          border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`,
-                          borderRadius: '6px',
-                          padding: '6px 12px',
-                          fontSize: '14px',
-                          cursor: rows.findIndex(r => r.id === editing.id) === rows.length - 1 ? 'not-allowed' : 'pointer',
-                          color: rows.findIndex(r => r.id === editing.id) === rows.length - 1 ? (darkMode ? '#6b7280' : '#9ca3af') : (darkMode ? '#f9fafb' : '#374151'),
-                          opacity: rows.findIndex(r => r.id === editing.id) === rows.length - 1 ? 0.5 : 1,
-                          minWidth: '100px',
-                          textAlign: 'center'
-                        }}
-                        title="Next event"
-                      >
-                        Next →
-                      </button>
-                    </div>
-                  )}
+                  <NavigationButtons
+                    editing={editing}
+                    rows={rows}
+                    onNavigateToPrevious={navigateToPrevious}
+                    onNavigateToNext={navigateToNext}
+                    darkMode={darkMode}
+                    itemType="event"
+                  />
                 </div>
                 
                 {/* Close button - Right aligned */}
@@ -1916,6 +1877,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                   <input 
                     key={`name-${editing?.id || 'new'}`}
                     data-key={`name-${editing?.id || 'new'}`}
+                    className={darkMode ? 'form-field-white-text' : ''}
                     defaultValue={editing?.name || ''} 
                     onChange={e=>updateEditing({name: e.target.value})} 
                     style={{ 
@@ -1923,9 +1885,11 @@ export default function Events({ darkMode = false }: EventsProps) {
                       padding: '12px', 
                       border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`, 
                       borderRadius: '8px',
-                      fontSize: '14px',
-                      background: darkMode ? '#1e1e1e' : '#ffffff',
-                      color: darkMode ? '#e0e0e0' : '#000000'
+                      background: darkMode ? '#374151' : '#ffffff',
+                      color: darkMode ? '#ffffff !important' : '#000000 !important',
+                      WebkitTextFillColor: darkMode ? '#ffffff !important' : '#000000 !important',
+                      WebkitOpacity: 1,
+                      caretColor: darkMode ? '#ffffff !important' : '#000000 !important'
                     }}
                   />
                 </div>
@@ -1936,6 +1900,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                   <input 
                     key={`slug-${editing?.id || 'new'}`}
                     data-key={`slug-${editing?.id || 'new'}`}
+                    className={darkMode ? 'form-field-white-text' : ''}
                     defaultValue={editing?.slug || ''} 
                     onChange={e=>updateEditing({slug: e.target.value})} 
                     style={{ 
@@ -1943,9 +1908,11 @@ export default function Events({ darkMode = false }: EventsProps) {
                       padding: '12px', 
                       border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`, 
                       borderRadius: '8px',
-                      fontSize: '14px',
-                      background: darkMode ? '#1e1e1e' : '#ffffff',
-                      color: darkMode ? '#e0e0e0' : '#000000'
+                      background: darkMode ? '#374151' : '#ffffff',
+                      color: darkMode ? '#ffffff !important' : '#000000 !important',
+                      WebkitTextFillColor: darkMode ? '#ffffff !important' : '#000000 !important',
+                      WebkitOpacity: 1,
+                      caretColor: darkMode ? '#ffffff !important' : '#000000 !important'
                     }}
                   />
                 </div>
@@ -1960,6 +1927,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                   <input 
                     key={`host-org-${editing?.id || 'new'}`}
                     data-key={`host-org-${editing?.id || 'new'}`}
+                    className={darkMode ? 'form-field-white-text' : ''}
                     defaultValue={editing?.host_org || ''} 
                     onChange={e=>updateEditing({ host_org: e.target.value})} 
                     style={{ 
@@ -1967,9 +1935,11 @@ export default function Events({ darkMode = false }: EventsProps) {
                       padding: '12px', 
                       border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`, 
                       borderRadius: '8px',
-                      fontSize: '14px',
-                      background: darkMode ? '#1e1e1e' : '#ffffff',
-                      color: darkMode ? '#e0e0e0' : '#000000'
+                      background: darkMode ? '#374151' : '#ffffff',
+                      color: darkMode ? '#ffffff !important' : '#000000 !important',
+                      WebkitTextFillColor: darkMode ? '#ffffff !important' : '#000000 !important',
+                      WebkitOpacity: 1,
+                      caretColor: darkMode ? '#ffffff !important' : '#000000 !important'
                     }}
                   />
                 </div>
@@ -1980,6 +1950,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                   <input 
                     key={`location-${editing?.id || 'new'}`}
                     data-key={`location-${editing?.id || 'new'}`}
+                    className={darkMode ? 'form-field-white-text' : ''}
                     defaultValue={editing?.location || ''} 
                     onChange={e=>updateEditing({ location: e.target.value})} 
                     style={{ 
@@ -1987,9 +1958,11 @@ export default function Events({ darkMode = false }: EventsProps) {
                       padding: '12px', 
                       border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`, 
                       borderRadius: '8px',
-                      fontSize: '14px',
-                      background: darkMode ? '#1e1e1e' : '#ffffff',
-                      color: darkMode ? '#e0e0e0' : '#000000'
+                      background: darkMode ? '#374151' : '#ffffff',
+                      color: darkMode ? '#ffffff !important' : '#000000 !important',
+                      WebkitTextFillColor: darkMode ? '#ffffff !important' : '#000000 !important',
+                      WebkitOpacity: 1,
+                      caretColor: darkMode ? '#ffffff !important' : '#000000 !important'
                     }}
                   />
                 </div>
@@ -2004,6 +1977,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                   <input 
                     key={`start-date-${editing?.id || 'new'}`}
                     data-key={`start-date-${editing?.id || 'new'}`}
+                    className={darkMode ? 'form-field-white-text' : ''}
                     type="date"
                     defaultValue={editing?.start_date ? editing.start_date.split('T')[0] : ''}
                     onChange={e=>updateEditing({ start_date: e.target.value})} 
@@ -2012,9 +1986,11 @@ export default function Events({ darkMode = false }: EventsProps) {
                       padding: '12px', 
                       border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`, 
                       borderRadius: '8px',
-                      fontSize: '14px',
-                      background: darkMode ? '#1e1e1e' : '#ffffff',
-                      color: darkMode ? '#e0e0e0' : '#000000'
+                      background: darkMode ? '#374151' : '#ffffff',
+                      color: darkMode ? '#ffffff !important' : '#000000 !important',
+                      WebkitTextFillColor: darkMode ? '#ffffff !important' : '#000000 !important',
+                      WebkitOpacity: 1,
+                      caretColor: darkMode ? '#ffffff !important' : '#000000 !important'
                     }}
                   />
                 </div>
@@ -2025,6 +2001,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                   <input 
                     key={`end-date-${editing?.id || 'new'}`}
                     data-key={`end-date-${editing?.id || 'new'}`}
+                    className={darkMode ? 'form-field-white-text' : ''}
                     type="date"
                     defaultValue={editing?.end_date ? editing.end_date.split('T')[0] : ''}
                     onChange={e=>updateEditing({ end_date: e.target.value})} 
@@ -2033,9 +2010,11 @@ export default function Events({ darkMode = false }: EventsProps) {
                       padding: '12px', 
                       border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`, 
                       borderRadius: '8px',
-                      fontSize: '14px',
-                      background: darkMode ? '#1e1e1e' : '#ffffff',
-                      color: darkMode ? '#e0e0e0' : '#000000'
+                      background: darkMode ? '#374151' : '#ffffff',
+                      color: darkMode ? '#ffffff !important' : '#000000 !important',
+                      WebkitTextFillColor: darkMode ? '#ffffff !important' : '#000000 !important',
+                      WebkitOpacity: 1,
+                      caretColor: darkMode ? '#ffffff !important' : '#000000 !important'
                     }}
                   />
                 </div>
@@ -2050,6 +2029,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                   <input 
                     key={`start-time-${editing?.id || 'new'}`}
                     data-key={`start-time-${editing?.id || 'new'}`}
+                    className={darkMode ? 'form-field-white-text' : ''}
                     type="time"
                     defaultValue={editing?.start_time ? editing.start_time.substring(0, 5) : ''}
                     onChange={e=>updateEditing({ start_time: e.target.value})} 
@@ -2058,9 +2038,11 @@ export default function Events({ darkMode = false }: EventsProps) {
                       padding: '12px', 
                       border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`, 
                       borderRadius: '8px',
-                      fontSize: '14px',
-                      background: darkMode ? '#1e1e1e' : '#ffffff',
-                      color: darkMode ? '#e0e0e0' : '#000000'
+                      background: darkMode ? '#374151' : '#ffffff',
+                      color: darkMode ? '#ffffff !important' : '#000000 !important',
+                      WebkitTextFillColor: darkMode ? '#ffffff !important' : '#000000 !important',
+                      WebkitOpacity: 1,
+                      caretColor: darkMode ? '#ffffff !important' : '#000000 !important'
                     }}
                   />
                 </div>
@@ -2071,6 +2053,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                   <input 
                     key={`end-time-${editing?.id || 'new'}`}
                     data-key={`end-time-${editing?.id || 'new'}`}
+                    className={darkMode ? 'form-field-white-text' : ''}
                     type="time"
                     defaultValue={editing?.end_time ? editing.end_time.substring(0, 5) : ''}
                     onChange={e=>updateEditing({ end_time: e.target.value})} 
@@ -2079,9 +2062,11 @@ export default function Events({ darkMode = false }: EventsProps) {
                       padding: '12px', 
                       border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`, 
                       borderRadius: '8px',
-                      fontSize: '14px',
-                      background: darkMode ? '#1e1e1e' : '#ffffff',
-                      color: darkMode ? '#e0e0e0' : '#000000'
+                      background: darkMode ? '#374151' : '#ffffff',
+                      color: darkMode ? '#ffffff !important' : '#000000 !important',
+                      WebkitTextFillColor: darkMode ? '#ffffff !important' : '#000000 !important',
+                      WebkitOpacity: 1,
+                      caretColor: darkMode ? '#ffffff !important' : '#000000 !important'
                     }}
                   />
                 </div>
@@ -2096,6 +2081,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                   <input 
                     key={`website-url-${editing?.id || 'new'}`}
                     data-key={`website-url-${editing?.id || 'new'}`}
+                    className={darkMode ? 'form-field-white-text' : ''}
                     defaultValue={editing?.website_url || ''} 
                     onChange={e=>updateEditing({ website_url: e.target.value})} 
                     style={{ 
@@ -2103,9 +2089,11 @@ export default function Events({ darkMode = false }: EventsProps) {
                       padding: '12px', 
                       border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`, 
                       borderRadius: '8px',
-                      fontSize: '14px',
-                      background: darkMode ? '#1e1e1e' : '#ffffff',
-                      color: darkMode ? '#e0e0e0' : '#000000'
+                      background: darkMode ? '#374151' : '#ffffff',
+                      color: darkMode ? '#ffffff !important' : '#000000 !important',
+                      WebkitTextFillColor: darkMode ? '#ffffff !important' : '#000000 !important',
+                      WebkitOpacity: 1,
+                      caretColor: darkMode ? '#ffffff !important' : '#000000 !important'
                     }}
                   />
           </div>
@@ -2116,6 +2104,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                   <input 
                     key={`recurrence-${editing?.id || 'new'}`}
                     data-key={`recurrence-${editing?.id || 'new'}`}
+                    className={darkMode ? 'form-field-white-text' : ''}
                     defaultValue={editing?.recurrence || ''} 
                     onChange={e=>updateEditing({ recurrence: e.target.value})} 
                     style={{ 
@@ -2123,9 +2112,11 @@ export default function Events({ darkMode = false }: EventsProps) {
                       padding: '12px', 
                       border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`, 
                       borderRadius: '8px',
-                      fontSize: '14px',
-                      background: darkMode ? '#1e1e1e' : '#ffffff',
-                      color: darkMode ? '#e0e0e0' : '#000000'
+                      background: darkMode ? '#374151' : '#ffffff',
+                      color: darkMode ? '#ffffff !important' : '#000000 !important',
+                      WebkitTextFillColor: darkMode ? '#ffffff !important' : '#000000 !important',
+                      WebkitOpacity: 1,
+                      caretColor: darkMode ? '#ffffff !important' : '#000000 !important'
                     }}
                   />
         </div>
@@ -2153,10 +2144,11 @@ export default function Events({ darkMode = false }: EventsProps) {
                       }}
                       style={{ 
                         padding: '12px', 
-                        border: '1px solid #d1d5db', 
+                        border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`, 
                         borderRadius: '8px',
-                        fontSize: '14px',
-                        flex: 1
+                        background: darkMode ? '#374151' : '#ffffff',
+                        flex: 1,
+                        color: darkMode ? '#ffffff !important' : '#000000 !important'
                       }}
                     />
                     <div
@@ -2187,7 +2179,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                         borderRadius: '8px',
                         textAlign: 'center',
                         cursor: 'pointer',
-                        fontSize: '14px',
+                        background: darkMode ? '#374151' : '#ffffff',
                         color: darkMode ? '#9ca3af' : '#6b7280',
                         background: darkMode ? '#374151' : '#f9fafb',
                         minWidth: '120px',
@@ -2221,7 +2213,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                         height: 80, 
                         objectFit: 'cover', 
                         borderRadius: '8px',
-                        border: '1px solid #d1d5db'
+                        border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`
                       }} 
                     />
                   )}
@@ -2239,15 +2231,18 @@ export default function Events({ darkMode = false }: EventsProps) {
                   </label>
                   <select 
                     value={editing?.status || 'draft'} 
+                    className={darkMode ? 'form-field-white-text' : ''} 
                     onChange={e=>updateEditing({ status: e.target.value as any})} 
                     style={{ 
                       width: '100%', 
                       padding: '12px', 
                       border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`, 
                       borderRadius: '8px',
-                      fontSize: '14px',
-                      background: darkMode ? '#1e1e1e' : '#ffffff',
-                      color: darkMode ? '#e0e0e0' : '#000000'
+                      background: darkMode ? '#374151' : '#ffffff',
+                      color: darkMode ? '#ffffff !important' : '#000000 !important',
+                      WebkitTextFillColor: darkMode ? '#ffffff !important' : '#000000 !important',
+                      WebkitOpacity: 1,
+                      caretColor: darkMode ? '#ffffff !important' : '#000000 !important'
                     }}
                   >
                     <option value="draft">📝 Draft</option>
@@ -2262,6 +2257,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                   <input 
                     key={`sort-order-${editing?.id || 'new'}`}
                     data-key={`sort-order-${editing?.id || 'new'}`}
+                    className={darkMode ? 'form-field-white-text' : ''}
                     type="number"
                     defaultValue={editing?.sort_order || 1000}
                     onChange={e=>updateEditing({ sort_order: Number(e.target.value)})} 
@@ -2270,58 +2266,14 @@ export default function Events({ darkMode = false }: EventsProps) {
                       padding: '12px', 
                       border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`, 
                       borderRadius: '8px',
-                      fontSize: '14px',
-                      background: darkMode ? '#1e1e1e' : '#ffffff',
-                      color: darkMode ? '#e0e0e0' : '#000000'
+                      background: darkMode ? '#374151' : '#ffffff',
+                      color: darkMode ? '#ffffff !important' : '#000000 !important',
+                      WebkitTextFillColor: darkMode ? '#ffffff !important' : '#000000 !important',
+                      WebkitOpacity: 1,
+                      caretColor: darkMode ? '#ffffff !important' : '#000000 !important'
                     }}
                   />
                 </div>
-              </div>
-            </div>
-            </div>
-
-            {/* Fixed Footer */}
-            <div style={{
-              padding: '16px 32px 24px 32px',
-              borderTop: `1px solid ${darkMode ? '#374151' : '#e5e7eb'}`,
-              background: darkMode ? '#1f2937' : 'white',
-              borderRadius: '0 0 12px 12px',
-              flexShrink: 0
-            }}>
-              <div style={{
-                display: 'flex',
-                gap: '12px',
-                justifyContent: 'flex-end'
-              }}>
-                <button 
-                  className="btn" 
-                  onClick={()=>setEditing(null)}
-                  style={{ 
-                    padding: '12px 24px', 
-                    fontSize: '14px',
-                    background: '#f9fafb',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '8px',
-                    color: '#374151'
-                  }}
-                >
-                  Cancel
-                </button>
-                <button 
-                  className="btn primary" 
-                  onClick={save}
-                  style={{ 
-                    padding: '12px 24px', 
-                    fontSize: '14px',
-                    background: '#3b82f6',
-                    border: '1px solid #3b82f6',
-                    borderRadius: '8px',
-                    color: 'white',
-                    fontWeight: '500'
-                  }}
-                >
-                  💾 Save Event
-                </button>
               </div>
             </div>
           </div>

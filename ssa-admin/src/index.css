@@ -153,11 +153,37 @@ table thead th {
   outline-offset: 2px;
 }
 
+/* SUPER SPECIFIC - Force background color for all form fields */
+html[data-theme="dark"] input[type="text"],
+html[data-theme="dark"] input[type="email"],
+html[data-theme="dark"] input[type="password"],
+html[data-theme="dark"] input[type="number"],
+html[data-theme="dark"] input[type="date"],
+html[data-theme="dark"] input[type="time"],
+html[data-theme="dark"] input[type="url"],
+html[data-theme="dark"] select,
+html[data-theme="dark"] textarea,
+.form-field-white-text,
+input.form-field-white-text,
+select.form-field-white-text,
+textarea.form-field-white-text {
+  background-color: #374151 !important;
+  background: #374151 !important;
+}
+
+/* Force background color for all form fields in dark mode */
+[data-theme="dark"] input,
+[data-theme="dark"] select,
+[data-theme="dark"] textarea,
+.form-field-white-text {
+  background: #374151 !important;
+}
+
 /* Dark mode input and form elements */
 [data-theme="dark"] input,
 [data-theme="dark"] select,
 [data-theme="dark"] textarea {
-  background: #374151;
+  background: #374151 !important;
   border-color: #4b5563;
   color: #f9fafb;
 }
@@ -172,6 +198,30 @@ table thead th {
 [data-theme="dark"] input::placeholder,
 [data-theme="dark"] textarea::placeholder {
   color: #9ca3af;
+}
+
+/* Force white text in form fields for better readability */
+[data-theme="dark"] input[style*="color: #ffffff !important"],
+[data-theme="dark"] textarea[style*="color: #ffffff !important"],
+[data-theme="dark"] select[style*="color: #ffffff !important"] {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  caret-color: #ffffff !important;
+}
+
+/* Specific class for white text form fields */
+.form-field-white-text {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  caret-color: #ffffff !important;
+  background: #374151 !important;
+}
+
+[data-theme="dark"] .form-field-white-text {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  caret-color: #ffffff !important;
+  background: #374151 !important;
 }
 
 /* Dark mode scrollbars */
