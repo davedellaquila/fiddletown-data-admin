@@ -103,8 +103,8 @@ function parseCSV(text: string): string[][] {
     .filter(r => r.length && r.some(c => c !== ''))
 }
 
-function toCSV(rows: any[], headers: string[]): string {
-  const esc = (v: any) => {
+function toCSV(rows: Record<string, unknown>[], headers: string[]): string {
+  const esc = (v: unknown) => {
     if (v == null) return ''
     const s = String(v)
     return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s
@@ -136,7 +136,7 @@ export default function Events({ darkMode = false }: EventsProps) {
   const [importPreview, setImportPreview] = useState<any[] | null>(null)
 
   // Helper function for button styles
-  const getButtonStyle = (baseStyle: any = {}) => ({
+  const getButtonStyle = (baseStyle: React.CSSProperties = {}) => ({
     ...baseStyle,
     border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`,
     color: darkMode ? '#f9fafb' : '#374151',

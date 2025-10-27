@@ -64,8 +64,8 @@ function parseCSV(text: string): string[][] {
     .filter(r => r.length && r.some(c => c !== ''))
 }
 
-function toCSV(rows: any[], headers: string[]): string {
-  const esc = (v: any) => {
+function toCSV(rows: Record<string, unknown>[], headers: string[]): string {
+  const esc = (v: unknown) => {
     if (v == null) return ''
     const s = String(v)
     return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s

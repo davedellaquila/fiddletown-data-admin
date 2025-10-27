@@ -3,7 +3,6 @@ import { supabase } from '../lib/supabaseClient'
 import { useFormFieldPopulation, createLocationsFieldConfigs } from '../shared/hooks/useFormFieldPopulation'
 import { useDarkModeRowReset } from '../shared/hooks/useDarkModeRowReset'
 import { useNavigationWithAutoSave } from '../shared/hooks/useNavigationWithAutoSave'
-import { ModalDialog } from '../shared/components/ModalDialog'
 import { NavigationButtons } from '../shared/components/NavigationButtons'
 import { STICKY_HEADER_TOP_OFFSETS } from '../shared/constants/layout'
 
@@ -118,8 +117,8 @@ export default function Locations({ darkMode = false }: LocationsProps) {
     return rows.filter(r => r.length && r.some(c => c.trim() !== ''))
   }
 
-  function toCSV(rows: any[], headers: string[]): string {
-    const esc = (v: any) => {
+  function toCSV(rows: Record<string, unknown>[], headers: string[]): string {
+    const esc = (v: unknown) => {
       if (v == null) return ''
       const s = String(v)
       return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s
@@ -997,7 +996,7 @@ export default function Locations({ darkMode = false }: LocationsProps) {
                     fontSize: '14px',
                     color: darkMode ? '#e0e0e0' : '#000000',
                     minHeight: '80px',
-                    resize: 'vertical'
+                    resize: 'vertical',
                     }}
                   />
               </div>
