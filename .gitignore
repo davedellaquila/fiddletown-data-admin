@@ -11,6 +11,7 @@ build/
 # Vite
 .vite/
 .vite/deps_temp_*/
+node_modules/.vite/
 
 # Environment variables
 .env
