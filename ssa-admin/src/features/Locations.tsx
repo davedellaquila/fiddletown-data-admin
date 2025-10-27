@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { useFormFieldPopulation, createLocationsFieldConfigs } from '../shared/hooks/useFormFieldPopulation'
+import { useDarkModeRowReset } from '../shared/hooks/useDarkModeRowReset'
 import { ModalDialog } from '../shared/components/ModalDialog'
 import { NavigationButtons } from '../shared/components/NavigationButtons'
 import { STICKY_HEADER_TOP_OFFSETS } from '../shared/constants/layout'
@@ -71,15 +72,8 @@ export default function Locations({ darkMode = false }: LocationsProps) {
     debugPrefix: 'Locations'
   })
 
-  // Reset all table row styling when dark mode changes to prevent artifacts
-  useEffect(() => {
-    const tableRows = document.querySelectorAll('tbody tr')
-    tableRows.forEach(row => {
-      const element = row as HTMLElement
-      // Reset to default background color based on current dark mode
-      element.style.backgroundColor = darkMode ? '#1f2937' : '#ffffff'
-    })
-  }, [darkMode])
+  // Reset table row styling when dark mode changes to prevent artifacts
+  useDarkModeRowReset(darkMode)
 
   // Handle escape key and click outside to cancel editing
   useEffect(() => {

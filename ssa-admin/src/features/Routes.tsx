@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import { useDarkModeRowReset } from '../shared/hooks/useDarkModeRowReset'
 import { NavigationButtons } from '../shared/components/NavigationButtons'
 import { STICKY_HEADER_TOP_OFFSETS } from '../shared/constants/layout'
 
@@ -129,15 +130,8 @@ export default function Routes({ darkMode = false }: RoutesProps) {
     }
   }, [editing])
 
-  // Reset all table row styling when dark mode changes to prevent artifacts
-  useEffect(() => {
-    const tableRows = document.querySelectorAll('tbody tr')
-    tableRows.forEach(row => {
-      const element = row as HTMLElement
-      // Reset to default background color based on current dark mode
-      element.style.backgroundColor = darkMode ? '#1f2937' : '#ffffff'
-    })
-  }, [darkMode])
+  // Reset table row styling when dark mode changes to prevent artifacts
+  useDarkModeRowReset(darkMode)
 
   function pushToast(msg: string, type: 'ok' | 'err' | 'info' = 'info') {
     setToast({ type, msg })

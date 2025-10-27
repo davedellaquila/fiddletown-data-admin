@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { useFormFieldPopulation, createEventsFieldConfigs } from '../shared/hooks/useFormFieldPopulation'
+import { useDarkModeRowReset } from '../shared/hooks/useDarkModeRowReset'
 import { NavigationButtons } from '../shared/components/NavigationButtons'
 import { STICKY_HEADER_TOP_OFFSETS } from '../shared/constants/layout'
 
@@ -230,15 +231,8 @@ export default function Events({ darkMode = false }: EventsProps) {
     debugPrefix: 'Events'
   })
 
-  // Reset all table row styling when dark mode changes to prevent artifacts
-  useEffect(() => {
-    const tableRows = document.querySelectorAll('tbody tr')
-    tableRows.forEach(row => {
-      const element = row as HTMLElement
-      // Reset to default background color based on current dark mode
-      element.style.backgroundColor = darkMode ? '#1f2937' : '#ffffff'
-    })
-  }, [darkMode])
+  // Reset table row styling when dark mode changes to prevent artifacts
+  useDarkModeRowReset(darkMode)
 
   const [editingImageUrl, setEditingImageUrl] = useState<string | null>(null)
   const pasteRef = useRef<HTMLDivElement | null>(null)
