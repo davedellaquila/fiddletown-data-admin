@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import FormField from '../shared/components/FormField'
 import ModalDialog from '../shared/components/ModalDialog'
+import AutoSaveEditDialog from '../shared/components/AutoSaveEditDialog'
 
 type Difficulty = 'easy' | 'moderate' | 'challenging'
 type Status = 'draft' | 'published' | 'archived'
@@ -906,50 +907,6 @@ export default function Routes({ darkMode = false }: RoutesProps) {
                   editingId={editing?.id}
                 />
               </div>
-            </div>
-
-            <div style={{ 
-              marginTop: '32px', 
-              display: 'flex', 
-              gap: '12px', 
-              justifyContent: 'flex-end',
-              paddingTop: '20px',
-              borderTop: '1px solid #e5e7eb'
-            }}>
-              <button 
-                className="btn" 
-                onClick={()=>{ if (!busy) { setEditing(null); fileRef.current && (fileRef.current.value='') }}}
-                disabled={busy}
-                style={{ 
-                  padding: '12px 24px', 
-                  fontSize: '14px',
-                  background: '#f9fafb',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  color: '#374151',
-                  opacity: busy ? 0.6 : 1,
-                  cursor: busy ? 'not-allowed' : 'pointer'
-                }}
-              >
-                Cancel
-              </button>
-              <button 
-                className="btn primary" 
-                onClick={save} 
-                disabled={busy}
-                style={{ 
-                  padding: '12px 24px', 
-                  fontSize: '14px',
-                  background: busy ? '#9ca3af' : '#3b82f6',
-                  border: `1px solid ${busy ? '#9ca3af' : '#3b82f6'}`,
-                  borderRadius: '8px',
-                  color: 'white',
-                  fontWeight: '500',
-                  cursor: busy ? 'not-allowed' : 'pointer'
-                }}
-              >
-                {busy ? '⏳ Saving…' : '💾 Save Route'}
-              </button>
             </div>
         </ModalDialog>
       )}

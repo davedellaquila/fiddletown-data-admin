@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import FormField from '../shared/components/FormField'
+import AutoSaveEditDialog from '../shared/components/AutoSaveEditDialog'
 
 const slugify = (s: string) =>
   s.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
@@ -688,171 +689,100 @@ export default function Locations({ darkMode = false }: LocationsProps) {
         </table>
         </div>
       ) : (
-        <div 
-          onClick={() => setEditing(null)}
-          style={{ 
-            position: 'fixed', 
-            top: 0, 
-            left: 0, 
-            right: 0, 
-            bottom: 0, 
-            background: 'rgba(0,0,0,0.5)', 
-            zIndex: 1000, 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'center',
-            padding: '20px'
-          }}
+        <AutoSaveEditDialog
+          isOpen={!!editing}
+          onClose={() => setEditing(null)}
+          title={editing?.id ? '✏️ Edit Location' : '➕ New Location'}
+          maxWidth="600px"
+          darkMode={darkMode}
+          editing={editing}
+          rows={rows}
+          saveFunction={save}
+          setEditing={(item) => setEditing(item as Location | null)}
+          itemType="location"
         >
-          <div 
-            onClick={(e) => e.stopPropagation()}
-            style={{ 
-              background: 'white', 
-              padding: '32px', 
-              borderRadius: '12px', 
-              maxWidth: '600px', 
-              width: '100%', 
-              maxHeight: '90vh', 
-              overflow: 'auto',
-              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
-            }}
-          >
-            
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
-              <h3 style={{ margin: 0, fontSize: '24px', fontWeight: '600', color: '#1f2937' }}>
-                {editing.id ? '✏️ Edit Location' : '➕ New Location'}
-              </h3>
-              <button 
-                onClick={()=>setEditing(null)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  fontSize: '24px',
-                  cursor: 'pointer',
-                  color: '#6b7280',
-                  padding: '4px'
-                }}
-                title="Close"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div style={{ display: 'grid', gap: '20px' }}>
-              {/* Name and Slug */}
-              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '16px' }}>
-                <FormField
-                  label="Location Name"
-                  name="name"
-                  value={editing?.name || ''}
-                  onChange={(value) => setEditing({...editing!, name: value as string})}
-                  required
-                  editingId={editing?.id}
-                />
-                <FormField
-                  label="Slug"
-                  name="slug"
-                  value={editing?.slug || ''}
-                  onChange={(value) => setEditing({...editing!, slug: value as string})}
-                  editingId={editing?.id}
-                />
-              </div>
-
-              {/* Region and Website */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                <FormField
-                  label="Region"
-                  name="region"
-                  value={editing?.region || ''}
-                  onChange={(value) => setEditing({...editing!, region: value as string})}
-                  editingId={editing?.id}
-                />
-                <FormField
-                  label="Website URL"
-                  name="website_url"
-                  value={editing?.website_url || ''}
-                  onChange={(value) => setEditing({...editing!, website_url: value as string})}
-                  type="url"
-                  editingId={editing?.id}
-                />
-              </div>
-
+          <div style={{ display: 'grid', gap: '20px' }}>
+            {/* Name and Slug */}
+            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '16px' }}>
               <FormField
-                label="Short Description"
-                name="short_description"
-                value={editing?.short_description || ''}
-                onChange={(value) => setEditing({...editing!, short_description: value as string})}
-                type="textarea"
+                label="Location Name"
+                name="name"
+                value={editing?.name || ''}
+                onChange={(value) => setEditing({...editing!, name: value as string})}
+                required
                 editingId={editing?.id}
+                darkMode={darkMode}
               />
-
-              {/* Status and Sort Order */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                <FormField
-                  label="Status"
-                  name="status"
-                  value={editing?.status || 'draft'}
-                  onChange={(value) => setEditing({...editing!, status: value as any})}
-                  type="select"
-                  options={[
-                    { value: 'draft', label: '📝 Draft' },
-                    { value: 'published', label: '✅ Published' },
-                    { value: 'archived', label: '📦 Archived' }
-                  ]}
-                  editingId={editing?.id}
-                />
-                <FormField
-                  label="Sort Order"
-                  name="sort_order"
-                  value={editing?.sort_order ?? 1000}
-                  onChange={(value) => setEditing({...editing!, sort_order: value as number})}
-                  type="number"
-                  editingId={editing?.id}
-                />
-              </div>
+              <FormField
+                label="Slug"
+                name="slug"
+                value={editing?.slug || ''}
+                onChange={(value) => setEditing({...editing!, slug: value as string})}
+                editingId={editing?.id}
+                darkMode={darkMode}
+              />
             </div>
 
-            <div style={{ 
-              marginTop: '32px', 
-              display: 'flex', 
-              gap: '12px', 
-              justifyContent: 'flex-end',
-              paddingTop: '20px',
-              borderTop: '1px solid #e5e7eb'
-            }}>
-              <button 
-                className="btn" 
-                onClick={()=>setEditing(null)}
-                style={{ 
-                  padding: '12px 24px', 
-                  fontSize: '14px',
-                  background: '#f9fafb',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  color: '#374151'
-                }}
-              >
-                Cancel
-              </button>
-              <button 
-                className="btn primary" 
-                onClick={save}
-                style={{ 
-                  padding: '12px 24px', 
-                  fontSize: '14px',
-                  background: '#3b82f6',
-                  border: '1px solid #3b82f6',
-                  borderRadius: '8px',
-                  color: 'white',
-                  fontWeight: '500'
-                }}
-              >
-                💾 Save Location
-              </button>
+            {/* Region and Website */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <FormField
+                label="Region"
+                name="region"
+                value={editing?.region || ''}
+                onChange={(value) => setEditing({...editing!, region: value as string})}
+                editingId={editing?.id}
+                darkMode={darkMode}
+              />
+              <FormField
+                label="Website URL"
+                name="website_url"
+                value={editing?.website_url || ''}
+                onChange={(value) => setEditing({...editing!, website_url: value as string})}
+                type="url"
+                editingId={editing?.id}
+                darkMode={darkMode}
+              />
+            </div>
+
+            <FormField
+              label="Short Description"
+              name="short_description"
+              value={editing?.short_description || ''}
+              onChange={(value) => setEditing({...editing!, short_description: value as string})}
+              type="textarea"
+              editingId={editing?.id}
+              darkMode={darkMode}
+            />
+
+            {/* Status and Sort Order */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <FormField
+                label="Status"
+                name="status"
+                value={editing?.status || 'draft'}
+                onChange={(value) => setEditing({...editing!, status: value as any})}
+                type="select"
+                options={[
+                  { value: 'draft', label: '📝 Draft' },
+                  { value: 'published', label: '✅ Published' },
+                  { value: 'archived', label: '📦 Archived' }
+                ]}
+                editingId={editing?.id}
+                darkMode={darkMode}
+              />
+              <FormField
+                label="Sort Order"
+                name="sort_order"
+                value={editing?.sort_order ?? 1000}
+                onChange={(value) => setEditing({...editing!, sort_order: value as number})}
+                type="number"
+                editingId={editing?.id}
+                darkMode={darkMode}
+              />
             </div>
           </div>
-       </div>
-    )}
+        </AutoSaveEditDialog>
+      )}
     </div>
   )
 }

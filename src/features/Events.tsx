@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import FormField from '../shared/components/FormField'
+import AutoSaveEditDialog from '../shared/components/AutoSaveEditDialog'
 
 type EventRow = {
   id?: number
@@ -3427,48 +3428,6 @@ export default function Events({ darkMode = false }: EventsProps) {
                 </p>
               </div>
               )}
-            </div>
-
-            {/* Fixed Footer */}
-            <div style={{ 
-              background: '#ffffff',
-              padding: '16px 32px',
-              borderTop: '1px solid #e5e7eb',
-              borderRadius: '0 0 12px 12px',
-              flexShrink: 0,
-              display: 'flex', 
-              gap: '12px', 
-              justifyContent: 'flex-end'
-            }}>
-              <button 
-                className="btn" 
-                onClick={()=>setEditing(null)}
-                style={{ 
-                  padding: '12px 24px', 
-                  fontSize: '14px',
-                  background: '#f9fafb',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  color: '#374151'
-                }}
-              >
-                Cancel
-              </button>
-              <button 
-                className="btn primary" 
-                onClick={save}
-                style={{ 
-                  padding: '12px 24px', 
-                  fontSize: '14px',
-                  background: '#3b82f6',
-                  border: '1px solid #3b82f6',
-                  borderRadius: '8px',
-                  color: 'white',
-                  fontWeight: '500'
-                }}
-              >
-                💾 Save Event
-              </button>
             </div>
           </div>
         </div>
