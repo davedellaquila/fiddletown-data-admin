@@ -501,6 +501,22 @@ export default function Events({ darkMode = false }: EventsProps) {
     await load();
   }
 
+  const navigateToNext = () => {
+    if (!editing?.id) return
+    const currentIndex = rows.findIndex(r => r.id === editing.id)
+    if (currentIndex < rows.length - 1) {
+      setEditing(rows[currentIndex + 1])
+    }
+  }
+
+  const navigateToPrevious = () => {
+    if (!editing?.id) return
+    const currentIndex = rows.findIndex(r => r.id === editing.id)
+    if (currentIndex > 0) {
+      setEditing(rows[currentIndex - 1])
+    }
+  }
+
   const exportCSVFiltered = () => {
     let query = supabase
       .from('events')
@@ -1805,30 +1821,76 @@ export default function Events({ darkMode = false }: EventsProps) {
             {/* Fixed Header */}
             <div style={{
               padding: '24px 32px 16px 32px',
-              borderBottom: '1px solid #e5e7eb',
-              background: 'white',
+              borderBottom: `1px solid ${darkMode ? '#374151' : '#e5e7eb'}`,
+              background: darkMode ? '#1f2937' : 'white',
               borderRadius: '12px 12px 0 0',
               flexShrink: 0
             }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <h3 style={{ margin: 0, fontSize: '24px', fontWeight: '600', color: '#1f2937' }}>
-                  {editing.id ? '✏️ Edit Event' : '➕ New Event'}
-                </h3>
-                <button 
-                  onClick={()=>setEditing(null)}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    fontSize: '24px',
-                    cursor: 'pointer',
-                    color: '#6b7280',
-                    padding: '4px'
-                  }}
-                  title="Close"
-                >
-                  ✕
-                </button>
-              </div>
+                <div style={{ flex: 1 }}></div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                  <h3 style={{ margin: 0, fontSize: '24px', fontWeight: '600', color: darkMode ? '#f9fafb' : '#1f2937' }}>
+                    {editing.id ? '✏️ Edit Event' : '➕ New Event'}
+                  </h3>
+                  {editing.id && (
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button 
+                        onClick={navigateToPrevious}
+                        disabled={rows.findIndex(r => r.id === editing.id) === 0}
+                        style={{
+                          background: darkMode ? '#374151' : '#f3f4f6',
+                          border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`,
+                          borderRadius: '6px',
+                          padding: '6px 12px',
+                          fontSize: '14px',
+                          cursor: rows.findIndex(r => r.id === editing.id) === 0 ? 'not-allowed' : 'pointer',
+                          color: rows.findIndex(r => r.id === editing.id) === 0 ? (darkMode ? '#6b7280' : '#9ca3af') : (darkMode ? '#f9fafb' : '#374151'),
+                          opacity: rows.findIndex(r => r.id === editing.id) === 0 ? 0.5 : 1,
+                          minWidth: '80px',
+                          textAlign: 'center'
+                        }}
+                        title="Previous event"
+                      >
+                        ← Previous
+                      </button>
+                      <button 
+                        onClick={navigateToNext}
+                        disabled={rows.findIndex(r => r.id === editing.id) === rows.length - 1}
+                        style={{
+                          background: darkMode ? '#374151' : '#f3f4f6',
+                          border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`,
+                          borderRadius: '6px',
+                          padding: '6px 12px',
+                          fontSize: '14px',
+                          cursor: rows.findIndex(r => r.id === editing.id) === rows.length - 1 ? 'not-allowed' : 'pointer',
+                          color: rows.findIndex(r => r.id === editing.id) === rows.length - 1 ? (darkMode ? '#6b7280' : '#9ca3af') : (darkMode ? '#f9fafb' : '#374151'),
+                          opacity: rows.findIndex(r => r.id === editing.id) === rows.length - 1 ? 0.5 : 1,
+                          minWidth: '80px',
+                          textAlign: 'center'
+                        }}
+                        title="Next event"
+                      >
+                        Next →
+                      </button>
+                    </div>
+                  )}
+                </div>
+                <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end' }}>
+                  <button 
+                    onClick={()=>setEditing(null)}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      fontSize: '24px',
+                      cursor: 'pointer',
+                      color: darkMode ? '#6b7280' : '#6b7280',
+                      padding: '4px'
+                    }}
+                    title="Close dialog"
+                  >
+                    ✕
+                  </button>
+                </div>
             </div>
 
             {/* Scrollable Content */}
@@ -1932,7 +1994,10 @@ export default function Events({ darkMode = false }: EventsProps) {
                 <div>
                   <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
                     Start Date
-            </label>
+
+
+
+                  </label>
                   <input 
                     key={`start-date-${editing?.id || 'new'}`}
                     data-key={`start-date-${editing?.id || 'new'}`}
@@ -1978,7 +2043,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                 <div>
                   <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
                     Start Time
-          </label>
+                  </label>
                   <input 
                     key={`start-time-${editing?.id || 'new'}`}
                     data-key={`start-time-${editing?.id || 'new'}`}
@@ -2157,7 +2222,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                       }} 
                     />
                   )}
-      </div>
+                </div>
                 <div style={{ marginTop: '8px', fontSize: '12px', color: darkMode ? '#9ca3af' : '#6b7280' }}>
                   💡 Tip: You can paste images directly from your clipboard (screenshots, copied images, etc.)
                 </div>
@@ -2256,6 +2321,7 @@ export default function Events({ darkMode = false }: EventsProps) {
               </div>
             </div>
           </div>
+        </div>
         </div>
       )}
     </div>
