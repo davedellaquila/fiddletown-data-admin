@@ -2322,7 +2322,6 @@ export default function Events({ darkMode = false }: EventsProps) {
             </div>
           </div>
         </div>
-        </div>
       )}
     </div>
   )
