@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { useFormFieldPopulation, createLocationsFieldConfigs } from '../shared/hooks/useFormFieldPopulation'
 import { useDarkModeRowReset } from '../shared/hooks/useDarkModeRowReset'
+import { useNavigationWithAutoSave } from '../shared/hooks/useNavigationWithAutoSave'
 import { ModalDialog } from '../shared/components/ModalDialog'
 import { NavigationButtons } from '../shared/components/NavigationButtons'
 import { STICKY_HEADER_TOP_OFFSETS } from '../shared/constants/layout'
@@ -74,6 +75,14 @@ export default function Locations({ darkMode = false }: LocationsProps) {
 
   // Reset table row styling when dark mode changes to prevent artifacts
   useDarkModeRowReset(darkMode)
+
+  // Use shared navigation hook with auto-save functionality
+  const { navigateToNext, navigateToPrevious } = useNavigationWithAutoSave(
+    editing,
+    rows,
+    save,
+    setEditing
+  )
 
   // Handle escape key and click outside to cancel editing
   useEffect(() => {
@@ -328,29 +337,6 @@ export default function Locations({ darkMode = false }: LocationsProps) {
     await load()
   }
 
-  const navigateToNext = async () => {
-    if (!editing?.id) return
-    
-    // Auto-save current changes before navigating
-    await save()
-    
-    const currentIndex = rows.findIndex(r => r.id === editing.id)
-    if (currentIndex < rows.length - 1) {
-      setEditing(rows[currentIndex + 1])
-    }
-  }
-
-  const navigateToPrevious = async () => {
-    if (!editing?.id) return
-    
-    // Auto-save current changes before navigating
-    await save()
-    
-    const currentIndex = rows.findIndex(r => r.id === editing.id)
-    if (currentIndex > 0) {
-      setEditing(rows[currentIndex - 1])
-    }
-  }
 
   const publishRow = async (id: string) => {
     const { error } = await supabase.from('locations').update({ status: 'published' }).eq('id', id)

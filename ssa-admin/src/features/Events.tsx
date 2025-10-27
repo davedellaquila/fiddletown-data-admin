@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { useFormFieldPopulation, createEventsFieldConfigs } from '../shared/hooks/useFormFieldPopulation'
 import { useDarkModeRowReset } from '../shared/hooks/useDarkModeRowReset'
+import { useNavigationWithAutoSave } from '../shared/hooks/useNavigationWithAutoSave'
 import { NavigationButtons } from '../shared/components/NavigationButtons'
 import { STICKY_HEADER_TOP_OFFSETS } from '../shared/constants/layout'
 
@@ -233,6 +234,14 @@ export default function Events({ darkMode = false }: EventsProps) {
 
   // Reset table row styling when dark mode changes to prevent artifacts
   useDarkModeRowReset(darkMode)
+
+  // Use shared navigation hook with auto-save functionality
+  const { navigateToNext, navigateToPrevious } = useNavigationWithAutoSave(
+    editing,
+    rows,
+    save,
+    setEditing
+  )
 
   const [editingImageUrl, setEditingImageUrl] = useState<string | null>(null)
   const pasteRef = useRef<HTMLDivElement | null>(null)
@@ -505,29 +514,6 @@ export default function Events({ darkMode = false }: EventsProps) {
     await load();
   }
 
-  const navigateToNext = async () => {
-    if (!editing?.id) return
-    
-    // Auto-save current changes before navigating
-    await save()
-    
-    const currentIndex = rows.findIndex(r => r.id === editing.id)
-    if (currentIndex < rows.length - 1) {
-      setEditing(rows[currentIndex + 1])
-    }
-  }
-
-  const navigateToPrevious = async () => {
-    if (!editing?.id) return
-    
-    // Auto-save current changes before navigating
-    await save()
-    
-    const currentIndex = rows.findIndex(r => r.id === editing.id)
-    if (currentIndex > 0) {
-      setEditing(rows[currentIndex - 1])
-    }
-  }
 
   const exportCSVFiltered = () => {
     let query = supabase

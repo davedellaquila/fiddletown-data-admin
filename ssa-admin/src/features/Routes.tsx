@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { useDarkModeRowReset } from '../shared/hooks/useDarkModeRowReset'
+import { useNavigationWithAutoSave } from '../shared/hooks/useNavigationWithAutoSave'
 import { NavigationButtons } from '../shared/components/NavigationButtons'
 import { STICKY_HEADER_TOP_OFFSETS } from '../shared/constants/layout'
 
@@ -132,6 +133,14 @@ export default function Routes({ darkMode = false }: RoutesProps) {
 
   // Reset table row styling when dark mode changes to prevent artifacts
   useDarkModeRowReset(darkMode)
+
+  // Use shared navigation hook with auto-save functionality
+  const { navigateToNext, navigateToPrevious } = useNavigationWithAutoSave(
+    editing,
+    rows,
+    save,
+    setEditing
+  )
 
   function pushToast(msg: string, type: 'ok' | 'err' | 'info' = 'info') {
     setToast({ type, msg })
@@ -370,29 +379,6 @@ export default function Routes({ darkMode = false }: RoutesProps) {
     }
   }
 
-  const navigateToNext = async () => {
-    if (!editing?.id) return
-    
-    // Auto-save current changes before navigating
-    await save()
-    
-    const currentIndex = rows.findIndex(r => r.id === editing.id)
-    if (currentIndex < rows.length - 1) {
-      setEditing(rows[currentIndex + 1])
-    }
-  }
-
-  const navigateToPrevious = async () => {
-    if (!editing?.id) return
-    
-    // Auto-save current changes before navigating
-    await save()
-    
-    const currentIndex = rows.findIndex(r => r.id === editing.id)
-    if (currentIndex > 0) {
-      setEditing(rows[currentIndex - 1])
-    }
-  }
 
   const publishRow = async (id: string) => {
     const { error } = await supabase.from('routes').update({ status: 'published' }).eq('id', id)
