@@ -1910,7 +1910,7 @@ export default function Events({ darkMode = false }: EventsProps) {
               {/* Event Name and Slug */}
               <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '16px' }}>
                 <div>
-                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
+                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: darkMode ? '#f9fafb' : '#374151' }}>
                     Event Name *
                   </label>
                   <input 
@@ -1921,16 +1921,16 @@ export default function Events({ darkMode = false }: EventsProps) {
                     style={{ 
                       width: '100%', 
                       padding: '12px', 
-                      border: '1px solid #d1d5db', 
+                      border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`, 
                       borderRadius: '8px',
                       fontSize: '14px',
-                      background: '#fff',
-                      color: '#000000'
+                      background: darkMode ? '#1e1e1e' : '#ffffff',
+                      color: darkMode ? '#e0e0e0' : '#000000'
                     }}
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
+                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: darkMode ? '#f9fafb' : '#374151' }}>
                     Slug
                   </label>
                   <input 
@@ -1941,11 +1941,11 @@ export default function Events({ darkMode = false }: EventsProps) {
                     style={{ 
                       width: '100%', 
                       padding: '12px', 
-                      border: '1px solid #d1d5db', 
+                      border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`, 
                       borderRadius: '8px',
                       fontSize: '14px',
-                      background: '#fff',
-                      color: '#000000'
+                      background: darkMode ? '#1e1e1e' : '#ffffff',
+                      color: darkMode ? '#e0e0e0' : '#000000'
                     }}
                   />
                 </div>
@@ -1954,7 +1954,7 @@ export default function Events({ darkMode = false }: EventsProps) {
               {/* Host Org and Location */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 <div>
-                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
+                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: darkMode ? '#f9fafb' : '#374151' }}>
                     Host Organization
                   </label>
                   <input 
@@ -1965,16 +1965,16 @@ export default function Events({ darkMode = false }: EventsProps) {
                     style={{ 
                       width: '100%', 
                       padding: '12px', 
-                      border: '1px solid #d1d5db', 
+                      border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`, 
                       borderRadius: '8px',
                       fontSize: '14px',
-                      background: '#fff',
-                      color: '#000000'
+                      background: darkMode ? '#1e1e1e' : '#ffffff',
+                      color: darkMode ? '#e0e0e0' : '#000000'
                     }}
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
+                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: darkMode ? '#f9fafb' : '#374151' }}>
                     Location
                   </label>
                   <input 
@@ -1985,11 +1985,11 @@ export default function Events({ darkMode = false }: EventsProps) {
                     style={{ 
                       width: '100%', 
                       padding: '12px', 
-                      border: '1px solid #d1d5db', 
+                      border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`, 
                       borderRadius: '8px',
                       fontSize: '14px',
-                      background: '#fff',
-                      color: '#000000'
+                      background: darkMode ? '#1e1e1e' : '#ffffff',
+                      color: darkMode ? '#e0e0e0' : '#000000'
                     }}
                   />
                 </div>
@@ -1998,11 +1998,8 @@ export default function Events({ darkMode = false }: EventsProps) {
               {/* Dates */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 <div>
-                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
+                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: darkMode ? '#f9fafb' : '#374151' }}>
                     Start Date
-
-
-
                   </label>
                   <input 
                     key={`start-date-${editing?.id || 'new'}`}
@@ -2013,16 +2010,16 @@ export default function Events({ darkMode = false }: EventsProps) {
                     style={{ 
                       width: '100%', 
                       padding: '12px', 
-                      border: '1px solid #d1d5db', 
+                      border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`, 
                       borderRadius: '8px',
                       fontSize: '14px',
-                      background: '#fff',
-                      color: '#000000'
+                      background: darkMode ? '#1e1e1e' : '#ffffff',
+                      color: darkMode ? '#e0e0e0' : '#000000'
                     }}
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
+                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: darkMode ? '#f9fafb' : '#374151' }}>
                     End Date
                   </label>
                   <input 
@@ -2034,11 +2031,11 @@ export default function Events({ darkMode = false }: EventsProps) {
                     style={{ 
                       width: '100%', 
                       padding: '12px', 
-                      border: '1px solid #d1d5db', 
+                      border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`, 
                       borderRadius: '8px',
                       fontSize: '14px',
-                      background: '#fff',
-                      color: '#000000'
+                      background: darkMode ? '#1e1e1e' : '#ffffff',
+                      color: darkMode ? '#e0e0e0' : '#000000'
                     }}
                   />
                 </div>
@@ -2047,7 +2044,7 @@ export default function Events({ darkMode = false }: EventsProps) {
               {/* Times */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 <div>
-                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
+                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: darkMode ? '#f9fafb' : '#374151' }}>
                     Start Time
                   </label>
                   <input 
@@ -2059,16 +2056,16 @@ export default function Events({ darkMode = false }: EventsProps) {
                     style={{ 
                       width: '100%', 
                       padding: '12px', 
-                      border: '1px solid #d1d5db', 
+                      border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`, 
                       borderRadius: '8px',
                       fontSize: '14px',
-                      background: '#fff',
-                      color: '#000000'
+                      background: darkMode ? '#1e1e1e' : '#ffffff',
+                      color: darkMode ? '#e0e0e0' : '#000000'
                     }}
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
+                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: darkMode ? '#f9fafb' : '#374151' }}>
                     End Time
                   </label>
                   <input 
@@ -2080,11 +2077,11 @@ export default function Events({ darkMode = false }: EventsProps) {
                     style={{ 
                       width: '100%', 
                       padding: '12px', 
-                      border: '1px solid #d1d5db', 
+                      border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`, 
                       borderRadius: '8px',
                       fontSize: '14px',
-                      background: '#fff',
-                      color: '#000000'
+                      background: darkMode ? '#1e1e1e' : '#ffffff',
+                      color: darkMode ? '#e0e0e0' : '#000000'
                     }}
                   />
                 </div>
@@ -2093,7 +2090,7 @@ export default function Events({ darkMode = false }: EventsProps) {
               {/* Website and Recurrence */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 <div>
-                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
+                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: darkMode ? '#f9fafb' : '#374151' }}>
                     Website URL
                   </label>
                   <input 
@@ -2104,16 +2101,16 @@ export default function Events({ darkMode = false }: EventsProps) {
                     style={{ 
                       width: '100%', 
                       padding: '12px', 
-                      border: '1px solid #d1d5db', 
+                      border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`, 
                       borderRadius: '8px',
                       fontSize: '14px',
-                      background: '#fff',
-                      color: '#000000'
+                      background: darkMode ? '#1e1e1e' : '#ffffff',
+                      color: darkMode ? '#e0e0e0' : '#000000'
                     }}
                   />
           </div>
                 <div>
-                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
+                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: darkMode ? '#f9fafb' : '#374151' }}>
                     Recurrence
                   </label>
                   <input 
@@ -2124,11 +2121,11 @@ export default function Events({ darkMode = false }: EventsProps) {
                     style={{ 
                       width: '100%', 
                       padding: '12px', 
-                      border: '1px solid #d1d5db', 
+                      border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`, 
                       borderRadius: '8px',
                       fontSize: '14px',
-                      background: '#fff',
-                      color: '#000000'
+                      background: darkMode ? '#1e1e1e' : '#ffffff',
+                      color: darkMode ? '#e0e0e0' : '#000000'
                     }}
                   />
         </div>
@@ -2136,7 +2133,7 @@ export default function Events({ darkMode = false }: EventsProps) {
 
               {/* Image Upload */}
               <div>
-                <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
+                <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: darkMode ? '#f9fafb' : '#374151' }}>
                   Event Image
                 </label>
                 <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
@@ -2237,7 +2234,7 @@ export default function Events({ darkMode = false }: EventsProps) {
               {/* Status and Sort Order */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 <div>
-                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
+                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: darkMode ? '#f9fafb' : '#374151' }}>
                     Status
                   </label>
                   <select 
@@ -2246,10 +2243,11 @@ export default function Events({ darkMode = false }: EventsProps) {
                     style={{ 
                       width: '100%', 
                       padding: '12px', 
-                      border: '1px solid #d1d5db', 
+                      border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`, 
                       borderRadius: '8px',
                       fontSize: '14px',
-                      background: '#fff'
+                      background: darkMode ? '#1e1e1e' : '#ffffff',
+                      color: darkMode ? '#e0e0e0' : '#000000'
                     }}
                   >
                     <option value="draft">📝 Draft</option>
@@ -2258,7 +2256,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                   </select>
                 </div>
                 <div>
-                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
+                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: darkMode ? '#f9fafb' : '#374151' }}>
                     Sort Order
                   </label>
                   <input 
@@ -2270,11 +2268,11 @@ export default function Events({ darkMode = false }: EventsProps) {
                     style={{ 
                       width: '100%', 
                       padding: '12px', 
-                      border: '1px solid #d1d5db', 
+                      border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`, 
                       borderRadius: '8px',
                       fontSize: '14px',
-                      background: '#fff',
-                      color: '#000000'
+                      background: darkMode ? '#1e1e1e' : '#ffffff',
+                      color: darkMode ? '#e0e0e0' : '#000000'
                     }}
                   />
                 </div>
@@ -2285,8 +2283,8 @@ export default function Events({ darkMode = false }: EventsProps) {
             {/* Fixed Footer */}
             <div style={{
               padding: '16px 32px 24px 32px',
-              borderTop: '1px solid #e5e7eb',
-              background: 'white',
+              borderTop: `1px solid ${darkMode ? '#374151' : '#e5e7eb'}`,
+              background: darkMode ? '#1f2937' : 'white',
               borderRadius: '0 0 12px 12px',
               flexShrink: 0
             }}>
