@@ -841,7 +841,7 @@ export default function Routes({ darkMode = false }: RoutesProps) {
         </table>
       ) : (
         <div 
-          onClick={() => setEditing(null)}
+          onClick={async () => await save()}
           style={{ 
             position: 'fixed', 
             top: 0, 

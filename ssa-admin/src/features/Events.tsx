@@ -235,14 +235,6 @@ export default function Events({ darkMode = false }: EventsProps) {
   // Reset table row styling when dark mode changes to prevent artifacts
   useDarkModeRowReset(darkMode)
 
-  // Use shared navigation hook with auto-save functionality
-  const { navigateToNext, navigateToPrevious } = useNavigationWithAutoSave(
-    editing,
-    rows,
-    save,
-    setEditing
-  )
-
   const [editingImageUrl, setEditingImageUrl] = useState<string | null>(null)
   const pasteRef = useRef<HTMLDivElement | null>(null)
 
@@ -652,6 +644,14 @@ export default function Events({ darkMode = false }: EventsProps) {
     setEditing(null)
     await load()
   }
+
+  // Use shared navigation hook with auto-save functionality
+  const { navigateToNext, navigateToPrevious } = useNavigationWithAutoSave(
+    editing,
+    rows,
+    save,
+    setEditing
+  )
 
   const softDelete = async (id: string) => {
     if (!confirm('Delete this event? (soft delete)')) return
@@ -1804,7 +1804,7 @@ export default function Events({ darkMode = false }: EventsProps) {
 
       {editing && (
         <div 
-          onClick={() => setEditing(null)}
+          onClick={async () => await save()}
           style={{ 
             position: 'fixed', 
             top: 0, 

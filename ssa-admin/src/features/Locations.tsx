@@ -76,14 +76,6 @@ export default function Locations({ darkMode = false }: LocationsProps) {
   // Reset table row styling when dark mode changes to prevent artifacts
   useDarkModeRowReset(darkMode)
 
-  // Use shared navigation hook with auto-save functionality
-  const { navigateToNext, navigateToPrevious } = useNavigationWithAutoSave(
-    editing,
-    rows,
-    save,
-    setEditing
-  )
-
   // Handle escape key and click outside to cancel editing
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -337,6 +329,13 @@ export default function Locations({ darkMode = false }: LocationsProps) {
     await load()
   }
 
+  // Use shared navigation hook with auto-save functionality
+  const { navigateToNext, navigateToPrevious } = useNavigationWithAutoSave(
+    editing,
+    rows,
+    save,
+    setEditing
+  )
 
   const publishRow = async (id: string) => {
     const { error } = await supabase.from('locations').update({ status: 'published' }).eq('id', id)
@@ -786,12 +785,12 @@ export default function Locations({ darkMode = false }: LocationsProps) {
         </table>
       ) : (
         <div 
-          onClick={(e) => {
-            console.log('🚨 Locations - Dialog overlay clicked!', e.target);
+          onClick={async (e) => {
+            console.log('🚨 Locations - Dialog overlay clicked - saving changes!', e.target);
             console.log('🚨 Locations - Event target:', e.target);
             console.log('🚨 Locations - Current target:', e.currentTarget);
             console.log('🚨 Locations - Event type:', e.type);
-            setEditing(null);
+            await save();
           }}
           style={{ 
             position: 'fixed', 
