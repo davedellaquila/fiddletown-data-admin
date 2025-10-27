@@ -39,3 +39,4 @@ export function useNavigationWithAutoSave<T extends Record<string, any>>(
     navigateToPrevious
   }
 }
+

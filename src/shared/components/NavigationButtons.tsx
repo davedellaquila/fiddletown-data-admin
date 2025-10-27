@@ -80,3 +80,4 @@ export function NavigationButtons<T extends Record<string, any>>({
     </div>
   )
 }
+
