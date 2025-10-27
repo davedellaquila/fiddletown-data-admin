@@ -129,6 +129,16 @@ export default function Routes({ darkMode = false }: RoutesProps) {
     }
   }, [editing])
 
+  // Reset all table row styling when dark mode changes to prevent artifacts
+  useEffect(() => {
+    const tableRows = document.querySelectorAll('tbody tr')
+    tableRows.forEach(row => {
+      const element = row as HTMLElement
+      // Reset to default background color based on current dark mode
+      element.style.backgroundColor = darkMode ? '#1f2937' : '#ffffff'
+    })
+  }, [darkMode])
+
   function pushToast(msg: string, type: 'ok' | 'err' | 'info' = 'info') {
     setToast({ type, msg })
     window.setTimeout(() => setToast(null), 2500)

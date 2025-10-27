@@ -71,6 +71,16 @@ export default function Locations({ darkMode = false }: LocationsProps) {
     debugPrefix: 'Locations'
   })
 
+  // Reset all table row styling when dark mode changes to prevent artifacts
+  useEffect(() => {
+    const tableRows = document.querySelectorAll('tbody tr')
+    tableRows.forEach(row => {
+      const element = row as HTMLElement
+      // Reset to default background color based on current dark mode
+      element.style.backgroundColor = darkMode ? '#1f2937' : '#ffffff'
+    })
+  }, [darkMode])
+
   // Handle escape key and click outside to cancel editing
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

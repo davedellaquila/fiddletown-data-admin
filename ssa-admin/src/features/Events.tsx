@@ -230,6 +230,16 @@ export default function Events({ darkMode = false }: EventsProps) {
     debugPrefix: 'Events'
   })
 
+  // Reset all table row styling when dark mode changes to prevent artifacts
+  useEffect(() => {
+    const tableRows = document.querySelectorAll('tbody tr')
+    tableRows.forEach(row => {
+      const element = row as HTMLElement
+      // Reset to default background color based on current dark mode
+      element.style.backgroundColor = darkMode ? '#1f2937' : '#ffffff'
+    })
+  }, [darkMode])
+
   const [editingImageUrl, setEditingImageUrl] = useState<string | null>(null)
   const pasteRef = useRef<HTMLDivElement | null>(null)
 
