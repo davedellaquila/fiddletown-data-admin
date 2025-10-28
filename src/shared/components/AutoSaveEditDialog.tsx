@@ -111,9 +111,9 @@ export default function AutoSaveEditDialog<T extends Record<string, any>>({
         right: 0, 
         bottom: 0, 
         // Soft translucent overlay so list remains visible underneath
-        background: darkMode ? 'rgba(17,24,39,0.35)' : 'rgba(255,255,255,0.25)',
-        backdropFilter: 'blur(4px) saturate(0.9)',
-        WebkitBackdropFilter: 'blur(4px) saturate(0.9)',
+        background: darkMode ? 'rgba(17,24,39,0.45)' : 'rgba(255,255,255,0.30)',
+        backdropFilter: 'blur(8px) saturate(1.05)',
+        WebkitBackdropFilter: 'blur(8px) saturate(1.05)',
         zIndex: 1000, 
         display: isOpen ? 'flex' : 'none', // Control visibility with CSS instead of conditional rendering
         alignItems: 'center', 
