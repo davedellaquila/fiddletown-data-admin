@@ -1,6 +1,5 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { NavigationButtons } from './NavigationButtons'
-import { useNavigationWithAutoSave } from '../hooks/useNavigationWithAutoSave'
 
 interface AutoSaveEditDialogProps<T extends Record<string, any>> {
   isOpen: boolean
@@ -34,14 +33,42 @@ export default function AutoSaveEditDialog<T extends Record<string, any>>({
   itemType
 }: AutoSaveEditDialogProps<T>) {
   // Always render the dialog but control visibility with CSS to prevent jarring transitions
+  const [isNavigating, setIsNavigating] = useState(false)
 
-  // Use shared navigation hook with auto-save functionality
-  const { navigateToNext, navigateToPrevious } = useNavigationWithAutoSave(
-    editing,
-    rows,
-    saveFunction,
-    setEditing
-  )
+  // Enhanced navigation functions with loading state
+  const navigateToNext = async () => {
+    if (!editing?.id || rows.length === 0) return
+    setIsNavigating(true)
+    try {
+      await saveFunction()
+      const currentIndex = rows.findIndex(r => r.id === editing.id)
+      if (currentIndex >= 0 && currentIndex < rows.length - 1) {
+        setEditing(rows[currentIndex + 1])
+      }
+    } catch (error) {
+      console.error('Error during navigation to next:', error)
+    } finally {
+      // Small delay to prevent flash
+      setTimeout(() => setIsNavigating(false), 100)
+    }
+  }
+
+  const navigateToPrevious = async () => {
+    if (!editing?.id || rows.length === 0) return
+    setIsNavigating(true)
+    try {
+      await saveFunction()
+      const currentIndex = rows.findIndex(r => r.id === editing.id)
+      if (currentIndex > 0) {
+        setEditing(rows[currentIndex - 1])
+      }
+    } catch (error) {
+      console.error('Error during navigation to previous:', error)
+    } finally {
+      // Small delay to prevent flash
+      setTimeout(() => setIsNavigating(false), 100)
+    }
+  }
 
   // Enhanced close handler that auto-saves before closing (only for existing records)
   const handleClose = async () => {
@@ -202,11 +229,39 @@ export default function AutoSaveEditDialog<T extends Record<string, any>>({
         </div>
 
         {/* Scrollable Content */}
-        <div style={{
-          flex: 1,
-          overflowY: 'auto',
-          paddingRight: '8px' // Space for scrollbar
-        }}>
+        <div 
+          key={editing?.id || 'new'} // Key changes when editing changes to prevent flash
+          style={{
+            flex: 1,
+            overflowY: 'auto',
+            paddingRight: '8px', // Space for scrollbar
+            position: 'relative'
+          }}
+        >
+          {isNavigating && (
+            <div style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: darkMode ? 'rgba(31, 41, 55, 0.8)' : 'rgba(255, 255, 255, 0.8)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 10,
+              backdropFilter: 'blur(2px)',
+              WebkitBackdropFilter: 'blur(2px)'
+            }}>
+              <div style={{
+                color: darkMode ? '#f9fafb' : '#374151',
+                fontSize: '14px',
+                fontWeight: '500'
+              }}>
+                Navigating...
+              </div>
+            </div>
+          )}
           {children}
         </div>
       </div>
