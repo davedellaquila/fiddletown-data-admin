@@ -25,14 +25,18 @@ export function NavigationButtons<T extends Record<string, any>>({
   const isFirst = currentIndex === 0
   const isLast = currentIndex === rows.length - 1
 
+  const isCompact = itemType === 'location'
+
   const buttonStyle = {
     background: darkMode ? '#374151' : '#f3f4f6',
     border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`,
     borderRadius: '6px',
-    padding: '6px 12px',
+    padding: isCompact ? '6px' : '6px 12px',
     cursor: 'pointer',
     color: darkMode ? '#f9fafb' : '#374151',
-    minWidth: '100px',
+    minWidth: isCompact ? '36px' : '100px',
+    width: isCompact ? '36px' : 'auto',
+    height: isCompact ? '36px' : 'auto',
     textAlign: 'center' as const,
     fontSize: '14px'
   }
@@ -52,7 +56,7 @@ export function NavigationButtons<T extends Record<string, any>>({
         style={isFirst ? disabledStyle : buttonStyle}
         title={`Previous ${itemType}`}
       >
-        {'← Previous'}
+        {isCompact ? '←' : '← Previous'}
       </button>
       <button 
         onClick={() => onNavigateToNext()}
@@ -60,7 +64,7 @@ export function NavigationButtons<T extends Record<string, any>>({
         style={isLast ? disabledStyle : buttonStyle}
         title={`Next ${itemType}`}
       >
-        {'Next →'}
+        {isCompact ? '→' : 'Next →'}
       </button>
     </div>
   )

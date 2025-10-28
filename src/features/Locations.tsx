@@ -701,7 +701,8 @@ export default function Locations({ darkMode = false }: LocationsProps) {
           </tbody>
         </table>
         </div>
-      ) : (
+      ) : null}
+
         <AutoSaveEditDialog
           key="location-dialog"
           isOpen={editing !== null}
@@ -796,7 +797,6 @@ export default function Locations({ darkMode = false }: LocationsProps) {
             </div>
           </div>
         </AutoSaveEditDialog>
-      )}
     </div>
   )
 }
