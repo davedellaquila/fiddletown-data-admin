@@ -2115,16 +2115,6 @@ export default function Events({ darkMode = false }: EventsProps) {
               color: darkMode ? '#f9fafb' : '#1f2937',
               position: 'sticky',
               top: '176px',
-              zIndex: 110
-            }}>Image</th>
-            <th style={{ 
-              textAlign: 'left', 
-              padding: '8px 6px', 
-              borderBottom: `1px solid ${darkMode ? '#374151' : '#ddd'}`,
-              background: darkMode ? '#374151' : '#f8f9fa',
-              color: darkMode ? '#f9fafb' : '#1f2937',
-              position: 'sticky',
-              top: '176px',
               zIndex: 110,
               minWidth: '200px' 
             }}>Actions</th>
@@ -2286,13 +2276,6 @@ export default function Events({ darkMode = false }: EventsProps) {
                 ) : (
                   <span style={{ color: '#bbb', fontSize: '12px' }}>—</span>
                 )}
-              </td>
-              <td style={{ 
-                padding: '8px 6px', 
-                borderBottom: `1px solid ${darkMode ? '#374151' : '#f1f1f1'}`,
-                background: 'transparent'
-              }}>
-                  <span style={{ color: '#bbb', fontSize: '12px' }}>—</span>
               </td>
               <td style={{ 
                 padding: '8px 6px', 
