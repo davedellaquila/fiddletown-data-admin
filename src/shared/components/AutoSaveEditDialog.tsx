@@ -138,8 +138,33 @@ export default function AutoSaveEditDialog<T extends Record<string, any>>({
             />
           </div>
 
-          {/* Close button - Right aligned */}
-          <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end' }}>
+          {/* Save and Close buttons - Right aligned */}
+          <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+            <button 
+              onClick={saveFunction}
+              disabled={busy}
+              style={{
+                background: 'none',
+                border: 'none',
+                fontSize: '24px',
+                cursor: busy ? 'not-allowed' : 'pointer',
+                color: busy ? '#9ca3af' : '#10b981',
+                padding: '4px',
+                borderRadius: '4px',
+                transition: 'background-color 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                if (!busy) {
+                  e.currentTarget.style.backgroundColor = darkMode ? '#374151' : '#f3f4f6'
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent'
+              }}
+              title="Save changes"
+            >
+              ✓
+            </button>
             <button 
               onClick={handleClose}
               disabled={busy}
@@ -149,7 +174,17 @@ export default function AutoSaveEditDialog<T extends Record<string, any>>({
                 fontSize: '24px',
                 cursor: busy ? 'not-allowed' : 'pointer',
                 color: busy ? '#9ca3af' : '#6b7280',
-                padding: '4px'
+                padding: '4px',
+                borderRadius: '4px',
+                transition: 'background-color 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                if (!busy) {
+                  e.currentTarget.style.backgroundColor = darkMode ? '#374151' : '#f3f4f6'
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent'
               }}
               title="Close dialog"
             >
