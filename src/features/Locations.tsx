@@ -546,8 +546,8 @@ export default function Locations({ darkMode = false }: LocationsProps) {
               <th style={{ width: 28, padding: '8px 6px' }}></th>
               <th>Name</th>
               <th>Region</th>
-              <th>Status</th>
-              <th></th>
+              <th style={{ padding: '8px 4px', width: '1%' }}>Status</th>
+              <th style={{ padding: '8px 4px', width: '1%' }}></th>
             </tr>
           </thead>
           <tbody>
@@ -599,7 +599,7 @@ export default function Locations({ darkMode = false }: LocationsProps) {
                 </td>
                 <td style={{ background: 'transparent' }}>{r.name}</td>
                 <td style={{ background: 'transparent' }}>{r.region}</td>
-                <td style={{ background: 'transparent' }}>
+                <td style={{ background: 'transparent', padding: '8px 4px' }}>
                   <span style={{
                     display: 'inline-flex',
                     alignItems: 'center',
@@ -619,7 +619,7 @@ export default function Locations({ darkMode = false }: LocationsProps) {
                     {r.status === 'published' ? 'Published' : r.status === 'archived' ? 'Archived' : 'Draft'}
                   </span>
                 </td>
-                <td style={{ textAlign: 'right', background: 'transparent' }}>
+                <td style={{ textAlign: 'right', background: 'transparent', padding: '8px 4px' }}>
                   <div style={{ display: 'flex', gap: 6, alignItems: 'center', justifyContent: 'flex-end' }}>
                     {r.status !== 'published' && (
                       <button 
