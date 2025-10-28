@@ -2341,20 +2341,10 @@ export default function Events({ darkMode = false }: EventsProps) {
                 <span style={{
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: '4px',
-                  padding: '4px 8px',
-                  borderRadius: '12px',
+                  gap: '6px',
                   fontSize: '12px',
-                  fontWeight: '500',
-                  background: darkMode
-                    ? (r.status === 'published' ? '#065f46' : r.status === 'archived' ? '#92400e' : '#374151')
-                    : (r.status === 'published' ? '#e8f5e8' : r.status === 'archived' ? '#fff3e0' : '#f5f5f5'),
-                  color: darkMode
-                    ? (r.status === 'published' ? '#ffffff' : r.status === 'archived' ? '#ffffff' : '#f9fafb')
-                    : (r.status === 'published' ? '#2e7d32' : r.status === 'archived' ? '#f57c00' : '#666'),
-                  border: `1px solid ${darkMode 
-                    ? (r.status === 'published' ? '#047857' : r.status === 'archived' ? '#b45309' : '#4b5563')
-                    : (r.status === 'published' ? '#c8e6c9' : r.status === 'archived' ? '#ffcc02' : '#e0e0e0')}`
+                  fontWeight: 500,
+                  color: darkMode ? '#f9fafb' : '#374151'
                 }}>
                   {r.status === 'published' ? '✅' : r.status === 'archived' ? '📦' : '📝'}
                   {r.status === 'published' ? 'Published' : r.status === 'archived' ? 'Archived' : 'Draft'}
@@ -2373,19 +2363,18 @@ export default function Events({ darkMode = false }: EventsProps) {
                     style={{
                       display: 'inline-flex',
                       alignItems: 'center',
-                      gap: '4px',
-                      padding: '4px 8px',
-                      background: darkMode ? '#1e40af' : '#e3f2fd',
-                      border: `1px solid ${darkMode ? '#1d4ed8' : '#bbdefb'}`,
-                      borderRadius: '4px',
+                      justifyContent: 'center',
+                      width: 28,
+                      height: 28,
+                      borderRadius: 6,
                       textDecoration: 'none',
-                      color: darkMode ? '#ffffff' : '#1976d2',
-                      fontSize: '12px',
-                      fontWeight: '500'
+                      color: darkMode ? '#c7d2fe' : '#1d4ed8',
+                      background: 'transparent',
+                      border: `1px solid ${darkMode ? '#374151' : '#e5e7eb'}`,
                     }}
+                    title="Open link in new tab"
                   >
                     <span>🔗</span>
-                    Open
                   </a>
                 ) : (
                   <span style={{ color: '#bbb', fontSize: '12px' }}>—</span>
