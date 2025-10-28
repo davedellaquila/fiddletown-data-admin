@@ -2522,7 +2522,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                   editingId={editing?.id?.toString()}
                   darkMode={darkMode}
                 />
-          </div>
+              </div>
 
               {/* Times */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
@@ -2644,7 +2644,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                       </button>
                     )}
                   </div>
-          </div>
+                </div>
                 <FormField
                   label="Recurrence"
                   name="recurrence"
@@ -2653,31 +2653,6 @@ export default function Events({ darkMode = false }: EventsProps) {
                   editingId={editing?.id?.toString()}
                   darkMode={darkMode}
                 />
-              </div>
-
-            {/* OCR Text Display Section */}
-            {editing?.ocr_text && (
-                <div style={{ display: 'flex', gap: '16px', alignItems: 'stretch' }}>
-                  <div style={{ flex: 1 }}>
-                    <input 
-                      type="file" 
-                      accept="image/*" 
-                      onChange={async (e) => {
-                        const file = e.target.files?.[0]
-                        if (file) {
-                          // Image upload removed - no longer needed
-                        }
-                      }}
-                      style={{ 
-                        width: '100%',
-                        padding: '12px', 
-                        border: '1px solid #d1d5db', 
-                        borderRadius: '8px',
-                        fontSize: '14px'
-                      }}
-                    />
-                  </div>
-                </div>
               </div>
 
               {/* Status and Sort Order */}
