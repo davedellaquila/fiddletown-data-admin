@@ -479,6 +479,7 @@ export default function Events({ darkMode = false }: EventsProps) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [importing, setImporting] = useState(false)
+  const [navigating, setNavigating] = useState(false)
   const [importPreview, setImportPreview] = useState<any[] | null>(null)
 
   // Helper function for button styles
