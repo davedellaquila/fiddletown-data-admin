@@ -575,13 +575,16 @@ export default function Locations({ darkMode = false }: LocationsProps) {
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '4px',
-                    padding: '4px 8px',
-                    borderRadius: '12px',
                     fontSize: '12px',
                     fontWeight: '500',
-                    background: r.status === 'published' ? '#e8f5e8' : r.status === 'archived' ? '#fff3e0' : '#f5f5f5',
-                    color: r.status === 'published' ? '#2e7d32' : r.status === 'archived' ? '#f57c00' : '#666',
-                    border: `1px solid ${r.status === 'published' ? '#c8e6c9' : r.status === 'archived' ? '#ffcc02' : '#e0e0e0'}`
+                    background: 'transparent',
+                    border: 'none',
+                    padding: 0,
+                    color: r.status === 'published'
+                      ? (darkMode ? '#10b981' : '#2e7d32')
+                      : r.status === 'archived'
+                        ? (darkMode ? '#f59e0b' : '#f57c00')
+                        : (darkMode ? '#e5e7eb' : '#666')
                   }}>
                     {r.status === 'published' ? '✅' : r.status === 'archived' ? '📦' : '📝'}
                     {r.status === 'published' ? 'Published' : r.status === 'archived' ? 'Archived' : 'Draft'}
@@ -596,19 +599,20 @@ export default function Locations({ darkMode = false }: LocationsProps) {
                       style={{
                         display: 'inline-flex',
                         alignItems: 'center',
-                        gap: '4px',
-                        padding: '4px 8px',
-                        background: '#e3f2fd',
-                        border: '1px solid #bbdefb',
-                        borderRadius: '4px',
+                        padding: 4,
+                        background: 'transparent',
+                        border: 'none',
+                        borderRadius: 4,
                         textDecoration: 'none',
-                        color: '#1976d2',
-                        fontSize: '12px',
-                        fontWeight: '500'
+                        color: darkMode ? '#3b82f6' : '#1976d2',
+                        fontSize: 16,
+                        cursor: 'pointer'
                       }}
+                      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = darkMode ? 'rgba(59, 130, 246, 0.1)' : 'rgba(25, 118, 210, 0.1)' }}
+                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent' }}
+                      title="Open URL in new tab"
                     >
                       <span>🔗</span>
-                      Open
                     </a>
                   ) : (
                     <span style={{ color: '#bbb', fontSize: '12px' }}>—</span>
