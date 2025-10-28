@@ -734,7 +734,8 @@ export default function Events({ darkMode = false }: EventsProps) {
     }
   }
 
-  const startNew = () => {
+  const startNew = async () => {
+    const { data: session } = await supabase.auth.getSession()
     const today = new Date().toISOString().slice(0,10)
     setEditing({
       name: 'Untitled Event',
@@ -749,7 +750,11 @@ export default function Events({ darkMode = false }: EventsProps) {
       website_url: null,
       image_url: null,
       status: 'draft',
-      sort_order: 1000
+      sort_order: 1000,
+      created_by: session.session?.user.id ?? null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      deleted_at: null
     })
     setEditingImageUrl(null)
   }
