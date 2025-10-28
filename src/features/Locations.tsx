@@ -658,10 +658,10 @@ export default function Locations({ darkMode = false }: LocationsProps) {
                           display: 'flex',
                           alignItems: 'center',
                           gap: '4px',
-                          background: '#fff3e0',
-                          border: '1px solid #ffcc02',
+                          background: darkMode ? '#374151' : '#fff3e0',
+                          border: `1px solid ${darkMode ? '#4b5563' : '#ffcc02'}`,
                           borderRadius: '4px',
-                          color: '#f57c00'
+                          color: darkMode ? '#f9fafb' : '#f57c00'
                         }}
                         title="Archive location"
                       >
@@ -681,10 +681,10 @@ export default function Locations({ darkMode = false }: LocationsProps) {
                         display: 'flex',
                         alignItems: 'center',
                         gap: '4px',
-                        background: '#ffebee',
-                        border: '1px solid #ffcdd2',
+                        background: darkMode ? '#7f1d1d' : '#ffebee',
+                        border: `1px solid ${darkMode ? '#991b1b' : '#ffcdd2'}`,
                         borderRadius: '4px',
-                        color: '#c62828'
+                        color: darkMode ? '#ffffff' : '#c62828'
                       }}
                       title="Delete location"
                     >
