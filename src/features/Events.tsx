@@ -2243,6 +2243,9 @@ export default function Events({ darkMode = false }: EventsProps) {
                   gap: '6px',
                   fontSize: '12px',
                   fontWeight: 500,
+                  background: 'transparent',
+                  border: 'none',
+                  padding: 0,
                   color: r.status === 'published' 
                     ? (darkMode ? '#10b981' : '#2e7d32')
                     : (darkMode ? '#e5e7eb' : '#374151')
@@ -2263,7 +2266,11 @@ export default function Events({ darkMode = false }: EventsProps) {
                     rel="noreferrer"
                     style={{
                       textDecoration: 'underline',
-                      color: darkMode ? '#93c5fd' : '#1d4ed8'
+                      color: darkMode ? '#93c5fd' : '#1d4ed8',
+                      background: 'transparent',
+                      border: 'none',
+                      padding: 0,
+                      borderRadius: 0
                     }}
                     title="Open link in new tab"
                   >
