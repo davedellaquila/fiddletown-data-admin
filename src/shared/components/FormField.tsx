@@ -15,6 +15,9 @@ interface FormFieldProps {
   resize?: 'vertical' | 'horizontal' | 'both' | 'none'
   editingId?: string
   darkMode?: boolean
+  endIcon?: React.ReactNode
+  onEndIconClick?: () => void
+  endIconTitle?: string
 }
 
 export default function FormField({
@@ -31,7 +34,10 @@ export default function FormField({
   minHeight,
   resize = 'vertical',
   editingId,
-  darkMode = false
+  darkMode = false,
+  endIcon,
+  onEndIconClick,
+  endIconTitle
 }: FormFieldProps) {
   const fieldKey = `${name}-${editingId || 'new'}`
   
@@ -141,28 +147,58 @@ export default function FormField({
       
       default:
         return (
-          <input
-            key={fieldKey}
-            type={type}
-            defaultValue={value || ''}
-            onChange={handleChange}
-            onInput={handleInput}
-            onFocus={(e) => {
-              Object.assign(e.target.style, focusStyle)
-            }}
-            onBlur={(e) => {
-              Object.assign(e.target.style, commonStyle)
-              if (onBlur) {
-                if (type === 'number') {
-                  onBlur(Number(e.target.value))
-                } else {
-                  onBlur(e.target.value)
+          <div style={{ position: 'relative' }}>
+            <input
+              key={fieldKey}
+              type={type}
+              defaultValue={value || ''}
+              onChange={handleChange}
+              onInput={handleInput}
+              onFocus={(e) => {
+                Object.assign(e.target.style, focusStyle)
+              }}
+              onBlur={(e) => {
+                Object.assign(e.target.style, commonStyle)
+                if (onBlur) {
+                  if (type === 'number') {
+                    onBlur(Number(e.target.value))
+                  } else {
+                    onBlur(e.target.value)
+                  }
                 }
-              }
-            }}
-            style={baseStyle}
-            placeholder={placeholder}
-          />
+              }}
+              style={{
+                ...baseStyle,
+                paddingRight: endIcon ? '44px' : baseStyle.padding
+              }}
+              placeholder={placeholder}
+            />
+            {endIcon && (
+              <button
+                type="button"
+                onClick={onEndIconClick}
+                title={endIconTitle}
+                style={{
+                  position: 'absolute',
+                  right: '6px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '6px',
+                  border: darkMode ? '1px solid #4b5563' : '1px solid #d1d5db',
+                  background: darkMode ? '#374151' : '#f3f4f6',
+                  color: darkMode ? '#f9fafb' : '#374151',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: onEndIconClick ? 'pointer' : 'default'
+                }}
+              >
+                {endIcon}
+              </button>
+            )}
+          </div>
         )
     }
   }

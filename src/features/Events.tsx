@@ -2109,7 +2109,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                   <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: darkMode ? '#f9fafb' : '#374151' }}>
                     Website URL
                   </label>
-                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <div>
                     <FormField
                       label=""
                       name="website_url"
@@ -2118,37 +2118,17 @@ export default function Events({ darkMode = false }: EventsProps) {
                       type="url"
                       editingId={editing?.id?.toString()}
                       darkMode={darkMode}
+                      endIcon={editing?.website_url ? '🔗' : undefined}
+                      endIconTitle="Open URL in new tab"
+                      onEndIconClick={editing?.website_url ? () => {
+                        const url = editing.website_url
+                        if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
+                          window.open(url, '_blank', 'noopener,noreferrer')
+                        } else if (url) {
+                          window.open(`https://${url}`, '_blank', 'noopener,noreferrer')
+                        }
+                      } : undefined}
                     />
-                    {editing?.website_url && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const url = editing.website_url
-                          if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
-                            window.open(url, '_blank', 'noopener,noreferrer')
-                          } else if (url) {
-                            window.open(`https://${url}`, '_blank', 'noopener,noreferrer')
-                          }
-                        }}
-                        style={{
-                          padding: '12px 16px',
-                          background: '#3b82f6',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '8px',
-                          fontSize: '14px',
-                          fontWeight: '500',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          whiteSpace: 'nowrap'
-                        }}
-                        title="Open URL in new tab"
-                      >
-                        🔗 Open
-                      </button>
-                    )}
                   </div>
                 </div>
                 <FormField
