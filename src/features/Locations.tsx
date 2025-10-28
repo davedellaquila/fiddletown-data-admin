@@ -690,7 +690,8 @@ export default function Locations({ darkMode = false }: LocationsProps) {
         </div>
       ) : (
         <AutoSaveEditDialog
-          isOpen={!!editing}
+          key="location-dialog"
+          isOpen={editing !== null}
           onClose={() => setEditing(null)}
           title={editing?.id ? '✏️ Edit Location' : '➕ New Location'}
           maxWidth="600px"

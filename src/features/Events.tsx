@@ -2725,7 +2725,8 @@ export default function Events({ darkMode = false }: EventsProps) {
         </table>
 
         <AutoSaveEditDialog
-          isOpen={!!editing}
+          key="event-dialog"
+          isOpen={editing !== null}
           onClose={() => setEditing(null)}
           title={editing?.id ? '✏️ Edit Event' : '➕ New Event'}
           maxWidth="800px"

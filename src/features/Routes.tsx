@@ -774,7 +774,8 @@ export default function Routes({ darkMode = false }: RoutesProps) {
         </table>
       ) : (
         <AutoSaveEditDialog
-          isOpen={!!editing}
+          key="route-dialog"
+          isOpen={editing !== null}
           onClose={() => { if (!busy) { setEditing(null); fileRef.current && (fileRef.current.value='') }}}
           title={editing?.id ? '✏️ Edit Route' : '➕ New Route'}
           maxWidth="600px"
