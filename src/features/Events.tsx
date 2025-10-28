@@ -16,7 +16,6 @@ type EventRow = {
   location?: string | null
   recurrence?: string | null
   website_url?: string | null
-  image_url?: string | null
   ocr_text?: string | null
   status?: string | null
   sort_order?: number | null
@@ -461,7 +460,7 @@ function toCSV(rows: any[], headers: string[]): string {
 }
 
 function downloadTemplateCSV() {
-  const headers = ['name','slug','host_org','start_date','end_date','start_time','end_time','location','recurrence','website_url','image_url','status','sort_order']
+  const headers = ['name','slug','host_org','start_date','end_date','start_time','end_time','location','recurrence','website_url','status','sort_order']
   const csv = toCSV([], headers) + '\n'
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
   const url = URL.createObjectURL(blob)
@@ -526,27 +525,12 @@ export default function Events({ darkMode = false }: EventsProps) {
     return saved ? JSON.parse(saved) : null
   })
   const [ocrImageUrl, setOcrImageUrl] = useState<string | null>(null)
-  const [editingImageUrl, setEditingImageUrl] = useState<string | null>(null)
   const [ocrImageUploading, setOcrImageUploading] = useState(false)
-  const [editingImageUploading, setEditingImageUploading] = useState(false)
   const [ocrPasteReady, setOcrPasteReady] = useState(false)
-  const [eventImagePasteReady, setEventImagePasteReady] = useState(false)
   const [ocrProcessing, setOcrProcessing] = useState(false)
-  const [eventImageProcessing, setEventImageProcessing] = useState(false)
   const ocrPasteRef = useRef<HTMLDivElement | null>(null)
-  const editPasteRef = useRef<HTMLDivElement | null>(null)
 
-  const headers = ['name','slug','host_org','start_date','end_date','start_time','end_time','location','recurrence','website_url','image_url','status','sort_order']
-
-  // Reset image states when editing changes
-  useEffect(() => {
-    if (editing) {
-      // Reset image states when opening a new event for editing
-      setEditingImageUrl(null)
-      setEditingImageUploading(false)
-      setEventImagePasteReady(false)
-    }
-  }, [editing?.id]) // Only reset when the event ID changes
+  const headers = ['name','slug','host_org','start_date','end_date','start_time','end_time','location','recurrence','website_url','status','sort_order']
 
   // Reset OCR image states when OCR dialog opens
   useEffect(() => {
@@ -569,127 +553,6 @@ export default function Events({ darkMode = false }: EventsProps) {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [editing])
 
-  // Global paste listener for edit dialog
-  useEffect(() => {
-    if (!editing) return
-
-    const handleGlobalPaste = async (e: ClipboardEvent) => {
-      console.log('Global paste event in edit dialog')
-      
-      // Only handle paste if it's in the edit dialog, not in OCR form
-      const target = e.target as HTMLElement
-      if (target && target.closest('[data-paste-zone="event-image"]')) {
-        console.log('Global paste in edit dialog - skipping, handled by OCR form')
-        return
-      }
-      
-      const items = e.clipboardData?.items
-      if (items) {
-        for (let i = 0; i < items.length; i++) {
-          const item = items[i]
-          if (item.type.indexOf('image') !== -1) {
-            const file = item.getAsFile()
-            if (file) {
-              console.log('Global paste: Image detected, uploading...')
-              setEditingImageUploading(true)
-              const url = await uploadImage(file)
-              if (url) {
-                console.log('Global paste: Setting image URL:', url)
-                setEditing({...editing, image_url: url})
-                setEditingImageUrl(url)
-              }
-              setEditingImageUploading(false)
-            }
-            break
-          }
-        }
-      }
-    }
-
-    document.addEventListener('paste', handleGlobalPaste)
-    return () => document.removeEventListener('paste', handleGlobalPaste)
-  }, [editing])
-
-  // Global paste listener for OCR form - limited to event image field only
-  useEffect(() => {
-    if (!ocrOpen) return
-    
-    const handleGlobalPaste = async (e: ClipboardEvent) => {
-      console.log('Global paste event triggered')
-      console.log('Global paste target:', e.target)
-      
-      // Only handle paste if it's in the event image field
-      const target = e.target as HTMLElement
-      if (target && target.closest('[data-paste-zone="event-image"]')) {
-        console.log('Global paste in event image field - processing')
-        e.preventDefault()
-        setEventImagePasteReady(false)
-        setEventImageProcessing(true)
-        
-        const items = e.clipboardData?.items
-        console.log('Global event image clipboard items:', items)
-        if (items) {
-          for (let i = 0; i < items.length; i++) {
-            const item = items[i]
-            console.log('Global event image item type:', item.type)
-            if (item.type.indexOf('image') !== -1) {
-              const file = item.getAsFile()
-              console.log('Global event image file found:', file)
-              if (file) {
-                setOcrImageUploading(true)
-                console.log('Global event image uploading...')
-                const url = await uploadImage(file)
-                console.log('Global event image upload result URL:', url)
-                if (url) {
-                  console.log('Global event image setting OCR draft with image URL:', url)
-                  setOcrDraft(prev => ({ ...(prev || {}), image_url: url }))
-                }
-                setOcrImageUploading(false)
-                setEventImageProcessing(false)
-              }
-              break
-            }
-          }
-        }
-        setEventImageProcessing(false)
-      }
-    }
-
-    document.addEventListener('paste', handleGlobalPaste)
-    return () => document.removeEventListener('paste', handleGlobalPaste)
-  }, [ocrOpen])
-
-  // Image upload function
-  const uploadImage = async (file: File): Promise<string | null> => {
-    try {
-      console.log('Starting image upload for file:', file.name, file.size, file.type)
-      const fileExt = file.name.split('.').pop()
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`
-      const filePath = `event-images/${fileName}`
-      console.log('Upload path:', filePath)
-
-      const { error: uploadError } = await supabase.storage
-        .from('event-images')
-        .upload(filePath, file)
-
-      if (uploadError) {
-        console.error('Upload error:', uploadError)
-        return null
-      }
-
-      console.log('Upload successful, getting public URL...')
-      const { data } = supabase.storage
-        .from('event-images')
-        .getPublicUrl(filePath)
-
-      console.log('Public URL:', data.publicUrl)
-      return data.publicUrl
-    } catch (error) {
-      console.error('Image upload failed:', error)
-      return null
-    }
-  }
-
   // Client-side filtering function
   const applyFilters = (events: EventRow[]) => {
     let filtered = events
@@ -710,7 +573,7 @@ export default function Events({ darkMode = false }: EventsProps) {
     try {
     let query = supabase
       .from('events')
-        .select('id, name, slug, description, host_org, start_date, end_date, start_time, end_time, location, recurrence, website_url, image_url, status, sort_order, created_by, created_at, updated_at, deleted_at')
+        .select('id, name, slug, description, host_org, start_date, end_date, start_time, end_time, location, recurrence, website_url, status, sort_order, created_by, created_at, updated_at, deleted_at')
       .is('deleted_at', null)
         .order('sort_order', { ascending: true })
       .order(sortBy, { ascending: sortOrder === 'asc' })
@@ -748,7 +611,6 @@ export default function Events({ darkMode = false }: EventsProps) {
       location: null,
       recurrence: null,
       website_url: null,
-      image_url: null,
       status: 'draft',
       sort_order: 1000,
       created_by: session.session?.user.id ?? null,
@@ -795,7 +657,7 @@ export default function Events({ darkMode = false }: EventsProps) {
         'status': 'status'
       }
 
-      const headers = ['name','slug','host_org','start_date','end_date','start_time','end_time','location','recurrence','website_url','image_url','status','sort_order']
+      const headers = ['name','slug','host_org','start_date','end_date','start_time','end_time','location','recurrence','website_url','status','sort_order']
       const rows = grid.slice(1).map(cols => {
         const obj: Record<string, any> = {}
         headers.forEach((h, i) => { obj[h] = (cols[i] ?? '').trim() })
@@ -814,7 +676,6 @@ export default function Events({ darkMode = false }: EventsProps) {
           location: r.location || null,
           recurrence: r.recurrence || null,
           website_url: r.website_url || null,
-          image_url: r.image_url || null,
           status: r.status || 'draft',
           sort_order: r.sort_order ? Number(r.sort_order) : null
         }
@@ -967,7 +828,7 @@ export default function Events({ darkMode = false }: EventsProps) {
 
     query.then(async ({ data, error }) => {
     if (error) { alert(error.message); return }
-    const headers = ['name','slug','host_org','start_date','end_date','start_time','end_time','location','recurrence','website_url','image_url','status','sort_order']
+    const headers = ['name','slug','host_org','start_date','end_date','start_time','end_time','location','recurrence','website_url','status','sort_order']
     const csv = toCSV(data || [], headers)
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
       const url = URL.createObjectURL(blob)
@@ -1054,7 +915,6 @@ export default function Events({ darkMode = false }: EventsProps) {
     const uid = session.session?.user.id ?? null
 
     console.log('OCR Draft before save:', ocrDraft)
-    console.log('Image URL in draft:', ocrDraft.image_url)
 
     const payload: any = {
       name: ocrDraft.name || '',
@@ -1068,7 +928,6 @@ export default function Events({ darkMode = false }: EventsProps) {
       location: ocrDraft.location ?? null,
       recurrence: ocrDraft.recurrence ?? null,
       website_url: ocrDraft.website_url ?? null,
-      image_url: ocrDraft.image_url ?? null,
       ocr_text: ocrRawText || null,
       status: (ocrDraft.status as any) || 'draft',
       sort_order: ocrDraft.sort_order ?? 1000,
@@ -1116,7 +975,6 @@ export default function Events({ darkMode = false }: EventsProps) {
         location: payload.location,
         recurrence: payload.recurrence,
         website_url: payload.website_url,
-        image_url: payload.image_url,
         ocr_text: payload.ocr_text,
         status: payload.status,
         sort_order: payload.sort_order
@@ -1620,15 +1478,13 @@ export default function Events({ darkMode = false }: EventsProps) {
                       ? '2px dashed #3b82f6' 
                       : ocrProcessing
                         ? '2px dashed #f59e0b'
-                        : (ocrDraft?.image_url || ocrImageUrl)
-                          ? '2px dashed #10b981'
-                          : '2px dashed #d1d5db',
+                        : '2px dashed #d1d5db',
                     borderRadius: '8px',
                     textAlign: 'center',
                     cursor: 'pointer',
                     fontSize: '14px',
-                    color: ocrImageUploading ? '#3b82f6' : ocrProcessing ? '#f59e0b' : (ocrDraft?.image_url || ocrImageUrl) ? '#10b981' : '#6b7280',
-                    background: ocrImageUploading ? '#eff6ff' : ocrProcessing ? '#fffbeb' : (ocrDraft?.image_url || ocrImageUrl) ? '#f0fdf4' : '#f9fafb',
+                    color: ocrImageUploading ? '#3b82f6' : ocrProcessing ? '#f59e0b' : '#6b7280',
+                    background: ocrImageUploading ? '#eff6ff' : ocrProcessing ? '#fffbeb' : '#f9fafb',
                     width: '100%',
                     display: 'flex',
                     alignItems: 'center',
@@ -1665,11 +1521,6 @@ export default function Events({ darkMode = false }: EventsProps) {
                       <div style={{ fontSize: '16px' }}>🔄</div>
                       <div style={{ fontSize: '12px' }}>Processing...</div>
                     </>
-                  ) : (ocrDraft?.image_url || ocrImageUrl) ? (
-                    <>
-                      <div style={{ fontSize: '16px' }}>✅</div>
-                      <div style={{ fontSize: '12px' }}>Image Ready</div>
-                    </>
                   ) : ocrPasteReady ? (
                     <>
                       <div style={{ fontSize: '16px' }}>📋</div>
@@ -1682,7 +1533,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                       <div style={{ fontSize: '12px' }}>Paste Image</div>
                       <div style={{ fontSize: '10px', color: '#6b7280', marginTop: '2px' }}>Ctrl+V</div>
                     </>
-              )}
+                  )}
             </div>
               </div>
             </div>
@@ -1704,23 +1555,6 @@ export default function Events({ darkMode = false }: EventsProps) {
                 {/* Left side - Form fields */}
               <div>
                   <h4 style={{ margin: '0 0 16px 0', fontSize: '16px', fontWeight: '600', color: '#374151' }}>Event Details</h4>
-                  {ocrDraft?.image_url && (
-                    <div style={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      gap: '8px', 
-                      marginBottom: '12px',
-                      padding: '8px 12px',
-                      background: '#f0fdf4',
-                      border: '1px solid #10b981',
-                      borderRadius: '6px',
-                      fontSize: '14px',
-                      color: '#065f46'
-                    }}>
-                      <span>🖼️</span>
-                      <span>Image attached to this event</span>
-                    </div>
-                  )}
                   <div style={{ display: 'grid', gap: 16 }}>
                     {/* Name and Slug row */}
                     <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 12 }}>
@@ -2039,156 +1873,22 @@ export default function Events({ darkMode = false }: EventsProps) {
                       </div>
                     </div>
 
-                    {/* Image Upload */}
+                    {/* OCR Text Display */}
                     <div>
-                      <label style={{ display: 'block', marginBottom: 4, fontSize: '14px', fontWeight: '500', color: '#374151' }}>
-                        Event Image
-                      </label>
-                      <div style={{ display: 'flex', gap: 12, alignItems: 'stretch' }}>
-                        <div style={{ flex: '1 1 0', minWidth: 0 }}>
-                        <input 
-                          type="file" 
-                          accept="image/*" 
-                          onChange={async (e) => {
-                            const file = e.target.files?.[0]
-                            if (file) {
-                              const url = await uploadImage(file)
-                              if (url) {
-                                setOcrDraft({ ...(ocrDraft||{}), image_url: url })
-                              }
-                            }
-                          }}
-                          style={{ 
-                              width: '100%',
-                            padding: '8px 12px', 
-                            border: '1px solid #d1d5db', 
-                            borderRadius: '6px',
-                            fontSize: '14px',
-                              boxSizing: 'border-box'
-                            }}
-                          />
-                        </div>
-                        <div style={{ flex: '1 1 0', minWidth: 0 }}>
-                          <div
-                            data-paste-zone="event-image"
-                            tabIndex={0}
-                            onPaste={async (e) => {
-                              e.preventDefault()
-                              setEventImagePasteReady(false) // Reset ready state when paste happens
-                              setEventImageProcessing(true) // Show processing state
-                              console.log('Event image paste event triggered')
-                              const items = e.clipboardData?.items
-                              console.log('Event image clipboard items:', items)
-                              if (items) {
-                                for (let i = 0; i < items.length; i++) {
-                                  const item = items[i]
-                                  console.log('Event image item type:', item.type)
-                                  if (item.type.indexOf('image') !== -1) {
-                                    const file = item.getAsFile()
-                                    console.log('Event image file found:', file)
-                                    if (file) {
-                                      setOcrImageUploading(true)
-                                      console.log('Event image uploading...')
-                                      const url = await uploadImage(file)
-                                      console.log('Event image upload result URL:', url)
-                                      if (url) {
-                                        console.log('Event image setting OCR draft with image URL:', url)
-                                        setOcrDraft(prev => ({ ...(prev || {}), image_url: url }))
-                                      }
-                                      setOcrImageUploading(false)
-                                      setEventImageProcessing(false) // Hide processing state when done
-                                    }
-                                    break
-                                  }
-                                }
-                              }
-                              setEventImageProcessing(false) // Hide processing state if no image found
-                            }}
-                            style={{ 
-                              padding: '8px 12px',
-                              border: ocrImageUploading 
-                                ? '2px dashed #3b82f6' 
-                                : eventImageProcessing
-                                  ? '2px dashed #f59e0b'
-                                  : ocrDraft?.image_url 
-                                    ? '2px dashed #10b981' 
-                                    : '2px dashed #d1d5db',
-                              borderRadius: '6px',
-                              textAlign: 'center',
-                              cursor: ocrImageUploading ? 'not-allowed' : 'pointer',
-                              fontSize: '12px',
-                              color: ocrImageUploading 
-                                ? '#3b82f6' 
-                                : eventImageProcessing
-                                  ? '#f59e0b'
-                                  : ocrDraft?.image_url 
-                                    ? '#10b981' 
-                                    : '#6b7280',
-                              background: ocrImageUploading 
-                                ? '#eff6ff' 
-                                : eventImageProcessing
-                                  ? '#fffbeb'
-                                  : ocrDraft?.image_url 
-                                    ? '#f0fdf4' 
-                                    : '#f9fafb',
-                              width: '100%',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              flexDirection: 'column',
-                              gap: '4px',
-                              transition: 'all 0.2s ease',
-                              boxSizing: 'border-box'
-                            }}
-                            onMouseEnter={(e) => {
-                              if (!ocrImageUploading) {
-                                e.currentTarget.style.borderColor = ocrDraft?.image_url ? '#059669' : '#9ca3af'
-                                e.currentTarget.style.background = ocrDraft?.image_url ? '#ecfdf5' : '#f3f4f6'
-                              }
-                            }}
-                            onMouseLeave={(e) => {
-                              if (!ocrImageUploading) {
-                                e.currentTarget.style.borderColor = ocrDraft?.image_url ? '#10b981' : '#d1d5db'
-                                e.currentTarget.style.background = ocrDraft?.image_url ? '#f0fdf4' : '#f9fafb'
-                              }
-                            }}
-                            onClick={(e) => {
-                              console.log('Event image paste zone clicked - focusing for paste')
-                              setEventImagePasteReady(true)
-                              // Focus the element so it can receive paste events
-                              e.currentTarget.focus()
-                              console.log('Event image paste zone focused:', document.activeElement === e.currentTarget)
-                            }}
-                            title="Click here and paste an image (Ctrl+V or Cmd+V)"
-                          >
-                            {ocrImageUploading ? (
-                              <>
-                                <div style={{ fontSize: '14px' }}>⏳</div>
-                                <div style={{ fontSize: '10px' }}>Uploading...</div>
-                              </>
-                            ) : eventImageProcessing ? (
-                              <>
-                                <div style={{ fontSize: '14px' }}>🔄</div>
-                                <div style={{ fontSize: '10px' }}>Processing...</div>
-                              </>
-                            ) : ocrDraft?.image_url ? (
-                              <>
-                                <div style={{ fontSize: '14px' }}>✅</div>
-                                <div style={{ fontSize: '10px' }}>Image Ready</div>
-                              </>
-                            ) : eventImagePasteReady ? (
-                              <>
-                                <div style={{ fontSize: '14px' }}>📋</div>
-                                <div style={{ fontSize: '10px' }}>Ready...</div>
-                              </>
-                            ) : (
-                              <>
-                                <div style={{ fontSize: '14px' }}>📋</div>
-                                <div style={{ fontSize: '10px' }}>Paste</div>
-                              </>
-                            )}
-                          </div>
-                        </div>
+                      <h4 style={{ margin: '0 0 16px 0', fontSize: '16px', fontWeight: '600', color: '#374151' }}>OCR Text</h4>
+                      <div style={{ 
+                        background: '#ffffff', 
+                        border: '1px solid #d1d5db', 
+                        borderRadius: '8px',
+                        padding: '16px',
+                        minHeight: '200px',
+                        fontSize: '14px',
+                        lineHeight: '1.5',
+                        color: '#374151',
+                        whiteSpace: 'pre-wrap',
+                        wordBreak: 'break-word'
+                      }}>
+                        {ocrRawText || 'No OCR text available'}
                       </div>
                     </div>
 
@@ -2245,35 +1945,9 @@ export default function Events({ darkMode = false }: EventsProps) {
                   </div>
                 </div>
 
-                {/* Right side - Image Preview and OCR Text */}
+                {/* Right side - OCR Text */}
                 <div>
-                  {/* Image Preview */}
-                  {(ocrDraft?.image_url || ocrImageUrl) && (
-                    <div style={{ marginBottom: '16px' }}>
-                      <h4 style={{ margin: '0 0 12px 0', fontSize: '16px', fontWeight: '600', color: '#374151' }}>
-                        Image Preview
-                      </h4>
-                      <div style={{ 
-                        width: '100%', 
-                        padding: '12px', 
-                        border: '1px solid #d1d5db', 
-                        borderRadius: '6px',
-                        background: '#ffffff'
-                      }}>
-                        <img 
-                          src={ocrDraft?.image_url || ocrImageUrl} 
-                          alt="Event preview" 
-                          style={{ 
-                            width: '100%',
-                            height: 'auto',
-                            objectFit: 'contain',
-                            borderRadius: '4px',
-                            display: 'block'
-                          }} 
-                        />
-                      </div>
-                    </div>
-                  )}
+                  {/* OCR Text Display */}
 
                   <h4 style={{ margin: '0 0 16px 0', fontSize: '16px', fontWeight: '600', color: '#374151' }}>OCR Text</h4>
                   <div style={{ position: 'relative' }}>
@@ -3003,28 +2677,8 @@ export default function Events({ darkMode = false }: EventsProps) {
                 />
               </div>
 
-              {/* Image Upload */}
-              <div>
-                <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: darkMode ? '#f9fafb' : '#374151' }}>
-                  Event Image
-                </label>
-                {(editing?.image_url || editingImageUrl) && (
-                  <div style={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: '8px', 
-                    marginBottom: '12px',
-                    padding: '8px 12px',
-                    background: '#f0fdf4',
-                    border: '1px solid #10b981',
-                    borderRadius: '6px',
-                    fontSize: '14px',
-                    color: '#065f46'
-                  }}>
-                    <span>🖼️</span>
-                    <span>Image attached to this event</span>
-                  </div>
-                )}
+            {/* OCR Text Display Section */}
+            {editing?.ocr_text && (
                 <div style={{ display: 'flex', gap: '16px', alignItems: 'stretch' }}>
                   <div style={{ flex: 1 }}>
                     <input 
