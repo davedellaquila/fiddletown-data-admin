@@ -2238,6 +2238,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                 background: 'transparent'
               }}>
                 <div style={{
+                  all: 'unset',
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '6px',
@@ -2263,8 +2264,10 @@ export default function Events({ darkMode = false }: EventsProps) {
               }}>
                 {r.website_url && r.website_url.trim() ? (
                   <div 
+                    role="link"
                     onClick={() => window.open(r.website_url, '_blank')}
                     style={{
+                      all: 'unset',
                       textDecoration: 'underline',
                       color: darkMode ? '#93c5fd' : '#1d4ed8',
                       background: 'transparent',
