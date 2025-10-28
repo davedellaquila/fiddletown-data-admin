@@ -83,12 +83,17 @@ export default function AutoSaveEditDialog<T extends Record<string, any>>({
         left: 0, 
         right: 0, 
         bottom: 0, 
-        background: 'rgba(0,0,0,0.5)', 
+        // Soft translucent overlay so list remains visible underneath
+        background: darkMode ? 'rgba(17,24,39,0.35)' : 'rgba(255,255,255,0.25)',
+        backdropFilter: 'blur(4px) saturate(0.9)',
+        WebkitBackdropFilter: 'blur(4px) saturate(0.9)',
         zIndex: 1000, 
         display: isOpen ? 'flex' : 'none', // Control visibility with CSS instead of conditional rendering
         alignItems: 'center', 
         justifyContent: 'center',
-        padding: '20px'
+        padding: '20px',
+        transition: 'background-color 120ms ease',
+        willChange: 'backdrop-filter'
       }}
       onClick={handleBackdropClick}
       onKeyDown={handleKeyDown}
