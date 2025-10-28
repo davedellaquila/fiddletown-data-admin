@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000">
+  <defs>
+    <style>
+      .title { font: 700 28px/1.4 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; fill: #111827; }
+      .subtitle { font: 600 18px/1.4 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; fill: #374151; }
+      .label { font: 600 14px/1.4 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; fill: #111827; }
+      .meta { font: 12px/1.4 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; fill: #374151; }
+      .box { fill: #ffffff; stroke: #e5e7eb; stroke-width: 2; rx: 10; }
+      .group { fill: #f8fafc; stroke: #d1d5db; stroke-width: 2; rx: 12; }
+      .accent { fill: #eff6ff; stroke: #bfdbfe; stroke-width: 2; rx: 10; }
+      .arrow { stroke: #6b7280; stroke-width: 2.5; fill: none; marker-end: url(#arrowHead); }
+      .arrow-label { font: 12px/1.2 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; fill: #6b7280; }
+    </style>
+    <marker id="arrowHead" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#6b7280" />
+    </marker>
+  </defs>
+
+  <!-- Title -->
+  <text x="40" y="60" class="title">SSA Admin Architecture Overview</text>
+  <text x="40" y="90" class="meta">Tech: React + Vite + Supabase | Dark mode support | CSV/Storage/OCR flows</text>
+
+  <!-- App.tsx -->
+  <rect x="40" y="130" width="420" height="220" class="group" />
+  <text x="60" y="160" class="subtitle">App Shell (src/App.tsx)</text>
+  <rect x="60" y="180" width="180" height="150" class="box" />
+  <text x="70" y="205" class="label">Sidebar</text>
+  <text x="70" y="228" class="meta">- Dark mode toggle</text>
+  <text x="70" y="246" class="meta">- User info + Sign out</text>
+  <text x="70" y="264" class="meta">- Nav: Locations | Events | Routes</text>
+  <rect x="260" y="180" width="180" height="150" class="box" />
+  <text x="270" y="205" class="label">Main</text>
+  <text x="270" y="228" class="meta">Renders selected feature</text>
+  <text x="270" y="246" class="meta">Auth: supabase.auth.getSession()</text>
+
+  <!-- Features group -->
+  <rect x="520" y="130" width="1040" height="380" class="group" />
+  <text x="540" y="160" class="subtitle">Features</text>
+
+  <!-- Locations -->
+  <rect x="540" y="180" width="320" height="300" class="box" />
+  <text x="555" y="205" class="label">Locations (src/features/Locations.tsx)</text>
+  <text x="555" y="230" class="meta">- Load/search via Supabase</text>
+  <text x="555" y="248" class="meta">- Import/Export CSV</text>
+  <text x="555" y="266" class="meta">- Modal editing</text>
+  <text x="555" y="284" class="meta">- useNavigationWithAutoSave</text>
+  <text x="555" y="302" class="meta">- useDarkModeRowReset</text>
+
+  <!-- Events -->
+  <rect x="900" y="180" width="320" height="300" class="box" />
+  <text x="915" y="205" class="label">Events (src/features/Events.tsx)</text>
+  <text x="915" y="230" class="meta">- CSV Import/Export</text>
+  <text x="915" y="248" class="meta">- Image upload (Supabase Storage)</text>
+  <text x="915" y="266" class="meta">- OCR (tesseract.js) → parseEventText()</text>
+  <text x="915" y="284" class="meta">- PortalDialog + NavigationButtons</text>
+  <text x="915" y="302" class="meta">- useFormFieldPopulation (DOM fill)</text>
+  <text x="915" y="320" class="meta">- useDarkModeRowReset</text>
+
+  <!-- Routes -->
+  <rect x="1260" y="180" width="280" height="300" class="box" />
+  <text x="1275" y="205" class="label">Routes (src/features/Routes.tsx)</text>
+  <text x="1275" y="230" class="meta">- CSV Import/Export</text>
+  <text x="1275" y="248" class="meta">- GPX Upload (Storage)</text>
+  <text x="1275" y="266" class="meta">- NavigationButtons</text>
+  <text x="1275" y="284" class="meta">- useDarkModeRowReset</text>
+  <text x="1275" y="302" class="meta">- useNavigationWithAutoSave</text>
+
+  <!-- Shared Layer -->
+  <rect x="40" y="390" width="1480" height="400" class="group" />
+  <text x="60" y="420" class="subtitle">Shared Layer (src/shared)</text>
+
+  <!-- Shared: Components -->
+  <rect x="60" y="440" width="520" height="320" class="accent" />
+  <text x="75" y="465" class="label">components/</text>
+  <text x="75" y="490" class="meta">- PortalDialog.tsx</text>
+  <text x="75" y="508" class="meta">- DataTable.tsx</text>
+  <text x="75" y="526" class="meta">- StickyToolbar.tsx</text>
+  <text x="75" y="544" class="meta">- NavigationButtons.tsx</text>
+  <text x="75" y="562" class="meta">- FormFieldComponents.tsx</text>
+  <text x="75" y="580" class="meta">- BaseDataModule.tsx (WIP)</text>
+
+  <!-- Shared: Hooks/Utils/Config/Types -->
+  <rect x="600" y="440" width="920" height="320" class="accent" />
+  <text x="615" y="465" class="label">hooks/ • utils/ • config/ • types/</text>
+  <text x="615" y="490" class="meta">hooks/ useNavigationWithAutoSave.ts, useFormFieldPopulation.ts, useDarkModeRowReset.ts, useDataModule.ts</text>
+  <text x="615" y="508" class="meta">utils/ csv.ts, validation.ts, slug.ts</text>
+  <text x="615" y="526" class="meta">config/ modules.ts</text>
+  <text x="615" y="544" class="meta">types.ts (BaseEntity, Location, Event, Route, Module types)</text>
+
+  <!-- Supabase & External -->
+  <rect x="40" y="820" width="420" height="140" class="group" />
+  <text x="60" y="850" class="subtitle">Supabase</text>
+  <text x="60" y="875" class="meta">lib/supabaseClient.ts</text>
+  <text x="60" y="893" class="meta">Tables: locations, events, routes</text>
+  <text x="60" y="911" class="meta">Soft delete via deleted_at; upsert by slug</text>
+
+  <rect x="500" y="820" width="360" height="140" class="group" />
+  <text x="520" y="850" class="subtitle">Supabase Storage</text>
+  <text x="520" y="875" class="meta">Buckets: event-images, routes</text>
+  <text x="520" y="893" class="meta">upload() → getPublicUrl() → record.image_url/gpx_url</text>
+
+  <rect x="900" y="820" width="340" height="140" class="group" />
+  <text x="920" y="850" class="subtitle">tesseract.js</text>
+  <text x="920" y="875" class="meta">Dynamic import in Events</text>
+  <text x="920" y="893" class="meta">recognize(image) → text → parseEventText()</text>
+
+  <!-- App → Features → Shared arrows -->
+  <path class="arrow" d="M460,220 C520,220 520,220 520,220" />
+  <text x="470" y="210" class="arrow-label">renders</text>
+
+  <path class="arrow" d="M700,480 C700,420 700,360 700,330" />
+  <text x="708" y="420" class="arrow-label">uses</text>
+  <path class="arrow" d="M1060,480 C1060,420 1060,360 1060,330" />
+  <text x="1068" y="420" class="arrow-label">uses</text>
+  <path class="arrow" d="M1400,480 C1400,420 1400,360 1400,330" />
+  <text x="1408" y="420" class="arrow-label">uses</text>
+
+  <!-- Features → Supabase -->
+  <path class="arrow" d="M700,540 C700,720 250,720 250,820" />
+  <text x="420" y="725" class="arrow-label">CRUD</text>
+  <path class="arrow" d="M1060,540 C1060,700 680,700 680,820" />
+  <text x="860" y="708" class="arrow-label">image upload</text>
+  <path class="arrow" d="M1400,540 C1400,700 680,700 680,820" />
+  <text x="1220" y="708" class="arrow-label">gpx upload</text>
+
+  <!-- Events → tesseract -->
+  <path class="arrow" d="M1060,540 C1060,740 1070,740 1070,820" />
+  <text x="1080" y="745" class="arrow-label">OCR</text>
+
+  <!-- Shared → Supabase (useDataModule, etc.) -->
+  <path class="arrow" d="M1160,620 C1160,780 250,780 250,820" />
+  <text x="680" y="785" class="arrow-label">queries, upserts</text>
+
+  <!-- Legend -->
+  <rect x="1280" y="820" width="240" height="140" class="group" />
+  <text x="1298" y="845" class="subtitle">Legend</text>
+  <rect x="1298" y="860" width="16" height="16" class="box"/><text x="1320" y="872" class="meta"> Component / File</text>
+  <rect x="1298" y="884" width="16" height="16" class="accent"/><text x="1320" y="896" class="meta"> Shared Group</text>
+  <line x1="1298" y1="914" x2="1318" y2="914" class="arrow"/><text x="1320" y="918" class="meta"> Data/control flow</text>
+</svg>
+

@@ -25,6 +25,7 @@ type EventRow = {
   created_at?: string
   updated_at?: string
   deleted_at?: string | null
+  isOcrMode?: boolean // Flag to indicate OCR mode
 }
 
 const slugify = (s: string) => s
@@ -144,16 +145,22 @@ export default function Events({ darkMode = false }: EventsProps) {
   })
   const [importErrors, setImportErrors] = useState<string[]>([])
   const [editing, setEditing] = useState<EventRow | null>(null)
+  const [isNavigating, setIsNavigating] = useState(false)
+
+  // Debug logging for state changes
+  useEffect(() => {
+    console.log('🔍 isNavigating changed to:', isNavigating)
+  }, [isNavigating])
+
+  useEffect(() => {
+    console.log('🔍 editing changed to:', editing?.id)
+  }, [editing])
   const [q, setQ] = useState('')
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
 
   // OCR / Image-to-Event state with persistence
-  const [ocrOpen, setOcrOpen] = useState(() => {
-    const saved = localStorage.getItem('events-ocr-open')
-    return saved === 'true'
-  })
   const [ocrLoading, setOcrLoading] = useState(false)
   const [ocrError, setOcrError] = useState<string | null>(null)
   const [ocrRawText, setOcrRawText] = useState(() => {
@@ -209,21 +216,15 @@ export default function Events({ darkMode = false }: EventsProps) {
       if (e.key === 'Escape') {
         if (editing) {
           setEditing(null)
-        } else if (ocrOpen) {
-          setOcrOpen(false)
-          setOcrDraft(null)
-          setOcrRawText('')
-          setOcrImageUrl(null)
-          setOcrError(null)
         }
       }
     }
 
-    if (editing || ocrOpen) {
+    if (editing) {
       document.addEventListener('keydown', handleKeyDown)
       return () => document.removeEventListener('keydown', handleKeyDown)
     }
-  }, [editing, ocrOpen])
+  }, [editing])
 
   // Use centralized form field population
   useFormFieldPopulation({
@@ -237,6 +238,7 @@ export default function Events({ darkMode = false }: EventsProps) {
 
   const [editingImageUrl, setEditingImageUrl] = useState<string | null>(null)
   const pasteRef = useRef<HTMLDivElement | null>(null)
+  const fileRef = useRef<HTMLInputElement | null>(null)
 
   const headers = ['name','slug','host_org','start_date','end_date','start_time','end_time','location','recurrence','website_url','image_url','status','sort_order']
 
@@ -602,10 +604,10 @@ export default function Events({ darkMode = false }: EventsProps) {
 
     const { error } = await supabase.from('events').insert(payload)
     if (error) { alert(error.message); return }
-    setOcrOpen(false); setOcrDraft(null); setOcrRawText(''); setOcrImageUrl(null)
+    setOcrDraft(null); setOcrRawText(''); setOcrImageUrl(null)
     localStorage.removeItem('events-ocr-draft')
     localStorage.removeItem('events-ocr-text')
-    localStorage.setItem('events-ocr-open', 'false')
+    localStorage.removeItem('events-ocr-image')
     await load()
     alert('Event created from image')
   }
@@ -653,6 +655,43 @@ export default function Events({ darkMode = false }: EventsProps) {
     setEditing
   )
 
+  // Smooth navigation with loading state
+  const smoothNavigateToNext = async () => {
+    console.log('🚀 smoothNavigateToNext called')
+    if (!editing?.id) return
+    const currentIndex = rows.findIndex(r => r.id === editing.id)
+    if (currentIndex < rows.length - 1) {
+      console.log('🚀 Setting isNavigating to true')
+      setIsNavigating(true)
+      await save()
+      // Small delay to show loading state
+      setTimeout(() => {
+        console.log('🚀 Setting editing to next record')
+        setEditing(rows[currentIndex + 1])
+        console.log('🚀 Setting isNavigating to false')
+        setIsNavigating(false)
+      }, 100)
+    }
+  }
+
+  const smoothNavigateToPrevious = async () => {
+    console.log('🚀 smoothNavigateToPrevious called')
+    if (!editing?.id) return
+    const currentIndex = rows.findIndex(r => r.id === editing.id)
+    if (currentIndex > 0) {
+      console.log('🚀 Setting isNavigating to true')
+      setIsNavigating(true)
+      await save()
+      // Small delay to show loading state
+      setTimeout(() => {
+        console.log('🚀 Setting editing to previous record')
+        setEditing(rows[currentIndex - 1])
+        console.log('🚀 Setting isNavigating to false')
+        setIsNavigating(false)
+      }, 100)
+    }
+  }
+
   const softDelete = async (id: string) => {
     if (!confirm('Delete this event? (soft delete)')) return
     const { error } = await supabase.from('events').update({ deleted_at: new Date().toISOString() }).eq('id', id)
@@ -669,10 +708,6 @@ export default function Events({ darkMode = false }: EventsProps) {
   }, [q, from, to])
 
   // Persist OCR state to localStorage
-  useEffect(() => {
-    localStorage.setItem('events-ocr-open', ocrOpen.toString())
-  }, [ocrOpen])
-
   useEffect(() => {
     localStorage.setItem('events-ocr-text', ocrRawText)
   }, [ocrRawText])
@@ -752,7 +787,25 @@ export default function Events({ darkMode = false }: EventsProps) {
           
           <button 
             className="btn" 
-            onClick={() => setOcrOpen(true)} 
+            onClick={() => {
+              // Start a new event and mark it as OCR mode
+              setEditing({
+                name: 'Untitled Event',
+                slug: '',
+                host_org: null,
+                start_date: null,
+                end_date: null,
+                start_time: null,
+                end_time: null,
+                location: null,
+                recurrence: null,
+                website_url: null,
+                image_url: null,
+                status: 'draft',
+                sort_order: 1000,
+                isOcrMode: true // Flag to indicate this is OCR mode
+              })
+            }} 
             disabled={importing}
             style={{
               display: 'flex',
@@ -762,7 +815,7 @@ export default function Events({ darkMode = false }: EventsProps) {
             }}
             title="Add event from image using OCR"
           >
-            <span>🔍</span>
+            <span>📷</span>
             <span>OCR</span>
           </button>
           
@@ -1025,449 +1078,6 @@ export default function Events({ darkMode = false }: EventsProps) {
         </div>
       )}
 
-      {ocrOpen && (
-        <div 
-          onClick={() => {
-            setOcrOpen(false)
-            setOcrDraft(null)
-            setOcrRawText('')
-            setOcrImageUrl(null)
-            setOcrError(null)
-          }}
-          style={{ 
-            position: 'fixed', 
-            top: 0, 
-            left: 0, 
-            right: 0, 
-            bottom: 0, 
-            background: 'rgba(0,0,0,0.5)', 
-            zIndex: 1000, 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'center',
-            padding: '20px'
-          }}>
-          <div 
-            onClick={(e) => e.stopPropagation()}
-            style={{ 
-              background: darkMode ? '#1f2937' : 'white', 
-              padding: '32px', 
-              borderRadius: '12px', 
-              maxWidth: '900px', 
-              width: '100%', 
-              maxHeight: '90vh', 
-              overflow: 'auto',
-              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
-            }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
-              <h3 style={{ margin: 0, fontSize: '24px', fontWeight: '600', color: darkMode ? '#f9fafb' : '#1f2937' }}>
-                📷 Add Event from Image
-              </h3>
-              <button 
-                onClick={() => {
-                  setOcrOpen(false)
-                  setOcrDraft(null)
-                  setOcrRawText('')
-                  setOcrImageUrl(null)
-                  setOcrError(null)
-                }}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  fontSize: '24px',
-                  cursor: 'pointer',
-                  color: darkMode ? '#6b7280' : '#6b7280',
-                  padding: '4px'
-                }}
-                title="Close"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div style={{ display: 'grid', gap: '20px' }}>
-              {/* Image Upload Section */}
-              <div style={{ 
-                border: `1px dashed ${darkMode ? '#6b7280' : '#c8b68a'}`,
-                padding: '20px',
-                borderRadius: '8px',
-                background: darkMode ? '#374151' : '#fff9ef',
-                textAlign: 'center'
-              }}>
-                <div
-                  ref={pasteRef}
-                  onPaste={handlePaste}
-                  tabIndex={0}
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: '120px 1fr',
-                    gap: 16,
-                    alignItems: 'center',
-                    minHeight: 120
-                  }}
-                >
-                  <div style={{ textAlign: 'center' }}>
-                    {ocrImageUrl ? (
-                      <img 
-                        src={ocrImageUrl} 
-                        alt="pasted" 
-                        style={{ 
-                          maxWidth: 120, 
-                          maxHeight: 120, 
-                          objectFit: 'contain', 
-                          borderRadius: 6, 
-                          border: '1px solid #eee' 
-                        }} 
-                      />
-                    ) : (
-                      <div style={{ color: '#8b6b34', fontSize: '48px' }}>📋</div>
-                    )}
-                  </div>
-                  <div>
-                    <div style={{ marginBottom: 8 }}>
-                      <input type="file" accept="image/*" onChange={handleFileSelect} />
-                    </div>
-                    <p style={{ margin: 0, fontSize: '14px', color: darkMode ? '#d1d5db' : '#6b7280' }}>
-                      Paste an image here (⌘/Ctrl+V) or choose a file. We'll OCR the text, parse it, and let you verify before saving.
-                    </p>
-                    <small style={{ color: darkMode ? '#9ca3af' : '#8b6b34' }}>
-                      Tip: click inside this box and press <strong>⌘/Ctrl+V</strong> to paste from clipboard.
-                    </small>
-                  </div>
-                </div>
-
-                {ocrLoading && (
-                  <div style={{ marginTop: 12, color: '#059669', fontWeight: '500' }}>🔄 Running OCR…</div>
-                )}
-                {ocrError && (
-                  <div style={{ marginTop: 12, color: '#dc2626', fontWeight: '500' }}>❌ Error: {ocrError}</div>
-                )}
-              </div>
-
-
-              {/* Form Fields - Only show when we have OCR data */}
-              {(ocrRawText || ocrDraft) && (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
-                  {/* Left side - Form fields */}
-                  <div>
-                    <h4 style={{ margin: '0 0 16px 0', fontSize: '16px', fontWeight: '600', color: darkMode ? '#f9fafb' : '#374151' }}>
-                      Event Details
-                    </h4>
-                    <div style={{ display: 'grid', gap: '16px' }}>
-                      {/* Name and Slug row */}
-                      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '12px' }}>
-                        <div>
-                          <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: darkMode ? '#f9fafb' : '#374151' }}>
-                            Event Name *
-                          </label>
-                          <input 
-                            value={ocrDraft?.name ?? ''} 
-                            onChange={e=>updateOcrDraft({ name: e.target.value })} 
-                            style={{ 
-                              width: '100%', 
-                              padding: '12px', 
-                              border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`, 
-                              borderRadius: '8px',
-                              fontSize: '14px',
-                              background: darkMode ? '#374151' : '#ffffff',
-                              color: darkMode ? '#ffffff' : '#000000'
-                            }} 
-                            placeholder="Enter event name"
-                          />
-                        </div>
-                        <div>
-                          <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: darkMode ? '#f9fafb' : '#374151' }}>
-                            Slug
-                          </label>
-                          <input 
-                            value={(ocrDraft as any)?.slug ?? ''} 
-                            onChange={e=>updateOcrDraft({ slug: e.target.value })} 
-                            style={{ 
-                              width: '100%', 
-                              padding: '12px', 
-                              border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`, 
-                              borderRadius: '8px',
-                              fontSize: '14px',
-                              background: darkMode ? '#374151' : '#ffffff',
-                              color: darkMode ? '#ffffff' : '#000000'
-                            }} 
-                            placeholder="event-slug"
-                          />
-                        </div>
-                      </div>
-
-                      {/* Host Org and Location row */}
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                        <div>
-                          <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: darkMode ? '#f9fafb' : '#374151' }}>
-                            Host Organization
-                          </label>
-                          <input 
-                            value={ocrDraft?.host_org ?? ''} 
-                            onChange={e=>updateOcrDraft({ host_org: e.target.value })} 
-                            style={{ 
-                              width: '100%', 
-                              padding: '12px', 
-                              border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`, 
-                              borderRadius: '8px',
-                              fontSize: '14px',
-                              background: darkMode ? '#374151' : '#ffffff',
-                              color: darkMode ? '#ffffff' : '#000000'
-                            }} 
-                            placeholder="Host organization"
-                          />
-                        </div>
-                        <div>
-                          <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: darkMode ? '#f9fafb' : '#374151' }}>
-                            Location
-                          </label>
-                          <input 
-                            value={ocrDraft?.location ?? ''} 
-                            onChange={e=>updateOcrDraft({ location: e.target.value })} 
-                            style={{ 
-                              width: '100%', 
-                              padding: '12px', 
-                              border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`, 
-                              borderRadius: '8px',
-                              fontSize: '14px',
-                              background: darkMode ? '#374151' : '#ffffff',
-                              color: darkMode ? '#ffffff' : '#000000'
-                            }} 
-                            placeholder="Event location"
-                          />
-                        </div>
-                      </div>
-
-                      {/* Date and Time row */}
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '12px' }}>
-                        <div>
-                          <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: darkMode ? '#f9fafb' : '#374151' }}>
-                            Start Date
-                          </label>
-                          <input 
-                            type="date" 
-                            value={ocrDraft?.start_date ?? ''} 
-                            onChange={e=>updateOcrDraft({ start_date: e.target.value })} 
-                            style={{ 
-                              width: '100%', 
-                              padding: '12px', 
-                              border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`, 
-                              borderRadius: '8px',
-                              fontSize: '14px',
-                              background: darkMode ? '#374151' : '#ffffff',
-                              color: darkMode ? '#ffffff' : '#000000'
-                            }} 
-                          />
-                        </div>
-                        <div>
-                          <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: darkMode ? '#f9fafb' : '#374151' }}>
-                            End Date
-                          </label>
-                          <input 
-                            type="date" 
-                            value={ocrDraft?.end_date ?? ''} 
-                            onChange={e=>updateOcrDraft({ end_date: e.target.value })} 
-                            style={{ 
-                              width: '100%', 
-                              padding: '12px', 
-                              border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`, 
-                              borderRadius: '8px',
-                              fontSize: '14px',
-                              background: darkMode ? '#374151' : '#ffffff',
-                              color: darkMode ? '#ffffff' : '#000000'
-                            }} 
-                          />
-                        </div>
-                        <div>
-                          <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: darkMode ? '#f9fafb' : '#374151' }}>
-                            Start Time
-                          </label>
-                          <input 
-                            type="time" 
-                            value={ocrDraft?.start_time ?? ''} 
-                            onChange={e=>updateOcrDraft({ start_time: e.target.value })} 
-                            style={{ 
-                              width: '100%', 
-                              padding: '12px', 
-                              border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`, 
-                              borderRadius: '8px',
-                              fontSize: '14px',
-                              background: darkMode ? '#374151' : '#ffffff',
-                              color: darkMode ? '#ffffff' : '#000000'
-                            }} 
-                          />
-                        </div>
-                        <div>
-                          <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: darkMode ? '#f9fafb' : '#374151' }}>
-                            End Time
-                          </label>
-                          <input 
-                            type="time" 
-                            value={ocrDraft?.end_time ?? ''} 
-                            onChange={e=>updateOcrDraft({ end_time: e.target.value })} 
-                            style={{ 
-                              width: '100%', 
-                              padding: '12px', 
-                              border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`, 
-                              borderRadius: '8px',
-                              fontSize: '14px',
-                              background: darkMode ? '#374151' : '#ffffff',
-                              color: darkMode ? '#ffffff' : '#000000'
-                            }} 
-                          />
-                        </div>
-                      </div>
-
-                      {/* Website and Status row */}
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                        <div>
-                          <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: darkMode ? '#f9fafb' : '#374151' }}>
-                            Website URL
-                          </label>
-                          <input 
-                            type="url" 
-                            value={ocrDraft?.website_url ?? ''} 
-                            onChange={e=>updateOcrDraft({ website_url: e.target.value })} 
-                            style={{ 
-                              width: '100%', 
-                              padding: '12px', 
-                              border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`, 
-                              borderRadius: '8px',
-                              fontSize: '14px',
-                              background: darkMode ? '#374151' : '#ffffff',
-                              color: darkMode ? '#ffffff' : '#000000'
-                            }} 
-                            placeholder="https://example.com"
-                          />
-                        </div>
-                        <div>
-                          <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: darkMode ? '#f9fafb' : '#374151' }}>
-                            Status
-                          </label>
-                          <select 
-                            value={ocrDraft?.status ?? 'draft'} 
-                            onChange={e=>updateOcrDraft({ status: e.target.value as any })} 
-                            style={{ 
-                              width: '100%', 
-                              padding: '12px', 
-                              border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`, 
-                              borderRadius: '8px',
-                              fontSize: '14px',
-                              background: darkMode ? '#374151' : '#ffffff',
-                              color: darkMode ? '#ffffff' : '#000000'
-                            }}
-                          >
-                            <option value="draft">📝 Draft</option>
-                            <option value="published">✅ Published</option>
-                            <option value="archived">📦 Archived</option>
-                          </select>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Right side - Raw OCR text */}
-                  <div>
-                    <h4 style={{ margin: '0 0 16px 0', fontSize: '16px', fontWeight: '600', color: darkMode ? '#f9fafb' : '#374151' }}>
-                      Raw OCR Text
-                    </h4>
-                    <textarea 
-                      value={ocrRawText} 
-                      onChange={e=>{ setOcrRawText(e.target.value); updateOcrDraft(parseEventText(e.target.value) as Partial<EventRow>) }} 
-                      style={{ 
-                        width: '100%', 
-                        height: 300, 
-                        padding: '12px', 
-                        border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`, 
-                        borderRadius: '8px',
-                        fontSize: '12px',
-                        fontFamily: 'monospace',
-                        background: darkMode ? '#374151' : '#f9fafb',
-                        color: darkMode ? '#ffffff' : '#000000'
-                      }} 
-                      placeholder="OCR text will appear here..."
-                    />
-                    <div style={{ 
-                      marginTop: 12, 
-                      padding: 12, 
-                      background: darkMode ? '#4b5563' : '#f3f4f6', 
-                      borderRadius: 8, 
-                      fontSize: '12px', 
-                      color: darkMode ? '#d1d5db' : '#6b7280' 
-                    }}>
-                      <div style={{ marginBottom: 8, fontWeight: '600' }}>
-                        <strong>Parsed from OCR:</strong>
-                      </div>
-                      <div style={{ marginBottom: 4 }}>
-                        <strong>Name:</strong> {ocrDraft?.name || '—'}
-                      </div>
-                      <div style={{ marginBottom: 4 }}>
-                        <strong>Date:</strong> {ocrDraft?.start_date || '—'}
-                      </div>
-                      <div style={{ marginBottom: 4 }}>
-                        <strong>Time:</strong> {ocrDraft?.start_time || '—'}
-                      </div>
-                      <div style={{ marginBottom: 4 }}>
-                        <strong>Location:</strong> {ocrDraft?.location || '—'}
-                      </div>
-                      <div style={{ marginBottom: 4 }}>
-                        <strong>Host:</strong> {ocrDraft?.host_org || '—'}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Action Buttons */}
-              <div style={{ 
-                marginTop: '32px', 
-                display: 'flex', 
-                gap: '12px', 
-                justifyContent: 'flex-end',
-                paddingTop: '20px',
-                borderTop: `1px solid ${darkMode ? '#374151' : '#e5e7eb'}`
-              }}>
-                <button 
-                  className="btn" 
-                  onClick={() => {
-                    setOcrOpen(false)
-                    setOcrDraft(null)
-                    setOcrRawText('')
-                    setOcrImageUrl(null)
-                    setOcrError(null)
-                  }}
-                  style={{ 
-                    padding: '12px 24px', 
-                    fontSize: '14px',
-                    background: darkMode ? '#374151' : '#f9fafb',
-                    border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`,
-                    borderRadius: '8px',
-                    color: darkMode ? '#f9fafb' : '#374151'
-                  }}
-                >
-                  Cancel
-                </button>
-                <button 
-                  className="btn primary" 
-                  onClick={confirmOcrInsert} 
-                  disabled={!ocrDraft || !ocrDraft.name}
-                  style={{ 
-                    padding: '12px 24px', 
-                    fontSize: '14px',
-                    background: '#3b82f6',
-                    border: '1px solid #3b82f6',
-                    borderRadius: '8px',
-                    color: 'white',
-                    fontWeight: '500'
-                  }}
-                >
-                  💾 Save Event
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       <table className="table" style={{ 
         width: '100%', 
@@ -1802,7 +1412,7 @@ export default function Events({ darkMode = false }: EventsProps) {
           </tbody>
         </table>
 
-      {editing && (
+      {(editing || isNavigating) && (
         <div 
           onClick={async () => await save()}
           style={{ 
@@ -1834,6 +1444,13 @@ export default function Events({ darkMode = false }: EventsProps) {
               boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
             }}
           >
+            {isNavigating ? (
+              <div style={{ textAlign: 'center', padding: '40px' }}>
+                <div style={{ fontSize: '24px', marginBottom: '16px' }}>⏳</div>
+                <div style={{ color: darkMode ? '#f9fafb' : '#1f2937' }}>Loading next record...</div>
+              </div>
+            ) : (
+              <>
             {/* Header */}
             <div style={{ 
               display: 'flex', 
@@ -1844,7 +1461,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                 {/* Title - Left aligned */}
                 <div style={{ flex: 1 }}>
                   <h3 style={{ margin: 0, fontSize: '24px', fontWeight: '600', color: darkMode ? '#f9fafb' : '#1f2937' }}>
-                    {editing.id ? '✏️ Edit Event' : '➕ New Event'}
+                    {editing?.isOcrMode ? '📷 Add Event from Image' : (editing.id ? '✏️ Edit Event' : '➕ New Event')}
                   </h3>
                 </div>
                 
@@ -1853,8 +1470,8 @@ export default function Events({ darkMode = false }: EventsProps) {
                   <NavigationButtons
                     editing={editing}
                     rows={rows}
-                    onNavigateToPrevious={navigateToPrevious}
-                    onNavigateToNext={navigateToNext}
+                    onNavigateToPrevious={smoothNavigateToPrevious}
+                    onNavigateToNext={smoothNavigateToNext}
                     darkMode={darkMode}
                     itemType="event"
                   />
@@ -1887,6 +1504,170 @@ export default function Events({ darkMode = false }: EventsProps) {
             }}>
 
             <div style={{ display: 'grid', gap: '20px' }}>
+              {/* OCR Section - Only show when in OCR mode */}
+              {editing?.isOcrMode && (
+                <div style={{ 
+                  border: `2px dashed ${darkMode ? '#6b7280' : '#c8b68a'}`,
+                  padding: '20px',
+                  borderRadius: '8px',
+                  background: darkMode ? '#374151' : '#fff9ef',
+                  textAlign: 'center'
+                }}>
+                  <div
+                    ref={pasteRef}
+                    onPaste={handlePaste}
+                    onClick={() => pasteRef.current?.focus()}
+                    tabIndex={0}
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: '120px 1fr',
+                      gap: 16,
+                      alignItems: 'center',
+                      minHeight: 120,
+                      cursor: 'pointer',
+                      outline: 'none',
+                      borderRadius: '8px',
+                      padding: '8px',
+                      transition: 'background-color 0.2s ease'
+                    }}
+                    onFocus={(e) => {
+                      e.currentTarget.style.backgroundColor = darkMode ? '#4b5563' : '#f9fafb'
+                    }}
+                    onBlur={(e) => {
+                      e.currentTarget.style.backgroundColor = 'transparent'
+                    }}
+                  >
+                    <div style={{ textAlign: 'center' }}>
+                      {ocrImageUrl ? (
+                        <img 
+                          src={ocrImageUrl} 
+                          alt="pasted" 
+                          style={{ 
+                            maxWidth: 120, 
+                            maxHeight: 120, 
+                            objectFit: 'contain', 
+                            borderRadius: 6, 
+                            border: '1px solid #eee' 
+                          }} 
+                        />
+                      ) : (
+                        <div style={{ color: '#8b6b34', fontSize: '48px' }}>📋</div>
+                      )}
+                    </div>
+                    <div>
+                      <div style={{ marginBottom: 8 }}>
+                        <input 
+                          ref={fileRef}
+                          type="file" 
+                          accept="image/*" 
+                          onChange={handleFileSelect}
+                          style={{ display: 'none' }}
+                        />
+                        <button
+                          onClick={() => fileRef.current?.click()}
+                          disabled={ocrLoading}
+                          style={{
+                            padding: '8px 16px',
+                            background: darkMode ? '#4b5563' : '#f3f4f6',
+                            border: `1px solid ${darkMode ? '#6b7280' : '#d1d5db'}`,
+                            borderRadius: '6px',
+                            color: darkMode ? '#f9fafb' : '#374151',
+                            cursor: ocrLoading ? 'not-allowed' : 'pointer',
+                            fontSize: '14px'
+                          }}
+                        >
+                          📁 Choose File
+                        </button>
+                      </div>
+                      <p style={{ margin: '0 0 8px 0', fontSize: '14px', color: darkMode ? '#d1d5db' : '#6b7280' }}>
+                        Paste an image here (⌘/Ctrl+V) or choose a file. We'll OCR the text, parse it, and let you verify before saving.
+                      </p>
+                      <small style={{ color: darkMode ? '#9ca3af' : '#8b6b34', fontSize: '12px' }}>
+                        💡 <strong>Tip:</strong> Click in this area and press <strong>⌘/Ctrl+V</strong> to paste from clipboard.
+                      </small>
+                      <div style={{ 
+                        marginTop: '8px', 
+                        padding: '8px', 
+                        background: darkMode ? '#1f2937' : '#f3f4f6', 
+                        borderRadius: '4px',
+                        fontSize: '11px',
+                        color: darkMode ? '#9ca3af' : '#6b7280'
+                      }}>
+                        📋 Works with screenshots, copied images, and image files
+                      </div>
+                    </div>
+                  </div>
+
+                  {ocrLoading && (
+                    <div style={{ marginTop: 12, color: '#059669', fontWeight: '500' }}>🔄 Running OCR…</div>
+                  )}
+                  {ocrError && (
+                    <div style={{ marginTop: 12, color: '#dc2626', fontWeight: '500' }}>❌ Error: {ocrError}</div>
+                  )}
+
+                  {/* OCR Results - Show when we have OCR data */}
+                  {(ocrRawText || ocrDraft) && (
+                    <div style={{ marginTop: '20px', textAlign: 'left' }}>
+                      <h4 style={{ margin: '0 0 12px 0', fontSize: '16px', fontWeight: '600', color: darkMode ? '#f9fafb' : '#374151' }}>
+                        OCR Results
+                      </h4>
+                      <textarea 
+                        value={ocrRawText} 
+                        onChange={e => {
+                          setOcrRawText(e.target.value)
+                          const parsed = parseEventText(e.target.value)
+                          if (typeof parsed === 'object' && parsed !== null && 'name' in parsed) {
+                            (parsed as any).slug = parsed.name ? slugify(parsed.name) : ''
+                            updateOcrDraft(parsed as Partial<EventRow>)
+                            // Update the editing state with parsed data
+                            updateEditing(parsed as Partial<EventRow>)
+                          }
+                        }} 
+                        style={{ 
+                          width: '100%', 
+                          height: 120, 
+                          padding: '12px', 
+                          border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`, 
+                          borderRadius: '8px',
+                          fontSize: '12px',
+                          fontFamily: 'monospace',
+                          background: darkMode ? '#374151' : '#f9fafb',
+                          color: darkMode ? '#ffffff' : '#000000'
+                        }} 
+                        placeholder="OCR text will appear here..."
+                      />
+                      <div style={{ 
+                        marginTop: 8, 
+                        padding: 8, 
+                        background: darkMode ? '#4b5563' : '#f3f4f6', 
+                        borderRadius: 8, 
+                        fontSize: '12px', 
+                        color: darkMode ? '#d1d5db' : '#6b7280' 
+                      }}>
+                        <div style={{ marginBottom: 4, fontWeight: '600' }}>
+                          <strong>Parsed from OCR:</strong>
+                        </div>
+                        <div style={{ marginBottom: 2 }}>
+                          <strong>Name:</strong> {ocrDraft?.name || '—'}
+                        </div>
+                        <div style={{ marginBottom: 2 }}>
+                          <strong>Date:</strong> {ocrDraft?.start_date || '—'}
+                        </div>
+                        <div style={{ marginBottom: 2 }}>
+                          <strong>Time:</strong> {ocrDraft?.start_time || '—'}
+                        </div>
+                        <div style={{ marginBottom: 2 }}>
+                          <strong>Location:</strong> {ocrDraft?.location || '—'}
+                        </div>
+                        <div style={{ marginBottom: 2 }}>
+                          <strong>Host:</strong> {ocrDraft?.host_org || '—'}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Event Name and Slug */}
               <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '16px' }}>
                 <div>
@@ -2217,12 +1998,11 @@ export default function Events({ darkMode = false }: EventsProps) {
                         padding: '12px',
                         border: `2px dashed ${darkMode ? '#4b5563' : '#d1d5db'}`,
                         borderRadius: '8px',
-                        textAlign: 'center',
-                        cursor: 'pointer',
-                        background: darkMode ? '#374151' : '#ffffff',
-                        color: darkMode ? '#9ca3af' : '#6b7280',
-                        background: darkMode ? '#374151' : '#f9fafb',
-                        minWidth: '120px',
+                      textAlign: 'center',
+                      cursor: 'pointer',
+                      background: darkMode ? '#374151' : '#f9fafb',
+                      color: darkMode ? '#9ca3af' : '#6b7280',
+                      minWidth: '120px',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -2315,7 +2095,9 @@ export default function Events({ darkMode = false }: EventsProps) {
               </div>
             </div>
           </div>
-        </div>
+              </>
+            )}
+          </div>
         </div>
       )}
     </div>

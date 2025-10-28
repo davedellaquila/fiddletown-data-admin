@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1400" viewBox="0 0 1600 1400">
+  <defs>
+    <style>
+      .title { font: 700 28px/1.4 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; fill: #111827; }
+      .label { font: 600 14px/1.4 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; fill: #111827; }
+      .meta { font: 12px/1.4 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; fill: #374151; }
+      .box { fill: #ffffff; stroke: #d1d5db; stroke-width: 2; rx: 8; }
+      .decision { fill: #fefce8; stroke: #f59e0b; stroke-width: 2; }
+      .swim { fill: #f8fafc; stroke: #d1d5db; stroke-width: 2; rx: 12; }
+      .arrow { stroke: #6b7280; stroke-width: 2.5; fill: none; marker-end: url(#arrowHead); }
+    </style>
+    <marker id="arrowHead" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#6b7280" />
+    </marker>
+  </defs>
+
+  <text x="40" y="60" class="title">Runtime Flow: Auth → Feature Load → Edit/Import/OCR</text>
+
+  <!-- Swimlanes -->
+  <rect x="40" y="90" width="480" height="1220" class="swim" />
+  <text x="60" y="120" class="label">App.tsx</text>
+
+  <rect x="560" y="90" width="480" height="1220" class="swim" />
+  <text x="580" y="120" class="label">Feature (Locations / Events / Routes)</text>
+
+  <rect x="1080" y="90" width="480" height="1220" class="swim" />
+  <text x="1100" y="120" class="label">Supabase / External</text>
+
+  <!-- App Flow -->
+  <rect x="70" y="150" width="420" height="60" class="box" />
+  <text x="90" y="185" class="label">Mount App</text>
+  <text x="90" y="205" class="meta">Initialize dark mode, setup auth listeners</text>
+
+  <rect x="70" y="230" width="420" height="60" class="box" />
+  <text x="90" y="265" class="label">getSession()</text>
+  <text x="90" y="285" class="meta">supabase.auth.getSession()</text>
+
+  <!-- Decision: has session? -->
+  <polygon class="decision" points="280,320 380,360 280,400 180,360" />
+  <text x="212" y="366" class="label">Session?</text>
+
+  <!-- No session branch -->
+  <rect x="100" y="430" width="380" height="70" class="box" />
+  <text x="120" y="465" class="label">Show Sign-in Form</text>
+  <text x="120" y="485" class="meta">Magic link via supabase.auth.signInWithOtp</text>
+
+  <line x1="290" y1="400" x2="290" y2="430" class="arrow" />
+  <line x1="290" y1="500" x2="290" y2="540" class="arrow" />
+  <rect x="70" y="540" width="420" height="60" class="box" />
+  <text x="90" y="575" class="label">Await Auth State Change</text>
+
+  <!-- Yes session branch -->
+  <line x1="380" y1="360" x2="520" y2="360" class="arrow" />
+  <rect x="590" y="330" width="420" height="60" class="box" />
+  <text x="610" y="365" class="label">Render Main Layout</text>
+  <text x="610" y="385" class="meta">Sidebar + Selected Feature</text>
+
+  <!-- Feature Load (common) -->
+  <rect x="590" y="420" width="420" height="60" class="box" />
+  <text x="610" y="455" class="label">load()</text>
+  <text x="610" y="475" class="meta">Query table (is deleted_at null, order)</text>
+
+  <line x1="1010" y1="450" x2="1080" y2="450" class="arrow" />
+  <rect x="1120" y="420" width="420" height="60" class="box" />
+  <text x="1140" y="455" class="label">Supabase Query</text>
+  <text x="1140" y="475" class="meta">.from(table).select().is('deleted_at', null)</text>
+
+  <line x1="1120" y1="480" x2="1010" y2="520" class="arrow" />
+  <rect x="590" y="520" width="420" height="60" class="box" />
+  <text x="610" y="555" class="label">setRows(data)</text>
+  <text x="610" y="575" class="meta">Render Data Table / List</text>
+
+  <!-- Edit flow -->
+  <rect x="590" y="620" width="420" height="60" class="box" />
+  <text x="610" y="655" class="label">Row Click → setEditing</text>
+  <text x="610" y="675" class="meta">Open modal (PortalDialog or overlay)</text>
+
+  <rect x="590" y="700" width="420" height="60" class="box" />
+  <text x="610" y="735" class="label">Save</text>
+  <text x="610" y="755" class="meta">Update/Insert record</text>
+
+  <line x1="1010" y1="730" x2="1080" y2="730" class="arrow" />
+  <rect x="1120" y="700" width="420" height="60" class="box" />
+  <text x="1140" y="735" class="label">supabase.from(table)</text>
+  <text x="1140" y="755" class="meta">update()/insert().eq('id')/select()</text>
+
+  <line x1="1120" y1="760" x2="1010" y2="800" class="arrow" />
+  <rect x="590" y="800" width="420" height="60" class="box" />
+  <text x="610" y="835" class="label">Reload</text>
+  <text x="610" y="855" class="meta">load() again to refresh rows</text>
+
+  <!-- CSV Import flow -->
+  <rect x="590" y="900" width="420" height="60" class="box" />
+  <text x="610" y="935" class="label">Import CSV</text>
+  <text x="610" y="955" class="meta">parseCSV → preview → confirm</text>
+
+  <line x1="1010" y1="930" x2="1080" y2="930" class="arrow" />
+  <rect x="1120" y="900" width="420" height="60" class="box" />
+  <text x="1140" y="935" class="label">supabase.from(table).upsert(payload)</text>
+  <text x="1140" y="955" class="meta">onConflict: 'slug'</text>
+
+  <line x1="1120" y1="960" x2="1010" y2="1000" class="arrow" />
+  <rect x="590" y="1000" width="420" height="60" class="box" />
+  <text x="610" y="1035" class="label">Reload</text>
+
+  <!-- Storage Upload flows -->
+  <rect x="590" y="1100" width="420" height="60" class="box" />
+  <text x="610" y="1135" class="label">Upload File (image/GPX)</text>
+  <text x="610" y="1155" class="meta">Storage: upload() → getPublicUrl()</text>
+
+  <line x1="1010" y1="1130" x2="1080" y2="1130" class="arrow" />
+  <rect x="1120" y="1080" width="420" height="100" class="box" />
+  <text x="1140" y="1115" class="label">supabase.storage</text>
+  <text x="1140" y="1135" class="meta">.from(bucket).upload(path, file)</text>
+  <text x="1140" y="1153" class="meta">.getPublicUrl(path)</text>
+
+  <!-- OCR flow (Events) -->
+  <rect x="590" y="1210" width="420" height="60" class="box" />
+  <text x="610" y="1245" class="label">OCR (Events)</text>
+  <text x="610" y="1265" class="meta">tesseract.recognize → parseEventText → draft</text>
+
+  <line x1="1010" y1="1240" x2="1080" y2="1240" class="arrow" />
+  <rect x="1120" y="1200" width="420" height="80" class="box" />
+  <text x="1140" y="1235" class="label">tesseract.js</text>
+  <text x="1140" y="1255" class="meta">dynamic import</text>
+
+  <!-- Connect early app steps to feature lane when session established -->
+  <path class="arrow" d="M290,600 C290,620 560,620 560,620" />
+
+</svg>
+

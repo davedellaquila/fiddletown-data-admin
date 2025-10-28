@@ -32,6 +32,8 @@ export default function Locations({ darkMode = false }: LocationsProps) {
   const [rows, setRows] = useState<Location[]>([])
   const [loading, setLoading] = useState(false)
   const [editing, setEditing] = useState<Location | null>(null)
+  const [dialogVisible, setDialogVisible] = useState(false)
+  const [isNavigating, setIsNavigating] = useState(false)
   const [q, setQ] = useState('')
   const [importing, setImporting] = useState(false)
   const [importPreview, setImportPreview] = useState<any[] | null>(null)
@@ -64,6 +66,24 @@ export default function Locations({ darkMode = false }: LocationsProps) {
       console.trace('📊 Locations - Call stack when editing became null:');
     }
   }, [editing]);
+
+  // Handle dialog visibility transitions
+  useEffect(() => {
+    if (editing) {
+      // Small delay to ensure smooth transition
+      const timer = setTimeout(() => setDialogVisible(true), 10)
+      return () => clearTimeout(timer)
+    } else {
+      setDialogVisible(false)
+    }
+  }, [editing])
+
+  // Handle navigation transitions
+  useEffect(() => {
+    if (isNavigating) {
+      setDialogVisible(false)
+    }
+  }, [isNavigating])
 
   // Use centralized form field population
   useFormFieldPopulation({
@@ -335,6 +355,33 @@ export default function Locations({ darkMode = false }: LocationsProps) {
     save,
     setEditing
   )
+
+  // Enhanced navigation with smooth transitions
+  const smoothNavigateToNext = async () => {
+    if (!editing?.id) return
+    const currentIndex = rows.findIndex(r => r.id === editing.id)
+    if (currentIndex < rows.length - 1) {
+      setIsNavigating(true)
+      await save() // Save current changes
+      setTimeout(() => {
+        setEditing(rows[currentIndex + 1])
+        setIsNavigating(false)
+      }, 150) // Small delay for smooth transition
+    }
+  }
+
+  const smoothNavigateToPrevious = async () => {
+    if (!editing?.id) return
+    const currentIndex = rows.findIndex(r => r.id === editing.id)
+    if (currentIndex > 0) {
+      setIsNavigating(true)
+      await save() // Save current changes
+      setTimeout(() => {
+        setEditing(rows[currentIndex - 1])
+        setIsNavigating(false)
+      }, 150) // Small delay for smooth transition
+    }
+  }
 
   const publishRow = async (id: string) => {
     const { error } = await supabase.from('locations').update({ status: 'published' }).eq('id', id)
@@ -802,9 +849,23 @@ export default function Locations({ darkMode = false }: LocationsProps) {
             display: 'flex', 
             alignItems: 'center', 
             justifyContent: 'center',
-            padding: '20px'
+            padding: '20px',
+            opacity: dialogVisible ? 1 : 0,
+            transition: 'opacity 0.2s ease-in-out'
           }}
         >
+          {isNavigating ? (
+            <div style={{
+              background: darkMode ? '#1f2937' : 'white',
+              padding: '40px',
+              borderRadius: '12px',
+              textAlign: 'center',
+              color: darkMode ? '#f9fafb' : '#1f2937'
+            }}>
+              <div style={{ fontSize: '24px', marginBottom: '16px' }}>⏳</div>
+              <div>Loading next record...</div>
+            </div>
+          ) : (
           <div 
             onClick={(e) => e.stopPropagation()}
             style={{
@@ -817,7 +878,9 @@ export default function Locations({ darkMode = false }: LocationsProps) {
               overflow: 'hidden',
               display: 'flex',
               flexDirection: 'column',
-              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+              transform: dialogVisible ? 'scale(1)' : 'scale(0.95)',
+              transition: 'transform 0.2s ease-in-out'
             }}
           >
             {/* Fixed Header */}
@@ -838,14 +901,14 @@ export default function Locations({ darkMode = false }: LocationsProps) {
 
                 {/* Navigation buttons - Centered */}
                 <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
-                  <NavigationButtons
-                    editing={editing}
-                    rows={rows}
-                    onNavigateToPrevious={navigateToPrevious}
-                    onNavigateToNext={navigateToNext}
-                    darkMode={darkMode}
-                    itemType="location"
-                  />
+                    <NavigationButtons
+                      editing={editing}
+                      rows={rows}
+                      onNavigateToPrevious={smoothNavigateToPrevious}
+                      onNavigateToNext={smoothNavigateToNext}
+                      darkMode={darkMode}
+                      itemType="location"
+                    />
                 </div>
 
                 {/* Close button - Right aligned */}
@@ -1048,6 +1111,7 @@ export default function Locations({ darkMode = false }: LocationsProps) {
               </div>
             </div>
           </div>
+          )}
         </div>
       )}
     </div>

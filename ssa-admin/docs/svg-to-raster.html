@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SVG → PNG/JPEG Converter (Local)</title>
+    <style>
+      :root { color-scheme: light dark; }
+      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 24px; }
+      .card { border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px; margin-bottom: 16px; background: #fff; }
+      .stack { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+      label { font-weight: 600; color: #374151; }
+      input[type="number"] { width: 120px; }
+      .dropzone { border: 2px dashed #cbd5e1; border-radius: 10px; padding: 24px; text-align: center; color: #475569; background: #f8fafc; }
+      .btn { border: 1px solid #d1d5db; padding: 8px 12px; border-radius: 8px; background: #f3f4f6; cursor: pointer; }
+      .btn.primary { background: #3b82f6; border-color: #3b82f6; color: #fff; }
+      .hint { color: #64748b; font-size: 13px; }
+      .row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+      @media (max-width: 900px) { .row { grid-template-columns: 1fr; } }
+      @media (prefers-color-scheme: dark) {
+        body { background: #111827; color: #e5e7eb; }
+        .card { background: #1f2937; border-color: #374151; }
+        .dropzone { background: #111827; border-color: #475569; color: #cbd5e1; }
+        label { color: #e5e7eb; }
+        input, select { background: #0b1220; color: #e5e7eb; border: 1px solid #334155; }
+        .btn { background: #334155; color: #e5e7eb; border-color: #475569; }
+      }
+      .result { font-size: 13px; color: #64748b; }
+    </style>
+  </head>
+  <body>
+    <h1>SVG → PNG/JPEG Converter</h1>
+    <p class="hint">Drop your SVG(s) below or pick the two diagrams from this repo to export as PNG or JPEG locally in your browser.</p>
+
+    <div class="card">
+      <div class="row">
+        <div>
+          <div class="stack" style="margin-bottom: 12px;">
+            <input id="fileInput" type="file" accept="image/svg+xml,.svg" multiple />
+            <button class="btn" id="convertSelected">Convert Selected → PNG</button>
+            <button class="btn" id="convertSelectedJpeg">Convert Selected → JPEG</button>
+          </div>
+          <div id="dropzone" class="dropzone">Drop SVG files here</div>
+          <p class="hint" style="margin-top: 8px;">Tip: You can also drag <code>architecture-diagram.svg</code> and <code>runtime-flow.svg</code> from the docs folder directly here.</p>
+        </div>
+        <div>
+          <div class="stack" style="margin-bottom: 8px;">
+            <label for="maxWidth">Max width (px):</label>
+            <input id="maxWidth" type="number" min="200" step="100" value="2000" />
+            <label for="bg">JPEG background:</label>
+            <input id="bg" type="color" value="#ffffff" />
+            <span class="hint">(PNG preserves transparency; JPEG uses background color)</span>
+          </div>
+          <div class="stack">
+            <button class="btn" id="loadArch">Load repo architecture-diagram.svg</button>
+            <button class="btn" id="loadRuntime">Load repo runtime-flow.svg</button>
+          </div>
+          <p class="hint">If loading fails due to file:// restrictions, try serving the docs folder with a local server, or use the file picker/drag-drop instead.</p>
+        </div>
+      </div>
+    </div>
+
+    <div id="results"></div>
+
+    <script>
+      const fileInput = document.getElementById('fileInput');
+      const dropzone = document.getElementById('dropzone');
+      const results = document.getElementById('results');
+      const maxWidthEl = document.getElementById('maxWidth');
+      const bgEl = document.getElementById('bg');
+
+      function parseSvgSize(svgText) {
+        const viewBoxMatch = svgText.match(/viewBox\s*=\s*"([^"]+)"/i);
+        let widthMatch = svgText.match(/\bwidth\s*=\s*"(\d+(?:\.\d+)?)(px)?"/i);
+        let heightMatch = svgText.match(/\bheight\s*=\s*"(\d+(?:\.\d+)?)(px)?"/i);
+        let width, height;
+        if (viewBoxMatch) {
+          const parts = viewBoxMatch[1].trim().split(/\s+/);
+          const vbW = parseFloat(parts[2]);
+          const vbH = parseFloat(parts[3]);
+          width = vbW || 1600;
+          height = vbH || 1000;
+        } else if (widthMatch && heightMatch) {
+          width = parseFloat(widthMatch[1]);
+          height = parseFloat(heightMatch[1]);
+        } else {
+          width = 1600; height = 1000;
+        }
+        return { width, height };
+      }
+
+      async function svgTextToDataUrl(svgText) {
+        const encoded = encodeURIComponent(svgText)
+          .replace(/'/g, '%27')
+          .replace(/\(/g, '%28')
+          .replace(/\)/g, '%29');
+        return 'data:image/svg+xml;charset=utf-8,' + encoded;
+      }
+
+      function drawSvgToCanvas(svgText, maxWidth, backgroundColor) {
+        return new Promise(async (resolve, reject) => {
+          const { width, height } = parseSvgSize(svgText);
+          const scale = Math.min(1, maxWidth / width) || 1;
+          const outW = Math.round(width * scale);
+          const outH = Math.round(height * scale);
+
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = outW;
+            canvas.height = outH;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) { reject(new Error('Canvas not supported')); return; }
+            if (backgroundColor) {
+              ctx.fillStyle = backgroundColor;
+              ctx.fillRect(0, 0, outW, outH);
+            }
+            ctx.drawImage(img, 0, 0, outW, outH);
+            resolve(canvas);
+          };
+          img.onerror = (e) => reject(new Error('Failed to load SVG into image'));
+          img.src = await svgTextToDataUrl(svgText);
+        });
+      }
+
+      async function convert(svgText, baseName, format) {
+        const maxWidth = parseInt(maxWidthEl.value, 10) || 2000;
+        const bg = (format === 'jpeg') ? bgEl.value : null;
+        const canvas = await drawSvgToCanvas(svgText, maxWidth, bg);
+        const mime = format === 'jpeg' ? 'image/jpeg' : 'image/png';
+        const dataUrl = canvas.toDataURL(mime, 0.95);
+        const a = document.createElement('a');
+        a.href = dataUrl;
+        a.download = `${baseName}.${format === 'jpeg' ? 'jpg' : 'png'}`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      }
+
+      function listFile(name, bytes) {
+        const div = document.createElement('div');
+        div.className = 'card';
+        div.innerHTML = `<div class="stack"><strong>${name}</strong><span class="hint">${bytes} bytes</span></div>`;
+        results.appendChild(div);
+        return div;
+      }
+
+      async function handleFiles(fileList, targetFormat = 'png') {
+        results.innerHTML = '';
+        for (const file of fileList) {
+          if (!file.name.toLowerCase().endsWith('.svg')) continue;
+          const holder = listFile(file.name, file.size);
+          const svgText = await file.text();
+          const base = file.name.replace(/\.svg$/i, '');
+          const row = document.createElement('div');
+          row.className = 'stack';
+          const btnPng = document.createElement('button');
+          btnPng.className = 'btn primary';
+          btnPng.textContent = `Download ${base}.png`;
+          btnPng.onclick = () => convert(svgText, base, 'png');
+          const btnJpg = document.createElement('button');
+          btnJpg.className = 'btn';
+          btnJpg.textContent = `Download ${base}.jpg`;
+          btnJpg.onclick = () => convert(svgText, base, 'jpeg');
+          row.appendChild(btnPng);
+          row.appendChild(btnJpg);
+          holder.appendChild(row);
+        }
+      }
+
+      // Drag & drop
+      ;['dragenter','dragover'].forEach(evt => dropzone.addEventListener(evt, (e) => { e.preventDefault(); dropzone.style.opacity = 0.8; }));
+      ;['dragleave','drop'].forEach(evt => dropzone.addEventListener(evt, (e) => { e.preventDefault(); dropzone.style.opacity = 1; }));
+      dropzone.addEventListener('drop', (e) => {
+        handleFiles(e.dataTransfer.files);
+      });
+
+      // File input
+      fileInput.addEventListener('change', () => handleFiles(fileInput.files));
+      document.getElementById('convertSelected').addEventListener('click', async () => handleFiles(fileInput.files, 'png'));
+      document.getElementById('convertSelectedJpeg').addEventListener('click', async () => handleFiles(fileInput.files, 'jpeg'));
+
+      // Repo buttons (may require HTTP serving instead of file://)
+      async function fetchAndHandle(path) {
+        try {
+          const res = await fetch(path);
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const svgText = await res.text();
+          const file = new File([svgText], path.split('/').pop(), { type: 'image/svg+xml' });
+          await handleFiles([file]);
+        } catch (err) {
+          alert(`Failed to load ${path}. If opened via file://, try a local server or drag-drop the file.\n\n${err}`);
+        }
+      }
+      document.getElementById('loadArch').addEventListener('click', () => fetchAndHandle('./architecture-diagram.svg'));
+      document.getElementById('loadRuntime').addEventListener('click', () => fetchAndHandle('./runtime-flow.svg'));
+    </script>
+  </body>
+  </html>
+
