@@ -502,19 +502,21 @@ export default function Events({ darkMode = false }: EventsProps) {
   // Helper function for warning button styles
   const getWarningButtonStyle = (baseStyle: any = {}) => ({
     ...baseStyle,
-    background: darkMode ? '#92400e' : '#f59e0b',
-    border: `1px solid ${darkMode ? '#b45309' : '#d97706'}`,
-    color: '#ffffff',
-    borderRadius: '6px'
+    background: darkMode ? '#d97706' : '#f59e0b',
+    border: `1px solid ${darkMode ? '#f59e0b' : '#d97706'}`,
+    color: darkMode ? '#000000' : '#ffffff',
+    borderRadius: '6px',
+    fontWeight: '500'
   })
 
   // Helper function for danger button styles
   const getDangerButtonStyle = (baseStyle: any = {}) => ({
     ...baseStyle,
-    background: darkMode ? '#991b1b' : '#ef4444',
-    border: `1px solid ${darkMode ? '#b91c1c' : '#dc2626'}`,
+    background: darkMode ? '#dc2626' : '#ef4444',
+    border: `1px solid ${darkMode ? '#ef4444' : '#dc2626'}`,
     color: '#ffffff',
-    borderRadius: '6px'
+    borderRadius: '6px',
+    fontWeight: '500'
   })
 
   // Helper function for primary button styles

@@ -33,7 +33,7 @@ export default function AutoSaveEditDialog<T extends Record<string, any>>({
   setEditing,
   itemType
 }: AutoSaveEditDialogProps<T>) {
-  if (!isOpen) return null
+  // Always render the dialog but control visibility with CSS to prevent jarring transitions
 
   // Use shared navigation hook with auto-save functionality
   const { navigateToNext, navigateToPrevious } = useNavigationWithAutoSave(
@@ -85,7 +85,7 @@ export default function AutoSaveEditDialog<T extends Record<string, any>>({
         bottom: 0, 
         background: 'rgba(0,0,0,0.5)', 
         zIndex: 1000, 
-        display: 'flex', 
+        display: isOpen ? 'flex' : 'none', // Control visibility with CSS instead of conditional rendering
         alignItems: 'center', 
         justifyContent: 'center',
         padding: '20px'
