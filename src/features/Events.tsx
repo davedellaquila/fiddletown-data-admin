@@ -815,7 +815,7 @@ export default function Events({ darkMode = false }: EventsProps) {
   const exportCSVFiltered = () => {
     let query = supabase
       .from('events')
-      .select('id, name, slug, description, host_org, start_date, end_date, start_time, end_time, location, recurrence, website_url, image_url, status, sort_order')
+      .select('id, name, slug, description, host_org, start_date, end_date, start_time, end_time, location, recurrence, website_url, status, sort_order')
       .is('deleted_at', null)
       .order('sort_order', { ascending: true })
       .order('start_date', { ascending: true })
@@ -1470,7 +1470,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                       ? '2px dashed #3b82f6' 
                       : ocrProcessing
                         ? '2px dashed #f59e0b'
-                        : '2px dashed #d1d5db',
+                          : '2px dashed #d1d5db',
                     borderRadius: '8px',
                     textAlign: 'center',
                     cursor: 'pointer',
@@ -1525,7 +1525,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                       <div style={{ fontSize: '12px' }}>Paste Image</div>
                       <div style={{ fontSize: '10px', color: '#6b7280', marginTop: '2px' }}>Ctrl+V</div>
                     </>
-                  )}
+              )}
             </div>
               </div>
             </div>
@@ -1870,11 +1870,11 @@ export default function Events({ darkMode = false }: EventsProps) {
                       <h4 style={{ margin: '0 0 16px 0', fontSize: '16px', fontWeight: '600', color: '#374151' }}>OCR Text</h4>
                       <div style={{ 
                         background: '#ffffff', 
-                        border: '1px solid #d1d5db', 
+                            border: '1px solid #d1d5db', 
                         borderRadius: '8px',
                         padding: '16px',
                         minHeight: '200px',
-                        fontSize: '14px',
+                            fontSize: '14px',
                         lineHeight: '1.5',
                         color: '#374151',
                         whiteSpace: 'pre-wrap',
@@ -2332,21 +2332,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                 borderBottom: `1px solid ${darkMode ? '#374151' : '#f1f1f1'}`,
                 background: 'transparent'
               }}>
-                {r.image_url ? (
-                  <img 
-                    src={r.image_url} 
-                    alt={r.name} 
-                    style={{ 
-                      width: 40, 
-                      height: 40, 
-                      objectFit: 'cover', 
-                      borderRadius: '4px',
-                      border: '1px solid #ddd'
-                    }} 
-                  />
-                ) : (
                   <span style={{ color: '#bbb', fontSize: '12px' }}>—</span>
-                )}
               </td>
               <td style={{ 
                 padding: '8px 6px', 
@@ -2691,89 +2677,12 @@ export default function Events({ darkMode = false }: EventsProps) {
                       }}
                     />
                   </div>
-                  <div style={{ flex: 1 }}>
-                    <div
-                      ref={editPasteRef}
-                      tabIndex={0}
-                      onPaste={async (e) => {
-                        e.preventDefault()
-                        console.log('Edit dialog paste event triggered')
-                        const items = e.clipboardData?.items
-                        console.log('Edit dialog clipboard items:', items)
-                        if (items) {
-                          for (let i = 0; i < items.length; i++) {
-                            const item = items[i]
-                            console.log('Edit dialog item type:', item.type)
-                            if (item.type.indexOf('image') !== -1) {
-                              const file = item.getAsFile()
-                              console.log('Edit dialog image file found:', file)
-                              if (file) {
-                                // Image upload removed - no longer needed
-                              }
-                              break
-                            }
-                          }
-                        }
-                      }}
-                      onClick={() => {
-                        console.log('Edit dialog paste zone clicked - focusing for paste')
-                        // Image upload removed - no longer needed
-                      }}
-                      style={{
-                        width: '100%',
-                        padding: '12px',
-                        border: `2px dashed ${darkMode ? '#4b5563' : '#d1d5db'}`,
-                        borderRadius: '8px',
-                        textAlign: 'center',
-                        cursor: 'pointer',
-                        fontSize: '14px',
-                        color: darkMode ? '#9ca3af' : '#6b7280',
-                        background: darkMode ? '#374151' : '#f9fafb',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        flexDirection: 'column',
-                        gap: '4px',
-                        transition: 'all 0.2s ease'
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.borderColor = darkMode ? '#6b7280' : '#9ca3af'
-                        e.currentTarget.style.background = darkMode ? '#4b5563' : '#f3f4f6'
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.borderColor = darkMode ? '#4b5563' : '#d1d5db'
-                        e.currentTarget.style.background = darkMode ? '#374151' : '#f9fafb'
-                      }}
-                      title="Click here and paste an image (Ctrl+V or Cmd+V)"
-                    >
-                      {/* Image upload removed - no longer needed */}
-                      <div style={{ fontSize: '16px' }}>📷</div>
-                      <div style={{ fontSize: '12px' }}>Image upload removed</div>
-                    </div>
-                  </div>
-                  {(editing?.image_url || editingImageUrl) && (
-                    <img 
-                      src={editing?.image_url || editingImageUrl} 
-                      alt="Event preview" 
-                      style={{ 
-                        width: 80, 
-                        height: 80, 
-                        objectFit: 'cover', 
-                        borderRadius: '8px',
-                        border: '1px solid #d1d5db'
-                      }} 
-                    />
-                  )}
-      </div>
-                <div style={{ marginTop: '8px', fontSize: '12px', color: darkMode ? '#9ca3af' : '#6b7280' }}>
-                  💡 Tip: You can paste images directly from your clipboard (screenshots, copied images, etc.)
                 </div>
               </div>
 
               {/* Status and Sort Order */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 <FormField
-                
                   label="Status"
                   name="status"
                   value={editing?.status || 'draft'}
@@ -2800,75 +2709,6 @@ export default function Events({ darkMode = false }: EventsProps) {
             </div>
 
 
-            {/* Image Display Section */}
-            {(editing?.image_url || editingImageUrl) && (
-            <div style={{ 
-                marginTop: '24px', 
-                padding: '16px', 
-                background: '#f8fafc', 
-                border: '1px solid #e2e8f0', 
-                borderRadius: '8px' 
-              }}>
-                <h4 style={{ 
-                  margin: '0 0 12px 0', 
-                  fontSize: '16px', 
-                  fontWeight: '600', 
-                  color: '#374151' 
-                }}>
-                  Event Image
-                </h4>
-                <div style={{ 
-                  display: 'flex', 
-                  flexDirection: 'column',
-                  gap: '12px' 
-                }}>
-                  <img 
-                    src={editing?.image_url || editingImageUrl} 
-                    alt="Event image" 
-                    style={{ 
-                      width: '100%', 
-                      height: 'auto', 
-                      objectFit: 'contain', 
-                      borderRadius: '12px',
-                      border: '2px solid #d1d5db',
-                      boxShadow: '0 4px 8px rgba(0, 0, 0, 0.15)',
-                      maxHeight: '500px'
-                    }} 
-                  />
-                  <div style={{ 
-                    display: 'flex', 
-                    justifyContent: 'space-between', 
-                    alignItems: 'center' 
-                  }}>
-                    <p style={{ 
-                      margin: '0', 
-                      fontSize: '14px', 
-                      color: '#6b7280' 
-                    }}>
-                      Image attached to this event
-                    </p>
-                    <button
-                      onClick={() => {
-                        setEditing({...editing, image_url: null})
-                        setEditingImageUrl(null)
-                      }}
-                      style={{
-                        padding: '8px 16px',
-                        fontSize: '14px',
-                        background: '#fee2e2',
-                        border: '1px solid #fecaca',
-                        borderRadius: '6px',
-                        color: '#dc2626',
-                        cursor: 'pointer',
-                        fontWeight: '500'
-                      }}
-                    >
-                      Remove Image
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
 
             {/* OCR Text Display Section */}
             {editing?.ocr_text && (
@@ -2915,8 +2755,8 @@ export default function Events({ darkMode = false }: EventsProps) {
                   Original text extracted from the image
                 </p>
               </div>
-            )}
-          </div>
+              )}
+            </div>
         </AutoSaveEditDialog>
     </div>
   )
