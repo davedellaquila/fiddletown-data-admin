@@ -2244,7 +2244,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                   gap: '6px',
                   fontSize: '12px',
                   fontWeight: 500,
-                  background: 'transparent',
+                  background: 'rgba(255, 0, 0, 0.25)', // TEMP test color to verify element
                   border: 'none',
                   padding: 0,
                   margin: 0,
@@ -2270,7 +2270,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                       all: 'unset',
                       textDecoration: 'underline',
                       color: darkMode ? '#93c5fd' : '#1d4ed8',
-                      background: 'transparent',
+                      background: 'rgba(0, 200, 0, 0.25)', // TEMP test color to verify element
                       border: 'none',
                       padding: 0,
                       margin: 0,
