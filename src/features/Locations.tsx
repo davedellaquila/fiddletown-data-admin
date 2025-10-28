@@ -599,7 +599,7 @@ export default function Locations({ darkMode = false }: LocationsProps) {
                 </td>
                 <td style={{ background: 'transparent' }}>{r.name}</td>
                 <td style={{ background: 'transparent' }}>{r.region}</td>
-                <td style={{ background: 'transparent', padding: '8px 4px' }}>
+                <td style={{ background: 'transparent', padding: '8px 24px 8px 4px' }}>
                   <span style={{
                     display: 'inline-flex',
                     alignItems: 'center',
