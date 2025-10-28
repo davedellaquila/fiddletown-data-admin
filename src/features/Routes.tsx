@@ -773,11 +773,17 @@ export default function Routes({ darkMode = false }: RoutesProps) {
           </tbody>
         </table>
       ) : (
-        <ModalDialog
+        <AutoSaveEditDialog
           isOpen={!!editing}
           onClose={() => { if (!busy) { setEditing(null); fileRef.current && (fileRef.current.value='') }}}
           title={editing?.id ? '✏️ Edit Route' : '➕ New Route'}
-          busy={busy}
+          maxWidth="600px"
+          darkMode={darkMode}
+          editing={editing}
+          rows={rows}
+          saveFunction={save}
+          setEditing={(item) => setEditing(item as RouteRow | null)}
+          itemType="route"
         >
 
             <div style={{ display: 'grid', gap: '20px' }}>
@@ -790,6 +796,7 @@ export default function Routes({ darkMode = false }: RoutesProps) {
                   onChange={(value) => setEditing({...editing!, name: value as string})}
                   required
                   editingId={editing?.id}
+                  darkMode={darkMode}
                 />
                 <FormField
                   label="Slug"
@@ -797,6 +804,7 @@ export default function Routes({ darkMode = false }: RoutesProps) {
                   value={editing?.slug ?? ''}
                   onChange={(value) => setEditing({...editing!, slug: value as string})}
                   editingId={editing?.id}
+                  darkMode={darkMode}
                 />
               </div>
 
@@ -809,6 +817,7 @@ export default function Routes({ darkMode = false }: RoutesProps) {
                   onChange={(value) => setEditing({...editing!, duration_minutes: value as number})}
                   type="number"
                   editingId={editing?.id}
+                  darkMode={darkMode}
                 />
                 <FormField
                   label="Difficulty"
@@ -822,6 +831,7 @@ export default function Routes({ darkMode = false }: RoutesProps) {
                     { value: 'challenging', label: '🔴 Challenging' }
                   ]}
                   editingId={editing?.id}
+                  darkMode={darkMode}
                 />
               </div>
 
@@ -833,6 +843,7 @@ export default function Routes({ darkMode = false }: RoutesProps) {
                   value={editing?.start_point ?? ''}
                   onChange={(value) => setEditing({...editing!, start_point: value as string})}
                   editingId={editing?.id}
+                  darkMode={darkMode}
                 />
                 <FormField
                   label="End Point"
@@ -840,6 +851,7 @@ export default function Routes({ darkMode = false }: RoutesProps) {
                   value={editing?.end_point ?? ''}
                   onChange={(value) => setEditing({...editing!, end_point: value as string})}
                   editingId={editing?.id}
+                  darkMode={darkMode}
                 />
           </div>
 
@@ -850,13 +862,14 @@ export default function Routes({ darkMode = false }: RoutesProps) {
                 onChange={(value) => setEditing({...editing!, notes: value as string})}
                 type="textarea"
                 editingId={editing?.id}
+                darkMode={darkMode}
               />
 
               {/* GPX File Upload */}
               <div>
-                <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
+                <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: darkMode ? '#f9fafb' : '#374151' }}>
                   GPX File
-            </label>
+                </label>
                 <input 
                   ref={fileRef} 
                   type="file" 
@@ -897,6 +910,7 @@ export default function Routes({ darkMode = false }: RoutesProps) {
                     { value: 'archived', label: '📦 Archived' }
                   ]}
                   editingId={editing?.id}
+                  darkMode={darkMode}
                 />
                 <FormField
                   label="Sort Order"
@@ -905,10 +919,11 @@ export default function Routes({ darkMode = false }: RoutesProps) {
                   onChange={(value) => setEditing({...editing!, sort_order: value as number})}
                   type="number"
                   editingId={editing?.id}
+                  darkMode={darkMode}
                 />
               </div>
             </div>
-        </ModalDialog>
+        </AutoSaveEditDialog>
       )}
     </div>
   )
