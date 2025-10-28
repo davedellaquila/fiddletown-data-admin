@@ -499,21 +499,21 @@ export default function Events({ darkMode = false }: EventsProps) {
     borderRadius: '6px'
   })
 
-  // Helper function for warning button styles
+  // Helper function for warning button styles (muted in dark mode)
   const getWarningButtonStyle = (baseStyle: any = {}) => ({
     ...baseStyle,
-    background: darkMode ? '#d97706' : '#f59e0b',
-    border: `1px solid ${darkMode ? '#f59e0b' : '#d97706'}`,
-    color: darkMode ? '#000000' : '#ffffff',
+    background: darkMode ? '#374151' : '#f59e0b',
+    border: `1px solid ${darkMode ? '#4b5563' : '#d97706'}`,
+    color: darkMode ? '#f9fafb' : '#ffffff',
     borderRadius: '6px',
     fontWeight: '500'
   })
 
-  // Helper function for danger button styles
+  // Helper function for danger button styles (muted in dark mode)
   const getDangerButtonStyle = (baseStyle: any = {}) => ({
     ...baseStyle,
-    background: darkMode ? '#dc2626' : '#ef4444',
-    border: `1px solid ${darkMode ? '#ef4444' : '#dc2626'}`,
+    background: darkMode ? '#7f1d1d' : '#ef4444',
+    border: `1px solid ${darkMode ? '#991b1b' : '#dc2626'}`,
     color: '#ffffff',
     borderRadius: '6px',
     fontWeight: '500'
@@ -2243,7 +2243,9 @@ export default function Events({ darkMode = false }: EventsProps) {
                   gap: '6px',
                   fontSize: '12px',
                   fontWeight: 500,
-                  color: darkMode ? '#f9fafb' : '#374151'
+                  color: r.status === 'published' 
+                    ? (darkMode ? '#10b981' : '#2e7d32')
+                    : (darkMode ? '#e5e7eb' : '#374151')
                 }}>
                   {r.status === 'published' ? '✅' : r.status === 'archived' ? '📦' : '📝'}
                   {r.status === 'published' ? 'Published' : r.status === 'archived' ? 'Archived' : 'Draft'}
@@ -2260,20 +2262,19 @@ export default function Events({ darkMode = false }: EventsProps) {
                     target="_blank" 
                     rel="noreferrer"
                     style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      width: 28,
-                      height: 28,
-                      borderRadius: 6,
-                      textDecoration: 'none',
-                      color: darkMode ? '#c7d2fe' : '#1d4ed8',
-                      background: 'transparent',
-                      border: `1px solid ${darkMode ? '#374151' : '#e5e7eb'}`,
+                      textDecoration: 'underline',
+                      color: darkMode ? '#93c5fd' : '#1d4ed8'
                     }}
                     title="Open link in new tab"
                   >
-                    <span>🔗</span>
+                    {(() => {
+                      try {
+                        const u = new URL(r.website_url!)
+                        return u.hostname.replace(/^www\./, '')
+                      } catch {
+                        return r.website_url
+                      }
+                    })()}
                   </a>
                 ) : (
                   <span style={{ color: '#bbb', fontSize: '12px' }}>—</span>
