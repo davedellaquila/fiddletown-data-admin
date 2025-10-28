@@ -543,7 +543,7 @@ export default function Locations({ darkMode = false }: LocationsProps) {
           <table>
           <thead>
             <tr>
-              <th>Website</th>
+              <th style={{ width: 28, padding: '8px 6px' }}></th>
               <th>Name</th>
               <th>Region</th>
               <th>Status</th>
@@ -568,7 +568,7 @@ export default function Locations({ darkMode = false }: LocationsProps) {
                   e.currentTarget.style.backgroundColor = darkMode ? '#1f2937' : '#ffffff'
                 }}
               >
-                <td style={{ background: 'transparent' }}>
+                <td style={{ background: 'transparent', width: 28, padding: '0 6px', textAlign: 'center' }}>
                   {r.website_url ? (
                     <a 
                       href={r.website_url} 
@@ -577,7 +577,7 @@ export default function Locations({ darkMode = false }: LocationsProps) {
                       style={{
                         display: 'inline-flex',
                         alignItems: 'center',
-                        padding: 4,
+                        padding: 0,
                         background: 'transparent',
                         border: 'none',
                         borderRadius: 4,
