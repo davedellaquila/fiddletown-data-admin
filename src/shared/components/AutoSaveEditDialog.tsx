@@ -43,13 +43,16 @@ export default function AutoSaveEditDialog<T extends Record<string, any>>({
     setEditing
   )
 
-  // Enhanced close handler that auto-saves before closing
+  // Enhanced close handler that auto-saves before closing (only for existing records)
   const handleClose = async () => {
     if (busy) return
     
     try {
-      // Auto-save before closing
-      await saveFunction()
+      // Only auto-save if it's an existing record (has an ID)
+      // For new records, just close without saving
+      if (editing?.id) {
+        await saveFunction()
+      }
       onClose()
     } catch (error) {
       console.error('Error saving before close:', error)
