@@ -947,21 +947,6 @@ export default function Events({ darkMode = false }: EventsProps) {
     await load();
   }
 
-  const navigateToNext = () => {
-    if (!editing?.id) return
-    const currentIndex = rows.findIndex(r => r.id === editing.id)
-    if (currentIndex < rows.length - 1) {
-      setEditing(rows[currentIndex + 1])
-    }
-  }
-
-  const navigateToPrevious = () => {
-    if (!editing?.id) return
-    const currentIndex = rows.findIndex(r => r.id === editing.id)
-    if (currentIndex > 0) {
-      setEditing(rows[currentIndex - 1])
-    }
-  }
 
   const exportCSVFiltered = () => {
     let query = supabase
@@ -2739,113 +2724,19 @@ export default function Events({ darkMode = false }: EventsProps) {
           </tbody>
         </table>
 
-      {editing && (
-        <div 
-          onClick={() => setEditing(null)}
-          style={{ 
-            position: 'fixed', 
-            top: 0, 
-            left: 0, 
-            right: 0, 
-            bottom: 0, 
-            background: 'rgba(0,0,0,0.5)', 
-            zIndex: 1000, 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'center',
-            padding: '20px'
-          }}
+        <AutoSaveEditDialog
+          isOpen={!!editing}
+          onClose={() => setEditing(null)}
+          title={editing?.id ? '✏️ Edit Event' : '➕ New Event'}
+          maxWidth="800px"
+          darkMode={darkMode}
+          editing={editing}
+          rows={rows}
+          saveFunction={save}
+          setEditing={(item) => setEditing(item as EventRow | null)}
+          itemType="event"
         >
-          <div 
-            onClick={(e) => e.stopPropagation()}
-            style={{ 
-              background: 'white', 
-              padding: '0',
-              borderRadius: '12px', 
-              maxWidth: '800px', 
-              width: '100%', 
-              maxHeight: '90vh', 
-              overflow: 'hidden',
-              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-              display: 'flex',
-              flexDirection: 'column'
-            }}
-          >
-            {/* Fixed Header */}
-            <div style={{
-              padding: '24px 32px 16px 32px',
-              borderBottom: '1px solid #e5e7eb',
-              background: 'white',
-              borderRadius: '12px 12px 0 0',
-              flexShrink: 0
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                  <h3 style={{ margin: 0, fontSize: '24px', fontWeight: '600', color: '#1f2937' }}>
-                    {editing.id ? '✏️ Edit Event' : '➕ New Event'}
-                  </h3>
-                  {editing.id && (
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <button 
-                        onClick={navigateToPrevious}
-                        disabled={rows.findIndex(r => r.id === editing.id) === 0}
-                        style={{
-                          background: '#f3f4f6',
-                          border: '1px solid #d1d5db',
-                          borderRadius: '6px',
-                          padding: '6px 12px',
-                          fontSize: '14px',
-                          cursor: rows.findIndex(r => r.id === editing.id) === 0 ? 'not-allowed' : 'pointer',
-                          color: rows.findIndex(r => r.id === editing.id) === 0 ? '#9ca3af' : '#374151',
-                          opacity: rows.findIndex(r => r.id === editing.id) === 0 ? 0.5 : 1
-                        }}
-                        title="Previous event"
-                      >
-                        ← Previous
-                      </button>
-                      <button 
-                        onClick={navigateToNext}
-                        disabled={rows.findIndex(r => r.id === editing.id) === rows.length - 1}
-                        style={{
-                          background: '#f3f4f6',
-                          border: '1px solid #d1d5db',
-                          borderRadius: '6px',
-                          padding: '6px 12px',
-                          fontSize: '14px',
-                          cursor: rows.findIndex(r => r.id === editing.id) === rows.length - 1 ? 'not-allowed' : 'pointer',
-                          color: rows.findIndex(r => r.id === editing.id) === rows.length - 1 ? '#9ca3af' : '#374151',
-                          opacity: rows.findIndex(r => r.id === editing.id) === rows.length - 1 ? 0.5 : 1
-                        }}
-                        title="Next event"
-                      >
-                        Next →
-                      </button>
-                    </div>
-                  )}
-                </div>
-                <button 
-                  onClick={()=>setEditing(null)}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    fontSize: '24px',
-                    cursor: 'pointer',
-                    color: '#6b7280',
-                    padding: '4px'
-                  }}
-                  title="Close"
-                >
-                  ✕
-                </button>
-              </div>
-            </div>
-
-            {/* Scrollable Content */}
-            <div style={{ 
-              flex: 1, 
-              overflow: 'auto', 
-              padding: '32px'
-            }}>
+          <div style={{ padding: '32px' }}>
             <div style={{ display: 'grid', gap: '20px' }}>
               {/* Event Name and Slug */}
               <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '16px' }}>
@@ -2856,6 +2747,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                   onChange={(value) => setEditing({...editing!, name: value as string, slug: slugify(value as string)})}
                   required
                   editingId={editing?.id?.toString()}
+                  darkMode={darkMode}
                 />
                 <FormField
                   label="Slug"
@@ -2863,6 +2755,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                   value={editing?.slug || ''}
                   onChange={(value) => setEditing({...editing!, slug: slugify(value as string)})}
                   editingId={editing?.id?.toString()}
+                  darkMode={darkMode}
                 />
               </div>
 
@@ -2874,6 +2767,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                 type="textarea"
                 minHeight="100px"
                 editingId={editing?.id?.toString()}
+                darkMode={darkMode}
               />
 
               {/* Host Org and Location */}
@@ -2884,6 +2778,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                   value={editing?.host_org || ''}
                   onChange={(value) => setEditing({...editing!, host_org: value as string})}
                   editingId={editing?.id?.toString()}
+                  darkMode={darkMode}
                 />
                 <FormField
                   label="Location"
@@ -2891,6 +2786,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                   value={editing?.location || ''}
                   onChange={(value) => setEditing({...editing!, location: value as string})}
                   editingId={editing?.id?.toString()}
+                  darkMode={darkMode}
                 />
               </div>
 
@@ -2946,6 +2842,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                   }}
                   type="date"
                   editingId={editing?.id?.toString()}
+                  darkMode={darkMode}
                 />
                 <FormField
                   label="End Date"
@@ -2961,6 +2858,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                   }}
                   type="date"
                   editingId={editing?.id?.toString()}
+                  darkMode={darkMode}
                 />
           </div>
 
@@ -3001,6 +2899,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                   }}
                   placeholder="HH:MM (e.g., 14:30)"
                   editingId={editing?.id?.toString()}
+                  darkMode={darkMode}
                 />
                 <FormField
                   label="End Time"
@@ -3032,13 +2931,14 @@ export default function Events({ darkMode = false }: EventsProps) {
                   }}
                   placeholder="HH:MM (e.g., 16:30)"
                   editingId={editing?.id?.toString()}
+                  darkMode={darkMode}
                 />
               </div>
 
               {/* Website and Recurrence */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 <div>
-                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
+                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: darkMode ? '#f9fafb' : '#374151' }}>
                     Website URL
                   </label>
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
@@ -3049,6 +2949,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                       onChange={(value) => setEditing({...editing!, website_url: value as string})}
                       type="url"
                       editingId={editing?.id?.toString()}
+                      darkMode={darkMode}
                     />
                     {editing?.website_url && (
                       <button
@@ -3088,12 +2989,13 @@ export default function Events({ darkMode = false }: EventsProps) {
                   value={editing?.recurrence || ''}
                   onChange={(value) => setEditing({...editing!, recurrence: value as string})}
                   editingId={editing?.id?.toString()}
+                  darkMode={darkMode}
                 />
               </div>
 
               {/* Image Upload */}
               <div>
-                <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
+                <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: darkMode ? '#f9fafb' : '#374151' }}>
                   Event Image
                 </label>
                 {(editing?.image_url || editingImageUrl) && (
@@ -3299,6 +3201,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                     { value: 'archived', label: '📦 Archived' }
                   ]}
                   editingId={editing?.id?.toString()}
+                  darkMode={darkMode}
                 />
                 <FormField
                   label="Sort Order"
@@ -3307,6 +3210,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                   onChange={(value) => setEditing({...editing!, sort_order: value as number})}
                   type="number"
                   editingId={editing?.id?.toString()}
+                  darkMode={darkMode}
                 />
               </div>
             </div>
@@ -3427,11 +3331,9 @@ export default function Events({ darkMode = false }: EventsProps) {
                   Original text extracted from the image
                 </p>
               </div>
-              )}
-            </div>
+            )}
           </div>
-        </div>
-      )}
+        </AutoSaveEditDialog>
     </div>
   )
 }
