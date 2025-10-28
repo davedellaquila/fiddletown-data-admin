@@ -1784,18 +1784,13 @@ export default function Events({ darkMode = false }: EventsProps) {
                 background: 'transparent'
               }}>
                 <div style={{
-                  all: 'unset',
+                  all: 'unset', // Hard reset styles
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: '6px',
+                  gap: '4px',
                   fontSize: '12px',
-                  fontWeight: 500,
-                  background: 'rgba(255, 0, 0, 0.25)', // TEMP test color to verify element
-                  border: 'none',
-                  padding: 0,
-                  margin: 0,
-                  borderRadius: 0,
-                  color: r.status === 'published' 
+                  fontWeight: '500',
+                  color: r.status === 'published'
                     ? (darkMode ? '#10b981' : '#2e7d32')
                     : (darkMode ? '#e5e7eb' : '#374151')
                 }}>
@@ -1804,37 +1799,37 @@ export default function Events({ darkMode = false }: EventsProps) {
                 </div>
               </td>
               <td style={{ 
-                padding: '8px 6px', 
+                padding: '8px 0px 8px 6px', 
                 borderBottom: `1px solid ${darkMode ? '#374151' : '#f1f1f1'}`,
                 background: 'transparent'
               }}>
                 {r.website_url && r.website_url.trim() ? (
-                  <div 
-                    role="link"
-                    onClick={() => window.open(r.website_url, '_blank')}
+                  <div
+                    onClick={(e) => { e.stopPropagation(); window.open(r.website_url!, '_blank') }}
                     style={{
-                      all: 'unset',
-                      textDecoration: 'underline',
-                      color: darkMode ? '#93c5fd' : '#1d4ed8',
-                      background: 'rgba(0, 200, 0, 0.25)', // TEMP test color to verify element
+                      all: 'unset', // Hard reset styles
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: 28,
+                      height: 28,
+                      borderRadius: 6,
+                      textDecoration: 'none',
+                      color: darkMode ? '#3b82f6' : '#1976d2',
+                      background: 'transparent',
                       border: 'none',
-                      padding: 0,
-                      margin: 0,
-                      borderRadius: 0,
-                      boxShadow: 'none',
                       cursor: 'pointer',
-                      fontSize: '12px'
+                      transition: 'background-color 0.2s ease',
                     }}
-                    title="Open link in new tab"
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = darkMode ? 'rgba(59, 130, 246, 0.1)' : 'rgba(25, 118, 210, 0.1)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = 'transparent';
+                    }}
+                    title="Open URL in new tab"
                   >
-                    {(() => {
-                      try {
-                        const u = new URL(r.website_url!)
-                        return u.hostname.replace(/^www\./, '')
-                      } catch {
-                        return r.website_url
-                      }
-                    })()}
+                    <span>🔗</span>
                   </div>
                 ) : (
                   <span style={{ color: '#bbb', fontSize: '12px' }}>—</span>
