@@ -2346,9 +2346,15 @@ export default function Events({ darkMode = false }: EventsProps) {
                   borderRadius: '12px',
                   fontSize: '12px',
                   fontWeight: '500',
-                  background: r.status === 'published' ? '#e8f5e8' : r.status === 'archived' ? '#fff3e0' : '#f5f5f5',
-                  color: r.status === 'published' ? '#2e7d32' : r.status === 'archived' ? '#f57c00' : '#666',
-                  border: `1px solid ${r.status === 'published' ? '#c8e6c9' : r.status === 'archived' ? '#ffcc02' : '#e0e0e0'}`
+                  background: darkMode
+                    ? (r.status === 'published' ? '#065f46' : r.status === 'archived' ? '#92400e' : '#374151')
+                    : (r.status === 'published' ? '#e8f5e8' : r.status === 'archived' ? '#fff3e0' : '#f5f5f5'),
+                  color: darkMode
+                    ? (r.status === 'published' ? '#ffffff' : r.status === 'archived' ? '#ffffff' : '#f9fafb')
+                    : (r.status === 'published' ? '#2e7d32' : r.status === 'archived' ? '#f57c00' : '#666'),
+                  border: `1px solid ${darkMode 
+                    ? (r.status === 'published' ? '#047857' : r.status === 'archived' ? '#b45309' : '#4b5563')
+                    : (r.status === 'published' ? '#c8e6c9' : r.status === 'archived' ? '#ffcc02' : '#e0e0e0')}`
                 }}>
                   {r.status === 'published' ? '✅' : r.status === 'archived' ? '📦' : '📝'}
                   {r.status === 'published' ? 'Published' : r.status === 'archived' ? 'Archived' : 'Draft'}
@@ -2369,11 +2375,11 @@ export default function Events({ darkMode = false }: EventsProps) {
                       alignItems: 'center',
                       gap: '4px',
                       padding: '4px 8px',
-                      background: '#e3f2fd',
-                      border: '1px solid #bbdefb',
+                      background: darkMode ? '#1e40af' : '#e3f2fd',
+                      border: `1px solid ${darkMode ? '#1d4ed8' : '#bbdefb'}`,
                       borderRadius: '4px',
                       textDecoration: 'none',
-                      color: '#1976d2',
+                      color: darkMode ? '#ffffff' : '#1976d2',
                       fontSize: '12px',
                       fontWeight: '500'
                     }}
