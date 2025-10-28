@@ -443,11 +443,19 @@ export default function Routes({ darkMode = false }: RoutesProps) {
               display: 'flex', 
               alignItems: 'center', 
               gap: '6px',
-              padding: '8px 12px'
+              padding: '8px 12px',
+              background: darkMode ? '#374151' : '#ffffff',
+              border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`,
+              color: darkMode ? '#f9fafb' : '#374151',
+              borderRadius: '6px'
             }}
             title="Create new route"
           >
-            <span>➕</span>
+            <span style={{ 
+              fontSize: '16px',
+              filter: darkMode ? 'brightness(1.2) contrast(1.1)' : 'none',
+              textShadow: darkMode ? '0 0 2px rgba(255,255,255,0.3)' : 'none'
+            }}>✨</span>
             <span>New</span>
           </button>
           
