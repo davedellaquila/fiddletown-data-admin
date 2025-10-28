@@ -543,10 +543,10 @@ export default function Locations({ darkMode = false }: LocationsProps) {
           <table>
           <thead>
             <tr>
+              <th>Website</th>
               <th>Name</th>
               <th>Region</th>
               <th>Status</th>
-              <th>Website</th>
               <th></th>
             </tr>
           </thead>
@@ -568,28 +568,6 @@ export default function Locations({ darkMode = false }: LocationsProps) {
                   e.currentTarget.style.backgroundColor = darkMode ? '#1f2937' : '#ffffff'
                 }}
               >
-                <td style={{ background: 'transparent' }}>{r.name}</td>
-                <td style={{ background: 'transparent' }}>{r.region}</td>
-                <td style={{ background: 'transparent' }}>
-                  <span style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    fontSize: '12px',
-                    fontWeight: '500',
-                    background: 'transparent',
-                    border: 'none',
-                    padding: 0,
-                    color: r.status === 'published'
-                      ? (darkMode ? '#10b981' : '#2e7d32')
-                      : r.status === 'archived'
-                        ? (darkMode ? '#f59e0b' : '#f57c00')
-                        : (darkMode ? '#e5e7eb' : '#666')
-                  }}>
-                    {r.status === 'published' ? '✅' : r.status === 'archived' ? '📦' : '📝'}
-                    {r.status === 'published' ? 'Published' : r.status === 'archived' ? 'Archived' : 'Draft'}
-                  </span>
-                </td>
                 <td style={{ background: 'transparent' }}>
                   {r.website_url ? (
                     <a 
@@ -611,12 +589,35 @@ export default function Locations({ darkMode = false }: LocationsProps) {
                       onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = darkMode ? 'rgba(59, 130, 246, 0.1)' : 'rgba(25, 118, 210, 0.1)' }}
                       onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent' }}
                       title="Open URL in new tab"
+                      onClick={(e) => e.stopPropagation()}
                     >
                       <span>🔗</span>
                     </a>
                   ) : (
                     <span style={{ color: '#bbb', fontSize: '12px' }}>—</span>
                   )}
+                </td>
+                <td style={{ background: 'transparent' }}>{r.name}</td>
+                <td style={{ background: 'transparent' }}>{r.region}</td>
+                <td style={{ background: 'transparent' }}>
+                  <span style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    fontSize: '12px',
+                    fontWeight: '500',
+                    background: 'transparent',
+                    border: 'none',
+                    padding: 0,
+                    color: r.status === 'published'
+                      ? (darkMode ? '#10b981' : '#2e7d32')
+                      : r.status === 'archived'
+                        ? (darkMode ? '#f59e0b' : '#f57c00')
+                        : (darkMode ? '#e5e7eb' : '#666')
+                  }}>
+                    {r.status === 'published' ? '✅' : r.status === 'archived' ? '📦' : '📝'}
+                    {r.status === 'published' ? 'Published' : r.status === 'archived' ? 'Archived' : 'Draft'}
+                  </span>
                 </td>
                 <td style={{ textAlign: 'right', background: 'transparent' }}>
                   <div style={{ display: 'flex', gap: 6, alignItems: 'center', justifyContent: 'flex-end' }}>
