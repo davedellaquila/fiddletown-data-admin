@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useRef } from 'react'
 
 interface NavigationButtonsProps<T> {
   editing: T | null
@@ -17,22 +17,7 @@ export function NavigationButtons<T extends Record<string, any>>({
   darkMode,
   itemType
 }: NavigationButtonsProps<T>) {
-  const [isCompact, setIsCompact] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    const checkSpace = () => {
-      if (containerRef.current) {
-        const containerWidth = containerRef.current.offsetWidth
-        // If container is less than 300px wide, use compact mode
-        setIsCompact(containerWidth < 300)
-      }
-    }
-
-    checkSpace()
-    window.addEventListener('resize', checkSpace)
-    return () => window.removeEventListener('resize', checkSpace)
-  }, [])
 
   if (!editing?.id) return null
 
@@ -44,12 +29,12 @@ export function NavigationButtons<T extends Record<string, any>>({
     background: darkMode ? '#374151' : '#f3f4f6',
     border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`,
     borderRadius: '6px',
-    padding: isCompact ? '6px' : '6px 12px',
+    padding: '6px 12px',
     cursor: 'pointer',
     color: darkMode ? '#f9fafb' : '#374151',
-    minWidth: isCompact ? '32px' : '100px',
+    minWidth: '100px',
     textAlign: 'center' as const,
-    fontSize: isCompact ? '14px' : '14px'
+    fontSize: '14px'
   }
 
   const disabledStyle = {
@@ -65,17 +50,17 @@ export function NavigationButtons<T extends Record<string, any>>({
         onClick={() => onNavigateToPrevious()}
         disabled={isFirst}
         style={isFirst ? disabledStyle : buttonStyle}
-        title={isCompact ? `Previous ${itemType}` : `Previous ${itemType}`}
+        title={`Previous ${itemType}`}
       >
-        {isCompact ? '←' : '← Previous'}
+        {'← Previous'}
       </button>
       <button 
         onClick={() => onNavigateToNext()}
         disabled={isLast}
         style={isLast ? disabledStyle : buttonStyle}
-        title={isCompact ? `Next ${itemType}` : `Next ${itemType}`}
+        title={`Next ${itemType}`}
       >
-        {isCompact ? '→' : 'Next →'}
+        {'Next →'}
       </button>
     </div>
   )
