@@ -546,7 +546,6 @@ export default function Events({ darkMode = false }: EventsProps) {
     function handleKeyDown(ev: KeyboardEvent) {
       if (ev.key === 'Escape' && editing) {
         setEditing(null)
-        setEditingImageUrl(null)
       }
     }
     window.addEventListener('keydown', handleKeyDown)
@@ -618,7 +617,6 @@ export default function Events({ darkMode = false }: EventsProps) {
       updated_at: new Date().toISOString(),
       deleted_at: null
     })
-    setEditingImageUrl(null)
   }
 
   const exportCSV = () => {
@@ -865,14 +863,8 @@ export default function Events({ darkMode = false }: EventsProps) {
           console.log('OCR image file found:', file.name, file.size, file.type)
           setOcrImageUrl(URL.createObjectURL(file))
           setOcrImageUploading(true)
-          // Upload the image and store it in the draft
-          const url = await uploadImage(file)
-          console.log('OCR upload result:', url)
-          if (url) {
-            setOcrDraft(prev => ({ ...(prev || {}), image_url: url }))
-          }
-          setOcrImageUploading(false)
           await runOCRFromFile(file)
+          setOcrImageUploading(false)
           setOcrProcessing(false) // Hide processing state when done
           break
         }
@@ -2687,11 +2679,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                       onChange={async (e) => {
                         const file = e.target.files?.[0]
                         if (file) {
-                          const url = await uploadImage(file)
-                          if (url) {
-                            setEditing({...editing, image_url: url})
-                            setEditingImageUrl(url)
-                          }
+                          // Image upload removed - no longer needed
                         }
                       }}
                       style={{ 
@@ -2720,16 +2708,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                               const file = item.getAsFile()
                               console.log('Edit dialog image file found:', file)
                               if (file) {
-                                setEditingImageUploading(true)
-                                console.log('Edit dialog uploading image...')
-                                const url = await uploadImage(file)
-                                console.log('Edit dialog upload result URL:', url)
-                                if (url) {
-                                  console.log('Edit dialog setting image URL:', url)
-                                  setEditing({...editing, image_url: url})
-                                  setEditingImageUrl(url)
-                                }
-                                setEditingImageUploading(false)
+                                // Image upload removed - no longer needed
                               }
                               break
                             }
@@ -2738,37 +2717,18 @@ export default function Events({ darkMode = false }: EventsProps) {
                       }}
                       onClick={() => {
                         console.log('Edit dialog paste zone clicked - focusing for paste')
-                        editPasteRef.current?.focus()
-                        setEventImagePasteReady(true)
+                        // Image upload removed - no longer needed
                       }}
                       style={{
                         width: '100%',
                         padding: '12px',
-                        border: editingImageUploading 
-                          ? `2px dashed #3b82f6` 
-                          : (editing?.image_url || editingImageUrl)
-                            ? `2px dashed #10b981` 
-                            : eventImagePasteReady
-                              ? `2px dashed #f59e0b`
-                              : `2px dashed ${darkMode ? '#4b5563' : '#d1d5db'}`,
+                        border: `2px dashed ${darkMode ? '#4b5563' : '#d1d5db'}`,
                         borderRadius: '8px',
                         textAlign: 'center',
-                        cursor: editingImageUploading ? 'not-allowed' : 'pointer',
+                        cursor: 'pointer',
                         fontSize: '14px',
-                        color: editingImageUploading 
-                          ? '#3b82f6' 
-                          : (editing?.image_url || editingImageUrl)
-                            ? '#10b981' 
-                            : eventImagePasteReady
-                              ? '#f59e0b'
-                              : darkMode ? '#9ca3af' : '#6b7280',
-                        background: editingImageUploading 
-                          ? '#eff6ff' 
-                          : (editing?.image_url || editingImageUrl)
-                            ? '#f0fdf4' 
-                            : eventImagePasteReady
-                              ? '#fffbeb'
-                              : darkMode ? '#374151' : '#f9fafb',
+                        color: darkMode ? '#9ca3af' : '#6b7280',
+                        background: darkMode ? '#374151' : '#f9fafb',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -2777,58 +2737,18 @@ export default function Events({ darkMode = false }: EventsProps) {
                         transition: 'all 0.2s ease'
                       }}
                       onMouseEnter={(e) => {
-                        if (!editingImageUploading) {
-                          if (editing?.image_url || editingImageUrl) {
-                            e.currentTarget.style.borderColor = '#059669'
-                            e.currentTarget.style.background = '#ecfdf5'
-                          } else if (eventImagePasteReady) {
-                            e.currentTarget.style.borderColor = '#d97706'
-                            e.currentTarget.style.background = '#fef3c7'
-                          } else {
                         e.currentTarget.style.borderColor = darkMode ? '#6b7280' : '#9ca3af'
                         e.currentTarget.style.background = darkMode ? '#4b5563' : '#f3f4f6'
-                          }
-                        }
                       }}
                       onMouseLeave={(e) => {
-                        if (!editingImageUploading) {
-                          if (editing?.image_url || editingImageUrl) {
-                            e.currentTarget.style.borderColor = '#10b981'
-                            e.currentTarget.style.background = '#f0fdf4'
-                          } else if (eventImagePasteReady) {
-                            e.currentTarget.style.borderColor = '#f59e0b'
-                            e.currentTarget.style.background = '#fffbeb'
-                          } else {
                         e.currentTarget.style.borderColor = darkMode ? '#4b5563' : '#d1d5db'
                         e.currentTarget.style.background = darkMode ? '#374151' : '#f9fafb'
-                          }
-                        }
                       }}
                       title="Click here and paste an image (Ctrl+V or Cmd+V)"
                     >
-                      {editingImageUploading ? (
-                        <>
-                          <div style={{ fontSize: '16px' }}>⏳</div>
-                          <div style={{ fontSize: '12px' }}>Uploading...</div>
-                        </>
-                      ) : (editing?.image_url || editingImageUrl) ? (
-                        <>
-                          <div style={{ fontSize: '16px' }}>✅</div>
-                          <div style={{ fontSize: '12px' }}>Image Ready</div>
-                        </>
-                      ) : eventImagePasteReady ? (
-                        <>
-                          <div style={{ fontSize: '16px' }}>📋</div>
-                          <div style={{ fontSize: '12px' }}>Ready...</div>
-                          <div style={{ fontSize: '10px', color: '#6b7280', marginTop: '2px' }}>Ctrl+V</div>
-                        </>
-                      ) : (
-                        <>
-                      <div style={{ fontSize: '16px' }}>📋</div>
-                      <div style={{ fontSize: '12px' }}>Paste Image</div>
-                          <div style={{ fontSize: '10px', color: '#6b7280', marginTop: '2px' }}>Ctrl+V</div>
-                        </>
-                      )}
+                      {/* Image upload removed - no longer needed */}
+                      <div style={{ fontSize: '16px' }}>📷</div>
+                      <div style={{ fontSize: '12px' }}>Image upload removed</div>
                     </div>
                   </div>
                   {(editing?.image_url || editingImageUrl) && (
