@@ -2237,23 +2237,24 @@ export default function Events({ darkMode = false }: EventsProps) {
                 borderBottom: `1px solid ${darkMode ? '#374151' : '#f1f1f1'}`,
                 background: 'transparent'
               }}>
-                <span style={{
+                <div style={{
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '6px',
                   fontSize: '12px',
                   fontWeight: 500,
-                  background: 'transparent !important',
-                  border: 'none !important',
-                  padding: '0 !important',
-                  borderRadius: '0 !important',
+                  background: 'transparent',
+                  border: 'none',
+                  padding: 0,
+                  margin: 0,
+                  borderRadius: 0,
                   color: r.status === 'published' 
                     ? (darkMode ? '#10b981' : '#2e7d32')
                     : (darkMode ? '#e5e7eb' : '#374151')
                 }}>
                   {r.status === 'published' ? '✅' : r.status === 'archived' ? '📦' : '📝'}
                   {r.status === 'published' ? 'Published' : r.status === 'archived' ? 'Archived' : 'Draft'}
-                </span>
+                </div>
               </td>
               <td style={{ 
                 padding: '8px 6px', 
@@ -2261,18 +2262,19 @@ export default function Events({ darkMode = false }: EventsProps) {
                 background: 'transparent'
               }}>
                 {r.website_url && r.website_url.trim() ? (
-                  <a 
-                    href={r.website_url} 
-                    target="_blank" 
-                    rel="noreferrer"
+                  <div 
+                    onClick={() => window.open(r.website_url, '_blank')}
                     style={{
                       textDecoration: 'underline',
                       color: darkMode ? '#93c5fd' : '#1d4ed8',
-                      background: 'transparent !important',
-                      border: 'none !important',
-                      padding: '0 !important',
-                      borderRadius: '0 !important',
-                      boxShadow: 'none !important'
+                      background: 'transparent',
+                      border: 'none',
+                      padding: 0,
+                      margin: 0,
+                      borderRadius: 0,
+                      boxShadow: 'none',
+                      cursor: 'pointer',
+                      fontSize: '12px'
                     }}
                     title="Open link in new tab"
                   >
@@ -2284,7 +2286,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                         return r.website_url
                       }
                     })()}
-                  </a>
+                  </div>
                 ) : (
                   <span style={{ color: '#bbb', fontSize: '12px' }}>—</span>
                 )}
