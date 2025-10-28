@@ -489,6 +489,51 @@ export default function Events({ darkMode = false }: EventsProps) {
     color: darkMode ? '#f9fafb' : '#374151',
     borderRadius: '6px'
   })
+
+  // Helper function for success button styles
+  const getSuccessButtonStyle = (baseStyle: any = {}) => ({
+    ...baseStyle,
+    background: darkMode ? '#065f46' : '#10b981',
+    border: `1px solid ${darkMode ? '#047857' : '#059669'}`,
+    color: '#ffffff',
+    borderRadius: '6px'
+  })
+
+  // Helper function for warning button styles
+  const getWarningButtonStyle = (baseStyle: any = {}) => ({
+    ...baseStyle,
+    background: darkMode ? '#92400e' : '#f59e0b',
+    border: `1px solid ${darkMode ? '#b45309' : '#d97706'}`,
+    color: '#ffffff',
+    borderRadius: '6px'
+  })
+
+  // Helper function for danger button styles
+  const getDangerButtonStyle = (baseStyle: any = {}) => ({
+    ...baseStyle,
+    background: darkMode ? '#991b1b' : '#ef4444',
+    border: `1px solid ${darkMode ? '#b91c1c' : '#dc2626'}`,
+    color: '#ffffff',
+    borderRadius: '6px'
+  })
+
+  // Helper function for primary button styles
+  const getPrimaryButtonStyle = (baseStyle: any = {}) => ({
+    ...baseStyle,
+    background: darkMode ? '#1e40af' : '#3b82f6',
+    border: `1px solid ${darkMode ? '#1d4ed8' : '#2563eb'}`,
+    color: '#ffffff',
+    borderRadius: '6px'
+  })
+
+  // Helper function for secondary button styles
+  const getSecondaryButtonStyle = (baseStyle: any = {}) => ({
+    ...baseStyle,
+    background: darkMode ? '#4b5563' : '#6b7280',
+    border: `1px solid ${darkMode ? '#6b7280' : '#9ca3af'}`,
+    color: '#ffffff',
+    borderRadius: '6px'
+  })
   const [importErrors, setImportErrors] = useState<string[]>([])
   const [editing, setEditing] = useState<EventRow | null>(null)
   const [q, setQ] = useState('')
@@ -1103,12 +1148,12 @@ export default function Events({ darkMode = false }: EventsProps) {
           className="btn" 
           onClick={() => setOcrOpen(true)} 
           disabled={importing}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
+          style={getButtonStyle({
+            display: 'flex',
+            alignItems: 'center',
             gap: '6px',
             padding: '8px 12px'
-          }}
+          })}
           title="Add event from image using OCR"
         >
           <span>🔍</span>
@@ -1119,12 +1164,12 @@ export default function Events({ darkMode = false }: EventsProps) {
           className="btn" 
           onClick={load} 
           disabled={loading || importing}
-          style={{ 
+          style={getButtonStyle({ 
             display: 'flex', 
             alignItems: 'center', 
             gap: '6px',
             padding: '8px 12px'
-          }}
+          })}
           title="Refresh events list"
         >
           <span>{loading ? '⏳' : '🔄'}</span>
@@ -1135,12 +1180,12 @@ export default function Events({ darkMode = false }: EventsProps) {
           className="btn" 
           onClick={downloadTemplateCSV} 
           disabled={importing}
-          style={{ 
+          style={getButtonStyle({ 
             display: 'flex', 
             alignItems: 'center', 
             gap: '6px',
             padding: '8px 12px'
-          }}
+          })}
           title="Download CSV template"
         >
           <span>📋</span>
@@ -1151,12 +1196,12 @@ export default function Events({ darkMode = false }: EventsProps) {
           className="btn" 
           onClick={exportCSV} 
           disabled={importing}
-          style={{ 
+          style={getButtonStyle({ 
             display: 'flex', 
             alignItems: 'center', 
             gap: '6px',
             padding: '8px 12px'
-          }}
+          })}
           title="Export all events to CSV"
         >
           <span>📤</span>
@@ -1165,14 +1210,14 @@ export default function Events({ darkMode = false }: EventsProps) {
           
         <label 
           className="btn" 
-          style={{ 
+          style={getButtonStyle({ 
             cursor: 'pointer', 
             opacity: importing ? 0.6 : 1,
             display: 'flex',
             alignItems: 'center',
             gap: '6px',
             padding: '8px 12px'
-          }}
+          })}
           title="Import events from CSV file"
         >
           <span>📥</span>
@@ -1184,12 +1229,12 @@ export default function Events({ darkMode = false }: EventsProps) {
             className="btn" 
             onClick={bulkSetStatusFromDates} 
             title="Set status to upcoming/ongoing/past based on dates"
-            style={{ 
+            style={getButtonStyle({ 
               display: 'flex', 
               alignItems: 'center', 
               gap: '6px',
               padding: '8px 12px'
-            }}
+            })}
           >
             <span>🤖</span>
             <span>Auto Status</span>
@@ -1199,12 +1244,12 @@ export default function Events({ darkMode = false }: EventsProps) {
             className="btn" 
             onClick={bulkFillEndDates} 
             title="Fill missing end_date = start_date"
-            style={{ 
+            style={getButtonStyle({ 
               display: 'flex', 
               alignItems: 'center', 
               gap: '6px',
               padding: '8px 12px'
-            }}
+            })}
           >
             <span>📅</span>
             <span>Fill Dates</span>
@@ -1214,12 +1259,12 @@ export default function Events({ darkMode = false }: EventsProps) {
             className="btn" 
             onClick={bulkGenerateSlugs} 
             title="Create slugs for rows missing them"
-            style={{ 
+            style={getButtonStyle({ 
               display: 'flex', 
               alignItems: 'center', 
               gap: '6px',
               padding: '8px 12px'
-            }}
+            })}
           >
             <span>🔗</span>
             <span>Gen Slugs</span>
@@ -1229,12 +1274,12 @@ export default function Events({ darkMode = false }: EventsProps) {
             className="btn success" 
             onClick={bulkPublish} 
             title="Publish selected"
-            style={{ 
+            style={getSuccessButtonStyle({ 
               display: 'flex', 
               alignItems: 'center', 
               gap: '6px',
               padding: '8px 12px'
-            }}
+            })}
           >
             <span>🚀</span>
             <span>Publish</span>
@@ -1244,12 +1289,12 @@ export default function Events({ darkMode = false }: EventsProps) {
             className="btn warning" 
             onClick={bulkArchive} 
             title="Archive selected"
-            style={{ 
+            style={getWarningButtonStyle({ 
               display: 'flex', 
               alignItems: 'center', 
               gap: '6px',
               padding: '8px 12px'
-            }}
+            })}
           >
             <span>📦</span>
             <span>Archive</span>
@@ -1259,12 +1304,12 @@ export default function Events({ darkMode = false }: EventsProps) {
             className="btn danger" 
             onClick={bulkDelete} 
             title="Soft delete selected"
-            style={{ 
+            style={getDangerButtonStyle({ 
               display: 'flex', 
               alignItems: 'center', 
               gap: '6px',
               padding: '8px 12px'
-            }}
+            })}
           >
             <span>🗑️</span>
             <span>Delete</span>
@@ -1428,8 +1473,21 @@ export default function Events({ darkMode = false }: EventsProps) {
             </table>
           </div>
           <div style={{ marginTop: 10 }}>
-            <button className="btn success" onClick={confirmImport} disabled={importErrors.length>0}>Confirm Import</button>{' '}
-            <button className="btn secondary" onClick={()=>{ setImporting(false); setImportPreview(null); setImportErrors([]) }}>Cancel</button>
+            <button 
+              className="btn success" 
+              onClick={confirmImport} 
+              disabled={importErrors.length>0}
+              style={getSuccessButtonStyle({ padding: '8px 16px' })}
+            >
+              Confirm Import
+            </button>{' '}
+            <button 
+              className="btn secondary" 
+              onClick={()=>{ setImporting(false); setImportPreview(null); setImportErrors([]) }}
+              style={getSecondaryButtonStyle({ padding: '8px 16px' })}
+            >
+              Cancel
+            </button>
           </div>
         </div>
       )}
@@ -1914,7 +1972,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                       className="btn success" 
                       onClick={confirmOcrInsert} 
                       disabled={!ocrDraft || !ocrDraft.name}
-                      style={{ padding: '10px 20px', fontSize: '14px', fontWeight: '500' }}
+                      style={getSuccessButtonStyle({ padding: '10px 20px', fontSize: '14px', fontWeight: '500' })}
                     >
                       Create Event
                     </button>
@@ -1930,7 +1988,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                         localStorage.removeItem('events-ocr-text');
                         localStorage.setItem('events-ocr-open', 'false');
                       }}
-                      style={{ padding: '10px 20px', fontSize: '14px' }}
+                      style={getSecondaryButtonStyle({ padding: '10px 20px', fontSize: '14px' })}
                     >
                       Cancel
                     </button>
@@ -2346,14 +2404,14 @@ export default function Events({ darkMode = false }: EventsProps) {
                       e.stopPropagation()
                       copyEvent(r)
                     }} 
-                    style={{ 
+                    style={getPrimaryButtonStyle({ 
                       padding: '6px 10px', 
                       fontSize: '12px',
                       display: 'flex',
                       alignItems: 'center',
                       gap: '4px',
                       borderRadius: '4px'
-                    }}
+                    })}
                     title="Duplicate event"
                   >
                     <span>📋</span>
@@ -2365,14 +2423,14 @@ export default function Events({ darkMode = false }: EventsProps) {
                       e.stopPropagation()
                       softDelete(r.id!.toString())
                     }} 
-                    style={{ 
+                    style={getDangerButtonStyle({ 
                       padding: '6px 10px', 
                       fontSize: '12px',
                       display: 'flex',
                       alignItems: 'center',
                       gap: '4px',
                       borderRadius: '4px'
-                    }}
+                    })}
                     title="Delete event"
                   >
                     <span>🗑️</span>
@@ -2681,12 +2739,9 @@ export default function Events({ darkMode = false }: EventsProps) {
                   darkMode={darkMode}
                 />
               </div>
-            </div>
 
-
-
-            {/* OCR Text Display Section */}
-            {editing?.ocr_text && (
+              {/* OCR Text Display Section */}
+              {editing?.ocr_text && (
               <div style={{ 
                 marginTop: '24px', 
                 padding: '16px', 
@@ -2732,6 +2787,7 @@ export default function Events({ darkMode = false }: EventsProps) {
               </div>
               )}
             </div>
+          </div>
         </AutoSaveEditDialog>
     </div>
   )
