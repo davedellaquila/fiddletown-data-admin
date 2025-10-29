@@ -34,6 +34,14 @@ const slugify = (s: string) => s
     .replace(/[^a-z0-9]+/g, '-') // Replace non-alphanumeric with hyphens
     .replace(/(^-|-$)/g, '') // Remove leading/trailing hyphens
 
+function normalizeUrl(u?: string | null) {
+  if (!u) return ''
+  const s = u.trim()
+  if (!s) return ''
+  if (/^https?:\/\//i.test(s)) return s
+  return `https://${s}`
+}
+
   const formatTimeToAMPM = (timeStr: string | null) => {
     if (!timeStr) return '—'
     
@@ -548,7 +556,7 @@ export default function Events({ darkMode = false }: EventsProps) {
   const [to, setTo] = useState('')
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [hoverThumbId, setHoverThumbId] = useState<number | null>(null)
-  const [hoverPreviewStyle, setHoverPreviewStyle] = useState<{ top: number, left: number, height: number } | null>(null)
+  const [hoverPreviewStyle, setHoverPreviewStyle] = useState<{ top: number, left: number, height: number, width: number } | null>(null)
   const [sortBy, setSortBy] = useState<'start_date' | 'end_date' | 'name' | 'location' | 'status' | 'start_time' | 'end_time' | 'created_at'>('start_date')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
 
@@ -591,15 +599,20 @@ export default function Events({ darkMode = false }: EventsProps) {
 
   // Dynamic sticky offset for table headers to sit right under the toolbar
   const toolbarRef = useRef<HTMLDivElement | null>(null)
+  const theadRef = useRef<HTMLTableSectionElement | null>(null)
   const [toolbarHeight, setToolbarHeight] = useState<number>(0)
+  const [theadHeight, setTheadHeight] = useState<number>(0)
   useEffect(() => {
     function updateHeight() {
       const h = toolbarRef.current?.offsetHeight ?? 0
       setToolbarHeight(h)
+      const th = theadRef.current?.offsetHeight ?? 0
+      setTheadHeight(th)
     }
     updateHeight()
     const ro = new ResizeObserver(updateHeight)
     if (toolbarRef.current) ro.observe(toolbarRef.current)
+    if (theadRef.current) ro.observe(theadRef.current)
     window.addEventListener('resize', updateHeight)
     return () => { window.removeEventListener('resize', updateHeight); ro.disconnect() }
   }, [])
@@ -1571,7 +1584,7 @@ export default function Events({ darkMode = false }: EventsProps) {
         background: darkMode ? '#1f2937' : '#ffffff',
         color: darkMode ? '#f9fafb' : '#1f2937'
       }}>
-          <thead style={{
+          <thead ref={theadRef} style={{
             position: 'sticky',
             top: toolbarHeight,
             zIndex: 110,
@@ -1733,29 +1746,13 @@ export default function Events({ darkMode = false }: EventsProps) {
             
             <th style={{ 
               textAlign: 'left', 
-              padding: '8px 6px', 
+              padding: '8px 0 8px 6px', 
               borderBottom: `1px solid ${darkMode ? '#374151' : '#ddd'}`,
               background: darkMode ? '#374151' : '#f8f9fa',
               color: darkMode ? '#f9fafb' : '#1f2937',
-              position: 'sticky',
-              top: toolbarHeight,
-              right: 60,
-              zIndex: 110,
-              minWidth: '160px' 
+              minWidth: '140px' 
             }}>Actions</th>
-            {/* Right spacer column to provide ~200px gap from viewport edge */}
-            <th style={{
-              textAlign: 'left',
-              padding: 0,
-              borderBottom: `1px solid ${darkMode ? '#374151' : '#ddd'}`,
-              background: darkMode ? '#374151' : '#f8f9fa',
-              color: 'transparent',
-              position: 'sticky',
-              top: toolbarHeight,
-              right: 0,
-              zIndex: 110,
-              width: 60
-            }}> </th>
+            {/* Spacer column removed to allow Actions to be flush with viewport edge */}
             </tr>
           </thead>
           <tbody>
@@ -1835,40 +1832,16 @@ export default function Events({ darkMode = false }: EventsProps) {
                 zIndex: 5
               }}>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-                  {r.website_url && r.website_url.trim() ? (
-                    <div
-                      onClick={(e) => { e.stopPropagation(); window.open(r.website_url!, '_blank') }}
-                      style={{
-                        all: 'unset',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        width: 24,
-                        height: 24,
-                        borderRadius: 6,
-                        color: darkMode ? '#3b82f6' : '#1976d2',
-                        background: 'transparent',
-                        border: 'none',
-                        cursor: 'pointer',
-                        transition: 'background-color 0.2s ease'
-                      }}
-                      onMouseEnter={(e) => { (e.currentTarget as any).style.backgroundColor = darkMode ? 'rgba(59,130,246,0.1)' : 'rgba(25,118,210,0.1)' }}
-                      onMouseLeave={(e) => { (e.currentTarget as any).style.backgroundColor = 'transparent' }}
-                      title="Open URL in new tab"
-                    >
-                      <span>🔗</span>
-                    </div>
-                  ) : (
-                    <span style={{ width: 24, height: 24 }}></span>
-                  )}
-                  {r.image_url ? (
+                  {/* Link icon intentionally omitted in thumbnail column */}
                   <div
                     onMouseEnter={(e) => {
                       if (!r.id) return
                       const rect = (e.currentTarget as HTMLDivElement).getBoundingClientRect()
                       const gap = 8
                       const viewportH = window.innerHeight
+                      const viewportW = window.innerWidth
                       const maxH = Math.min(800, viewportH - gap * 2)
+                      const maxW = Math.min(800, viewportW - gap * 2)
                       let top = rect.top
                       // Decide alignment based on thumbnail position
                       if (rect.top < 120) {
@@ -1882,15 +1855,31 @@ export default function Events({ darkMode = false }: EventsProps) {
                         top = rect.top + rect.height / 2 - maxH / 2
                       }
                       // Clamp inside viewport
-                      top = Math.max(gap, Math.min(top, viewportH - maxH - gap))
-                      const left = rect.right + gap
-                      setHoverPreviewStyle({ top, left, height: maxH })
+                      const stickyOffset = (toolbarHeight || 0) + (theadHeight || 0)
+                      top = Math.max(stickyOffset + gap, Math.min(top, viewportH - maxH - gap))
+                      // Horizontal placement: prefer to the right; fall back to left; otherwise center
+                      const previewW = maxW
+                      const spaceRight = viewportW - rect.right - gap
+                      const spaceLeft = rect.left - gap
+                      let left = rect.right + gap
+                      if (spaceRight >= previewW) {
+                        left = rect.right + gap
+                      } else if (spaceLeft >= previewW) {
+                        left = rect.left - gap - previewW
+                      } else {
+                        // Center horizontally within viewport
+                        left = Math.max(gap, Math.min(rect.left + rect.width / 2 - previewW / 2, viewportW - previewW - gap))
+                      }
+                      setHoverPreviewStyle({ top, left, height: maxH, width: previewW })
                       setHoverThumbId(r.id)
                     }}
                     onMouseLeave={() => { setHoverThumbId(null); setHoverPreviewStyle(null) }}
                     style={{ display: 'inline-block' }}
                   >
-                    <img src={r.image_url} alt="thumb" style={{ width: 36, height: 36, objectFit: 'cover', borderRadius: 6, border: `1px solid ${darkMode ? '#4b5563' : '#e5e7eb'}` }} />
+                    {/* Thumbnail only (no link icon here) */}
+                    {r.image_url ? (
+                      <img src={r.image_url} alt="thumb" style={{ width: 36, height: 36, objectFit: 'cover', borderRadius: 6, border: `1px solid ${darkMode ? '#4b5563' : '#e5e7eb'}`, marginTop: 6 }} />
+                    ) : null}
                     {hoverThumbId === r.id && (
                       <div
                         style={{
@@ -1902,7 +1891,8 @@ export default function Events({ darkMode = false }: EventsProps) {
                           background: darkMode ? 'rgba(31,41,55,0.98)' : 'rgba(255,255,255,0.98)',
                           border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`,
                           borderRadius: 8,
-                          boxShadow: '0 10px 30px rgba(0,0,0,.25)'
+                          boxShadow: '0 10px 30px rgba(0,0,0,.25)',
+                          width: hoverPreviewStyle?.width ?? undefined
                         }}
                       >
                         <img
@@ -1911,7 +1901,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                           style={{
                             width: 'auto',
                             height: 'auto',
-                            maxWidth: 800,
+                            maxWidth: hoverPreviewStyle?.width ?? 800,
                             maxHeight: hoverPreviewStyle?.height ?? 'calc(100vh - 48px)',
                             borderRadius: 6,
                             display: 'block'
@@ -1920,9 +1910,6 @@ export default function Events({ darkMode = false }: EventsProps) {
                       </div>
                     )}
                   </div>
-                ) : (
-                  <span style={{ color: '#bbb', fontSize: '12px' }}>—</span>
-                )}
                 </div>
               </td>
               <td style={{ 
@@ -1934,11 +1921,15 @@ export default function Events({ darkMode = false }: EventsProps) {
                 zIndex: 4
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                  <div style={{ fontWeight: 600, color: darkMode ? '#f9fafb' : '#1f2937' }}>{r.name}</div>
                   {r.website_url && r.website_url.trim() ? (
-                    <div
-                      onClick={(e) => { e.stopPropagation(); window.open(r.website_url!, '_blank') }}
+                    <a
+                      href={normalizeUrl(r.website_url)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      title="Open URL in new tab"
                       style={{
-                        all: 'unset',
                         display: 'inline-flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -1946,19 +1937,12 @@ export default function Events({ darkMode = false }: EventsProps) {
                         height: 24,
                         borderRadius: 6,
                         color: darkMode ? '#3b82f6' : '#1976d2',
-                        background: 'transparent',
-                        border: 'none',
-                        cursor: 'pointer',
-                        transition: 'background-color 0.2s ease'
+                        textDecoration: 'none'
                       }}
-                      onMouseEnter={(e) => { (e.currentTarget as any).style.backgroundColor = darkMode ? 'rgba(59,130,246,0.1)' : 'rgba(25,118,210,0.1)' }}
-                      onMouseLeave={(e) => { (e.currentTarget as any).style.backgroundColor = 'transparent' }}
-                      title="Open URL in new tab"
                     >
                       <span>🔗</span>
-                    </div>
+                    </a>
                   ) : null}
-                  <div style={{ fontWeight: 600, color: darkMode ? '#f9fafb' : '#1f2937' }}>{r.name}</div>
                 </div>
                 {r.host_org ? (
                   <div style={{ fontSize: 12, color: darkMode ? '#9ca3af' : '#666', marginBottom: 10 }}>Host: {r.host_org}</div>
@@ -2023,14 +2007,11 @@ export default function Events({ darkMode = false }: EventsProps) {
               </td>
               
               <td style={{ 
-                padding: '8px 6px 8px 16px', 
+                padding: '8px 0 8px 12px', 
                 borderBottom: `1px solid ${darkMode ? '#374151' : '#f1f1f1'}`,
-                background: 'transparent',
-                position: 'sticky',
-                right: 60,
-                zIndex: 5
+                background: 'transparent'
               }}>
-                <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginRight: 0 }}>
                   <button
                     className="btn"
                     onClick={(e) => { e.stopPropagation(); copyEvent(r) }}
@@ -2071,16 +2052,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                   </button>
                 </div>
                 </td>
-              {/* Right spacer cell to create fixed gap on the right */}
-              <td style={{
-                padding: 0,
-                borderBottom: `1px solid ${darkMode ? '#374151' : '#f1f1f1'}`,
-                background: 'transparent',
-                width: 60,
-                position: 'sticky',
-                right: 0,
-                zIndex: 5
-              }} />
+              {/* Spacer cell removed to allow Actions to be flush with viewport edge */}
               </tr>
             ))}
           </tbody>

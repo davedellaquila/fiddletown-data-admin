@@ -309,7 +309,7 @@ export default function App() {
         marginTop: '0',
         background: darkMode ? '#111827' : '#ffffff',
         color: darkMode ? '#f9fafb' : '#1f2937',
-        padding: '0 20px 20px 20px',
+        padding: '0 0 20px 20px',
         width: 'calc(100vw - 220px)',
         minHeight: '100vh'
       }}>
