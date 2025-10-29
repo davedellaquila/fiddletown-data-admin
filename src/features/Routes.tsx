@@ -312,7 +312,7 @@ export default function Routes({ darkMode = false }: RoutesProps) {
     return data.publicUrl
   }
 
-  const save = async () => {
+  const save = async (options?: { suppressClose?: boolean }) => {
     if (!editing) return
     setBusy(true)
     try {
@@ -356,7 +356,7 @@ export default function Routes({ darkMode = false }: RoutesProps) {
       payload.id = data!.id
     }
 
-    setEditing(null)
+    if (!options?.suppressClose) setEditing(null)
     fileRef.current && (fileRef.current.value = '')
     await load()
       pushToast('Saved', 'ok')
@@ -624,8 +624,7 @@ export default function Routes({ darkMode = false }: RoutesProps) {
         </div>
       )}
 
-      {!editing ? (
-        <table>
+      <table>
           <thead>
             <tr>
               <th>Name</th>
@@ -691,9 +690,17 @@ export default function Routes({ darkMode = false }: RoutesProps) {
                     borderRadius: '12px',
                     fontSize: '12px',
                     fontWeight: '500',
-                    background: r.status === 'published' ? '#e8f5e8' : r.status === 'archived' ? '#fff3e0' : '#f5f5f5',
-                    color: r.status === 'published' ? '#2e7d32' : r.status === 'archived' ? '#f57c00' : '#666',
-                    border: `1px solid ${r.status === 'published' ? '#c8e6c9' : r.status === 'archived' ? '#ffcc02' : '#e0e0e0'}`
+                    background: darkMode
+                      ? '#374151'
+                      : (r.status === 'published' ? '#e8f5e8' : r.status === 'archived' ? '#fff3e0' : '#f5f5f5'),
+                    color: r.status === 'published'
+                      ? (darkMode ? '#10b981' : '#2e7d32')
+                      : r.status === 'archived'
+                        ? (darkMode ? '#f59e0b' : '#f57c00')
+                        : (darkMode ? '#e5e7eb' : '#666'),
+                    border: darkMode
+                      ? '1px solid #4b5563'
+                      : (r.status === 'published' ? '#c8e6c9' : r.status === 'archived' ? '#ffcc02' : '#e0e0e0')
                   }}>
                     {r.status === 'published' ? '✅' : r.status === 'archived' ? '📦' : '📝'}
                     {r.status === 'published' ? 'Published' : r.status === 'archived' ? 'Archived' : 'Draft'}
@@ -714,10 +721,10 @@ export default function Routes({ darkMode = false }: RoutesProps) {
                           display: 'flex',
                           alignItems: 'center',
                           gap: '4px',
-                          background: '#e8f5e8',
-                          border: '1px solid #c8e6c9',
+                          background: darkMode ? '#065f46' : '#e8f5e8',
+                          border: `1px solid ${darkMode ? '#047857' : '#c8e6c9'}`,
                           borderRadius: '4px',
-                          color: '#2e7d32'
+                          color: darkMode ? '#ffffff' : '#2e7d32'
                         }}
                         title="Publish route"
                       >
@@ -738,10 +745,10 @@ export default function Routes({ darkMode = false }: RoutesProps) {
                           display: 'flex',
                           alignItems: 'center',
                           gap: '4px',
-                          background: '#fff3e0',
-                          border: '1px solid #ffcc02',
+                          background: darkMode ? '#374151' : '#fff3e0',
+                          border: `1px solid ${darkMode ? '#4b5563' : '#ffcc02'}`,
                           borderRadius: '4px',
-                          color: '#f57c00'
+                          color: darkMode ? '#f9fafb' : '#f57c00'
                         }}
                         title="Archive route"
                       >
@@ -761,10 +768,10 @@ export default function Routes({ darkMode = false }: RoutesProps) {
                         display: 'flex',
                         alignItems: 'center',
                         gap: '4px',
-                        background: '#ffebee',
-                        border: '1px solid #ffcdd2',
+                        background: darkMode ? '#7f1d1d' : '#ffebee',
+                        border: `1px solid ${darkMode ? '#991b1b' : '#ffcdd2'}`,
                         borderRadius: '4px',
-                        color: '#c62828'
+                        color: darkMode ? '#ffffff' : '#c62828'
                       }}
                       title="Delete route"
                     >
@@ -780,20 +787,20 @@ export default function Routes({ darkMode = false }: RoutesProps) {
             )}
           </tbody>
         </table>
-      ) : (
-        <AutoSaveEditDialog
-          key="route-dialog"
-          isOpen={editing !== null}
-          onClose={() => { if (!busy) { setEditing(null); fileRef.current && (fileRef.current.value='') }}}
-          title={editing?.id ? '✏️ Edit Route' : '➕ New Route'}
-          maxWidth="600px"
-          darkMode={darkMode}
-          editing={editing}
-          rows={rows}
-          saveFunction={save}
-          setEditing={(item) => setEditing(item as RouteRow | null)}
-          itemType="route"
-        >
+
+      <AutoSaveEditDialog
+        key="route-dialog"
+        isOpen={editing !== null}
+        onClose={() => { if (!busy) { setEditing(null); fileRef.current && (fileRef.current.value='') }}}
+        title={editing?.id ? '✏️ Edit Route' : '➕ New Route'}
+        maxWidth="600px"
+        darkMode={darkMode}
+        editing={editing}
+        rows={rows}
+        saveFunction={save}
+        setEditing={(item) => setEditing(item as RouteRow | null)}
+        itemType="route"
+      >
 
             <div style={{ display: 'grid', gap: '20px' }}>
               {/* Name and Slug */}
@@ -892,7 +899,7 @@ export default function Routes({ darkMode = false }: RoutesProps) {
                     background: '#fff'
                   }}
                 />
-            {editing.gpx_url && (
+            {editing?.gpx_url && (
                   <div style={{ 
                     marginTop: '8px', 
                     padding: '8px 12px', 
@@ -932,8 +939,7 @@ export default function Routes({ darkMode = false }: RoutesProps) {
                 />
               </div>
             </div>
-        </AutoSaveEditDialog>
-      )}
+      </AutoSaveEditDialog>
     </div>
   )
 }

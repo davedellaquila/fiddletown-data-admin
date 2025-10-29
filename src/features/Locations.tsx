@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import FormField from '../shared/components/FormField'
 import AutoSaveEditDialog from '../shared/components/AutoSaveEditDialog'
@@ -34,6 +34,18 @@ export default function Locations({ darkMode = false }: LocationsProps) {
   const [importPreview, setImportPreview] = useState<any[] | null>(null)
   const [importErrors, setImportErrors] = useState<string[]>([])
   const fileInputRef = useState<HTMLInputElement | null>(null)[0]
+
+  // Sticky header offset (align table header under toolbar)
+  const toolbarRef = useRef<HTMLDivElement | null>(null)
+  const [toolbarHeight, setToolbarHeight] = useState<number>(0)
+  useEffect(() => {
+    const update = () => setToolbarHeight(toolbarRef.current?.offsetHeight ?? 0)
+    update()
+    const ro = new ResizeObserver(update)
+    if (toolbarRef.current) ro.observe(toolbarRef.current)
+    window.addEventListener('resize', update)
+    return () => { window.removeEventListener('resize', update); ro.disconnect() }
+  }, [])
 
   // Tiny CSV parser supporting quotes and commas
   function parseCSV(text: string): string[][] {
@@ -253,7 +265,7 @@ export default function Locations({ darkMode = false }: LocationsProps) {
     })
   }
 
-  const save = async () => {
+  const save = async (options?: { suppressClose?: boolean }) => {
     if (!editing) return
     const payload = { ...editing }
   
@@ -284,7 +296,7 @@ export default function Locations({ darkMode = false }: LocationsProps) {
       payload.id = data!.id
     }
   
-    setEditing(null)
+    if (!options?.suppressClose) setEditing(null)
     await load()
   }
 
@@ -340,6 +352,7 @@ export default function Locations({ darkMode = false }: LocationsProps) {
           borderBottom: `1px solid ${darkMode ? '#374151' : '#dee2e6'}`,
           borderRadius: '4px'
         }}
+        ref={toolbarRef}
       >
         {/* Top row: Module title and Action buttons */}
         <div
@@ -538,10 +551,9 @@ export default function Locations({ darkMode = false }: LocationsProps) {
         </div>
       )}
 
-      {!editing ? (
-        <div>
-          <table>
-          <thead>
+      <div>
+        <table>
+          <thead style={{ position: 'sticky', top: toolbarHeight, zIndex: 110, background: darkMode ? '#374151' : '#f8f9fa' }}>
             <tr>
               <th style={{ width: 28, padding: '8px 6px' }}></th>
               <th>Name</th>
@@ -700,8 +712,7 @@ export default function Locations({ darkMode = false }: LocationsProps) {
             )}
           </tbody>
         </table>
-        </div>
-      ) : null}
+      </div>
 
         <AutoSaveEditDialog
           key="location-dialog"

@@ -1,4 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
+import dupIcon from '../assets/duplicate.svg'
+import trashIcon from '../assets/trash.svg'
 import { supabase } from '../lib/supabaseClient'
 import FormField from '../shared/components/FormField'
 import AutoSaveEditDialog from '../shared/components/AutoSaveEditDialog'
@@ -16,6 +18,7 @@ type EventRow = {
   location?: string | null
   recurrence?: string | null
   website_url?: string | null
+  image_url?: string | null
   ocr_text?: string | null
   status?: string | null
   sort_order?: number | null
@@ -538,11 +541,14 @@ export default function Events({ darkMode = false }: EventsProps) {
     borderRadius: '6px'
   })
   const [importErrors, setImportErrors] = useState<string[]>([])
+  const [imageHover, setImageHover] = useState(false)
   const [editing, setEditing] = useState<EventRow | null>(null)
   const [q, setQ] = useState('')
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [hoverThumbId, setHoverThumbId] = useState<number | null>(null)
+  const [hoverPreviewStyle, setHoverPreviewStyle] = useState<{ top: number, left: number, height: number } | null>(null)
   const [sortBy, setSortBy] = useState<'start_date' | 'end_date' | 'name' | 'location' | 'status' | 'start_time' | 'end_time' | 'created_at'>('start_date')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
 
@@ -577,8 +583,26 @@ export default function Events({ darkMode = false }: EventsProps) {
   const [ocrPasteReady, setOcrPasteReady] = useState(false)
   const [ocrProcessing, setOcrProcessing] = useState(false)
   const ocrPasteRef = useRef<HTMLDivElement | null>(null)
+  const imagePasteRef = useRef<HTMLDivElement | null>(null)
+  const [imagePasteStatus, setImagePasteStatus] = useState<string>('Paste image here')
+  const [imagePasteActive, setImagePasteActive] = useState<boolean>(false)
 
   const headers = ['name','slug','host_org','start_date','end_date','start_time','end_time','location','recurrence','website_url','status','sort_order']
+
+  // Dynamic sticky offset for table headers to sit right under the toolbar
+  const toolbarRef = useRef<HTMLDivElement | null>(null)
+  const [toolbarHeight, setToolbarHeight] = useState<number>(0)
+  useEffect(() => {
+    function updateHeight() {
+      const h = toolbarRef.current?.offsetHeight ?? 0
+      setToolbarHeight(h)
+    }
+    updateHeight()
+    const ro = new ResizeObserver(updateHeight)
+    if (toolbarRef.current) ro.observe(toolbarRef.current)
+    window.addEventListener('resize', updateHeight)
+    return () => { window.removeEventListener('resize', updateHeight); ro.disconnect() }
+  }, [])
 
   // Reset OCR image states when OCR dialog opens
   useEffect(() => {
@@ -620,7 +644,7 @@ export default function Events({ darkMode = false }: EventsProps) {
     try {
     let query = supabase
       .from('events')
-        .select('id, name, slug, description, host_org, start_date, end_date, start_time, end_time, location, recurrence, website_url, status, sort_order, created_by, created_at, updated_at, deleted_at')
+        .select('id, name, slug, description, host_org, start_date, end_date, start_time, end_time, location, recurrence, website_url, image_url, status, sort_order, created_by, created_at, updated_at, deleted_at')
       .is('deleted_at', null)
         .order('sort_order', { ascending: true })
       .order(sortBy, { ascending: sortOrder === 'asc' })
@@ -649,7 +673,7 @@ export default function Events({ darkMode = false }: EventsProps) {
     const today = new Date().toISOString().slice(0,10)
     setEditing({
       name: 'Untitled Event',
-      slug: '',
+      slug: slugify('Untitled Event'),
       host_org: null,
       start_date: today,
       end_date: today,
@@ -658,6 +682,7 @@ export default function Events({ darkMode = false }: EventsProps) {
       location: null,
       recurrence: null,
       website_url: null,
+      image_url: null,
       status: 'draft',
       sort_order: 1000,
       created_by: session.session?.user.id ?? null,
@@ -968,6 +993,7 @@ export default function Events({ darkMode = false }: EventsProps) {
       location: ocrDraft.location ?? null,
       recurrence: ocrDraft.recurrence ?? null,
       website_url: ocrDraft.website_url ?? null,
+      image_url: (ocrDraft as any).image_url ?? null,
       ocr_text: ocrRawText || null,
       status: (ocrDraft.status as any) || 'draft',
       sort_order: ocrDraft.sort_order ?? 1000,
@@ -988,7 +1014,7 @@ export default function Events({ darkMode = false }: EventsProps) {
     await load()
   }
 
-  const save = async () => {
+  const save = async (options?: { suppressClose?: boolean }) => {
     if (!editing) return
     const payload = { ...editing }
 
@@ -1015,6 +1041,7 @@ export default function Events({ darkMode = false }: EventsProps) {
         location: payload.location,
         recurrence: payload.recurrence,
         website_url: payload.website_url,
+        image_url: payload.image_url,
         ocr_text: payload.ocr_text,
         status: payload.status,
         sort_order: payload.sort_order
@@ -1037,7 +1064,7 @@ export default function Events({ darkMode = false }: EventsProps) {
       payload.id = data!.id
     }
 
-    setEditing(null)
+    if (!options?.suppressClose) setEditing(null)
     await load()
   }
 
@@ -1078,16 +1105,39 @@ export default function Events({ darkMode = false }: EventsProps) {
     }
   }, [ocrDraft])
 
-  if (loading) {
-    return <div className="stack" style={{ padding: 16 }}>Loading events…</div>
-  }
-  if (error) {
-  return (
-      <div style={{ padding: 16, color: '#8b0000' }}>
-        Error loading events: {error}
-      </div>
-    )
-  }
+  // Global paste support for adding an image (works for new and existing events)
+  useEffect(() => {
+    async function handleWindowPaste(ev: ClipboardEvent) {
+      if (!editing) return
+      const items = ev.clipboardData?.items
+      if (!items) return
+      for (let i = 0; i < items.length; i++) {
+        const it = items[i]
+        if (it.kind === 'file') {
+          const file = it.getAsFile()
+          if (file && file.type.startsWith('image/')) {
+            ev.preventDefault()
+            const base = (editing.slug || slugify(editing.name)) || crypto.randomUUID()
+            const path = `${base}/${Date.now()}-${file.name.replace(/\s+/g, '_')}`
+            const { error } = await supabase.storage.from('events').upload(path, file, {
+              cacheControl: '3600',
+              upsert: false,
+              contentType: file.type
+            })
+            if (error) { alert(`Upload failed: ${error.message}`); return }
+            const { data } = supabase.storage.from('events').getPublicUrl(path)
+            setEditing({ ...editing, image_url: data.publicUrl })
+            break
+          }
+        }
+      }
+    }
+    window.addEventListener('paste', handleWindowPaste as any)
+    return () => window.removeEventListener('paste', handleWindowPaste as any)
+  }, [editing])
+
+  // Note: Do not early-return on loading/error to avoid flicker under the dialog.
+  // Instead, show lightweight banners inline while keeping the list rendered.
 
   return (
     <div style={{ 
@@ -1109,7 +1159,26 @@ export default function Events({ darkMode = false }: EventsProps) {
           borderBottom: `1px solid ${darkMode ? '#374151' : '#dee2e6'}`,
           borderRadius: '4px'
         }}
+        ref={toolbarRef}
       >
+        {loading && (
+          <div style={{
+            marginBottom: 8,
+            fontSize: 12,
+            color: darkMode ? '#d1d5db' : '#6b7280'
+          }}>
+            Loading events…
+          </div>
+        )}
+        {error && (
+          <div style={{
+            marginBottom: 8,
+            fontSize: 12,
+            color: '#b91c1c'
+          }}>
+            Error loading events: {error}
+          </div>
+        )}
         {/* Top row: Module title and Action buttons */}
         <div
           style={{ 
@@ -1504,7 +1573,7 @@ export default function Events({ darkMode = false }: EventsProps) {
       }}>
           <thead style={{
             position: 'sticky',
-            top: '176px',
+            top: toolbarHeight,
             zIndex: 110,
             background: darkMode ? '#374151' : '#f8f9fa'
           }}>
@@ -1516,7 +1585,8 @@ export default function Events({ darkMode = false }: EventsProps) {
               background: darkMode ? '#374151' : '#f8f9fa',
               color: darkMode ? '#f9fafb' : '#1f2937',
               position: 'sticky',
-              top: '176px',
+              top: toolbarHeight,
+              left: 0,
               zIndex: 110
             }}>
               <input 
@@ -1527,6 +1597,18 @@ export default function Events({ darkMode = false }: EventsProps) {
                 }}
               />
             </th>
+            <th style={{ 
+              textAlign: 'left', 
+              padding: '8px 2px', 
+              borderBottom: `1px solid ${darkMode ? '#374151' : '#ddd'}`,
+              background: darkMode ? '#374151' : '#f8f9fa',
+              color: darkMode ? '#f9fafb' : '#1f2937',
+              position: 'sticky',
+              top: toolbarHeight,
+              left: 40,
+              zIndex: 110,
+              width: 40
+            }}>Img</th>
             <th 
               onClick={() => handleSort('name')}
               style={{ 
@@ -1538,22 +1620,14 @@ export default function Events({ darkMode = false }: EventsProps) {
                 cursor: 'pointer',
                 userSelect: 'none',
                 position: 'sticky',
-                top: '176px',
+                top: toolbarHeight,
+                left: 84,
                 zIndex: 110
               }}
             >
               Name {sortBy === 'name' && (sortOrder === 'asc' ? '↑' : '↓')}
             </th>
-            <th style={{ 
-              textAlign: 'left', 
-              padding: '8px 6px', 
-              borderBottom: `1px solid ${darkMode ? '#374151' : '#ddd'}`,
-              background: darkMode ? '#374151' : '#f8f9fa',
-              color: darkMode ? '#f9fafb' : '#1f2937',
-              position: 'sticky',
-              top: '176px',
-              zIndex: 110
-            }}>Website</th>
+            {/* Website column removed; website icon moved into thumbnail column */}
             <th 
               onClick={() => handleSort('start_date')}
               style={{ 
@@ -1565,7 +1639,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                 cursor: 'pointer',
                 userSelect: 'none',
                 position: 'sticky',
-                top: '176px',
+                top: toolbarHeight,
                 zIndex: 110
               }}
             >
@@ -1582,7 +1656,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                 cursor: 'pointer',
                 userSelect: 'none',
                 position: 'sticky',
-                top: '176px',
+                top: toolbarHeight,
                 zIndex: 110
               }}
             >
@@ -1599,7 +1673,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                 cursor: 'pointer',
                 userSelect: 'none',
                 position: 'sticky',
-                top: '176px',
+                top: toolbarHeight,
                 zIndex: 110
               }}
             >
@@ -1616,7 +1690,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                 cursor: 'pointer',
                 userSelect: 'none',
                 position: 'sticky',
-                top: '176px',
+                top: toolbarHeight,
                 zIndex: 110
               }}
             >
@@ -1633,7 +1707,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                 cursor: 'pointer',
                 userSelect: 'none',
                 position: 'sticky',
-                top: '176px',
+                top: toolbarHeight,
                 zIndex: 110
               }}
             >
@@ -1650,7 +1724,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                 cursor: 'pointer',
                 userSelect: 'none',
                 position: 'sticky',
-                top: '176px',
+                top: toolbarHeight,
                 zIndex: 110
               }}
             >
@@ -1664,10 +1738,24 @@ export default function Events({ darkMode = false }: EventsProps) {
               background: darkMode ? '#374151' : '#f8f9fa',
               color: darkMode ? '#f9fafb' : '#1f2937',
               position: 'sticky',
-              top: '176px',
+              top: toolbarHeight,
+              right: 60,
               zIndex: 110,
-              minWidth: '200px' 
+              minWidth: '160px' 
             }}>Actions</th>
+            {/* Right spacer column to provide ~200px gap from viewport edge */}
+            <th style={{
+              textAlign: 'left',
+              padding: 0,
+              borderBottom: `1px solid ${darkMode ? '#374151' : '#ddd'}`,
+              background: darkMode ? '#374151' : '#f8f9fa',
+              color: 'transparent',
+              position: 'sticky',
+              top: toolbarHeight,
+              right: 0,
+              zIndex: 110,
+              width: 60
+            }}> </th>
             </tr>
           </thead>
           <tbody>
@@ -1721,7 +1809,10 @@ export default function Events({ darkMode = false }: EventsProps) {
                 style={{ 
                 padding: '8px 6px', 
                 borderBottom: `1px solid ${darkMode ? '#374151' : '#f1f1f1'}`,
-                  background: 'transparent'
+                  background: 'transparent',
+                  position: 'sticky',
+                  left: 0,
+                  zIndex: 5
                 }}
                 onClick={(e) => e.stopPropagation()}
               >
@@ -1735,9 +1826,112 @@ export default function Events({ darkMode = false }: EventsProps) {
                 />
               </td>
               <td style={{ 
+                padding: '8px 2px', 
+                borderBottom: `1px solid ${darkMode ? '#374151' : '#f1f1f1'}`,
+                background: 'transparent',
+                width: 40,
+                position: 'sticky',
+                left: 40,
+                zIndex: 5
+              }}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                  {r.website_url && r.website_url.trim() ? (
+                    <div
+                      onClick={(e) => { e.stopPropagation(); window.open(r.website_url!, '_blank') }}
+                      style={{
+                        all: 'unset',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: 24,
+                        height: 24,
+                        borderRadius: 6,
+                        color: darkMode ? '#3b82f6' : '#1976d2',
+                        background: 'transparent',
+                        border: 'none',
+                        cursor: 'pointer',
+                        transition: 'background-color 0.2s ease'
+                      }}
+                      onMouseEnter={(e) => { (e.currentTarget as any).style.backgroundColor = darkMode ? 'rgba(59,130,246,0.1)' : 'rgba(25,118,210,0.1)' }}
+                      onMouseLeave={(e) => { (e.currentTarget as any).style.backgroundColor = 'transparent' }}
+                      title="Open URL in new tab"
+                    >
+                      <span>🔗</span>
+                    </div>
+                  ) : (
+                    <span style={{ width: 24, height: 24 }}></span>
+                  )}
+                  {r.image_url ? (
+                  <div
+                    onMouseEnter={(e) => {
+                      if (!r.id) return
+                      const rect = (e.currentTarget as HTMLDivElement).getBoundingClientRect()
+                      const gap = 8
+                      const viewportH = window.innerHeight
+                      const maxH = Math.min(800, viewportH - gap * 2)
+                      let top = rect.top
+                      // Decide alignment based on thumbnail position
+                      if (rect.top < 120) {
+                        // near top – align tops
+                        top = Math.max(gap, rect.top)
+                      } else if (rect.bottom > viewportH - 120) {
+                        // near bottom – align bottoms
+                        top = Math.max(gap, rect.bottom - maxH)
+                      } else {
+                        // middle – center vertically
+                        top = rect.top + rect.height / 2 - maxH / 2
+                      }
+                      // Clamp inside viewport
+                      top = Math.max(gap, Math.min(top, viewportH - maxH - gap))
+                      const left = rect.right + gap
+                      setHoverPreviewStyle({ top, left, height: maxH })
+                      setHoverThumbId(r.id)
+                    }}
+                    onMouseLeave={() => { setHoverThumbId(null); setHoverPreviewStyle(null) }}
+                    style={{ display: 'inline-block' }}
+                  >
+                    <img src={r.image_url} alt="thumb" style={{ width: 36, height: 36, objectFit: 'cover', borderRadius: 6, border: `1px solid ${darkMode ? '#4b5563' : '#e5e7eb'}` }} />
+                    {hoverThumbId === r.id && (
+                      <div
+                        style={{
+                          position: 'fixed',
+                          top: hoverPreviewStyle?.top ?? 8,
+                          left: hoverPreviewStyle?.left ?? 52,
+                          zIndex: 9999,
+                          padding: 6,
+                          background: darkMode ? 'rgba(31,41,55,0.98)' : 'rgba(255,255,255,0.98)',
+                          border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`,
+                          borderRadius: 8,
+                          boxShadow: '0 10px 30px rgba(0,0,0,.25)'
+                        }}
+                      >
+                        <img
+                          src={r.image_url}
+                          alt="preview"
+                          style={{
+                            width: 'auto',
+                            height: 'auto',
+                            maxWidth: 800,
+                            maxHeight: hoverPreviewStyle?.height ?? 'calc(100vh - 48px)',
+                            borderRadius: 6,
+                            display: 'block'
+                          }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <span style={{ color: '#bbb', fontSize: '12px' }}>—</span>
+                )}
+                </div>
+              </td>
+              <td style={{ 
                 padding: '8px 6px', 
                 borderBottom: `1px solid ${darkMode ? '#374151' : '#f1f1f1'}`,
-                background: 'transparent'
+                background: 'transparent',
+                position: 'sticky',
+                left: 84,
+                zIndex: 4
               }}>
                 <div style={{ fontWeight: 600, color: darkMode ? '#f9fafb' : '#1f2937' }}>{r.name}</div>
                 {r.host_org ? (
@@ -1747,43 +1941,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                   <div style={{ fontSize: 12, color: '#666' }}>{r.recurrence}</div>
                 ) : null}
               </td>
-              <td style={{ 
-                padding: '8px 0px 8px 6px', 
-                borderBottom: `1px solid ${darkMode ? '#374151' : '#f1f1f1'}`,
-                background: 'transparent'
-              }}>
-                {r.website_url && r.website_url.trim() ? (
-                  <div
-                    onClick={(e) => { e.stopPropagation(); window.open(r.website_url!, '_blank') }}
-                    style={{
-                      all: 'unset', // Hard reset styles
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      width: 28,
-                      height: 28,
-                      borderRadius: 6,
-                      textDecoration: 'none',
-                      color: darkMode ? '#3b82f6' : '#1976d2',
-                      background: 'transparent',
-                      border: 'none',
-                      cursor: 'pointer',
-                      transition: 'background-color 0.2s ease',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = darkMode ? 'rgba(59, 130, 246, 0.1)' : 'rgba(25, 118, 210, 0.1)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = 'transparent';
-                    }}
-                    title="Open URL in new tab"
-                  >
-                    <span>🔗</span>
-                  </div>
-                ) : (
-                  <span style={{ color: '#bbb', fontSize: '12px' }}>—</span>
-                )}
-              </td>
+              {/* Website cell removed; icon shown in thumbnail column */}
               <td style={{ 
                 padding: '8px 6px', 
                 borderBottom: `1px solid ${darkMode ? '#374151' : '#f1f1f1'}`,
@@ -1839,51 +1997,64 @@ export default function Events({ darkMode = false }: EventsProps) {
               </td>
               
               <td style={{ 
-                padding: '8px 6px', 
+                padding: '8px 6px 8px 16px', 
                 borderBottom: `1px solid ${darkMode ? '#374151' : '#f1f1f1'}`,
-                background: 'transparent'
+                background: darkMode ? '#1f2937' : '#ffffff',
+                position: 'sticky',
+                right: 60,
+                zIndex: 5
               }}>
                 <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                  <button 
-                    className="btn primary" 
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      copyEvent(r)
-                    }} 
-                    style={getPrimaryButtonStyle({ 
-                      padding: '6px 10px', 
-                      fontSize: '12px',
-                      display: 'flex',
+                  <button
+                    className="btn"
+                    onClick={(e) => { e.stopPropagation(); copyEvent(r) }}
+                    title="Duplicate"
+                    style={{
+                      width: 32,
+                      height: 32,
+                      display: 'inline-flex',
                       alignItems: 'center',
-                      gap: '4px',
-                      borderRadius: '4px'
-                    })}
-                    title="Duplicate event"
+                      justifyContent: 'center',
+                      borderRadius: 6,
+                      background: 'transparent',
+                      border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`,
+                      color: darkMode ? '#e5e7eb' : '#374151',
+                      cursor: 'pointer'
+                    }}
                   >
-                    <span>📋</span>
-                    Copy
+                    <img src={dupIcon} alt="duplicate" width={16} height={16} />
                   </button>
-                  <button 
-                    className="btn danger" 
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      softDelete(r.id!.toString())
-                    }} 
-                    style={getDangerButtonStyle({ 
-                      padding: '6px 10px', 
-                      fontSize: '12px',
-                      display: 'flex',
+                  <button
+                    className="btn"
+                    onClick={(e) => { e.stopPropagation(); softDelete(r.id!.toString()) }}
+                    title="Delete"
+                    style={{
+                      width: 32,
+                      height: 32,
+                      display: 'inline-flex',
                       alignItems: 'center',
-                      gap: '4px',
-                      borderRadius: '4px'
-                    })}
-                    title="Delete event"
+                      justifyContent: 'center',
+                      borderRadius: 6,
+                      background: 'transparent',
+                      border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`,
+                      color: darkMode ? '#e5e7eb' : '#374151',
+                      cursor: 'pointer'
+                    }}
                   >
-                    <span>🗑️</span>
-                    Delete
+                    <img src={trashIcon} alt="delete" width={16} height={16} />
                   </button>
                 </div>
                 </td>
+              {/* Right spacer cell to create fixed gap on the right */}
+              <td style={{
+                padding: 0,
+                borderBottom: `1px solid ${darkMode ? '#374151' : '#f1f1f1'}`,
+                background: darkMode ? '#1f2937' : '#ffffff',
+                width: 60,
+                position: 'sticky',
+                right: 0,
+                zIndex: 5
+              }} />
               </tr>
             ))}
           </tbody>
@@ -2137,6 +2308,169 @@ export default function Events({ darkMode = false }: EventsProps) {
                   editingId={editing?.id?.toString()}
                   darkMode={darkMode}
                 />
+              </div>
+
+              {/* Event Image (upload/paste + preview) */}
+              <div>
+                <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: darkMode ? '#f9fafb' : '#374151' }}>
+                  Event Image
+                </label>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                  <label
+                    className="btn"
+                    style={{
+                      display: 'inline-flex',
+                      cursor: 'pointer',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '8px 12px',
+                      background: darkMode ? '#374151' : '#ffffff',
+                      border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`,
+                      color: darkMode ? '#f9fafb' : '#374151',
+                      borderRadius: '6px'
+                    }}
+                    title="Upload event image"
+                  >
+                    <span>📁</span>
+                    <span>Upload</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0]
+                        if (!file || !editing) return
+                        try {
+                          const base = (editing.slug || slugify(editing.name)) || crypto.randomUUID()
+                          const path = `${base}/${Date.now()}-${file.name.replace(/\s+/g, '_')}`
+                          const { error } = await supabase.storage.from('events').upload(path, file, {
+                            cacheControl: '3600',
+                            upsert: false,
+                            contentType: file.type || 'image/*'
+                          })
+                          if (error) { alert(`Upload failed: ${error.message}`); return }
+                          const { data } = supabase.storage.from('events').getPublicUrl(path)
+                          setEditing({ ...editing, image_url: data.publicUrl })
+                        } finally {
+                          e.currentTarget.value = ''
+                        }
+                      }}
+                      style={{ display: 'none' }}
+                    />
+                  </label>
+                  <div
+                    ref={imagePasteRef}
+                    onClick={() => {
+                      setImagePasteActive(true)
+                      setImagePasteStatus('Press ⌘V / Ctrl+V to paste image…')
+                      // focus so keyboard paste works
+                      imagePasteRef.current?.focus()
+                    }}
+                    onBlur={() => {
+                      setImagePasteActive(false)
+                      setImagePasteStatus('Paste image here')
+                    }}
+                    onPaste={async (ev) => {
+                      const items = ev.clipboardData?.items
+                      if (!items || !editing) return
+                      ev.preventDefault()
+                      setImagePasteStatus('Uploading…')
+                      for (let i = 0; i < items.length; i++) {
+                        const it = items[i]
+                        if (it.kind === 'file') {
+                          const file = it.getAsFile()
+                          if (file && file.type.startsWith('image/')) {
+                            const base = (editing.slug || slugify(editing.name)) || crypto.randomUUID()
+                            const path = `${base}/${Date.now()}-${file.name.replace(/\s+/g, '_')}`
+                            const { error } = await supabase.storage.from('events').upload(path, file, {
+                              cacheControl: '3600',
+                              upsert: false,
+                              contentType: file.type
+                            })
+                            if (error) { setImagePasteStatus('Upload failed'); alert(`Upload failed: ${error.message}`); return }
+                            const { data } = supabase.storage.from('events').getPublicUrl(path)
+                            setEditing({ ...editing, image_url: data.publicUrl })
+                            setImagePasteStatus('Uploaded ✓')
+                            setTimeout(() => { setImagePasteActive(false); setImagePasteStatus('Paste image here') }, 1500)
+                            break
+                          }
+                        }
+                      }
+                    }}
+                    title="Click and press ⌘V to paste image"
+                    style={{
+                      flex: 1,
+                      minWidth: '220px',
+                      minHeight: '40px',
+                      padding: '8px 12px',
+                      border: `1px dashed ${imagePasteActive ? (darkMode ? '#60a5fa' : '#3b82f6') : (darkMode ? '#4b5563' : '#9ca3af')}`,
+                      borderRadius: '6px',
+                      color: darkMode ? '#9ca3af' : '#6b7280',
+                      outline: 'none'
+                    }}
+                    contentEditable={true}
+                    suppressContentEditableWarning={true}
+                    role="textbox"
+                    aria-label="Paste image area"
+                    tabIndex={0}
+                  >
+                    {imagePasteStatus}
+                  </div>
+                  {editing?.image_url && (
+                    <div
+                      style={{ display: 'inline-block' }}
+                      onMouseEnter={() => setImageHover(true)}
+                      onMouseLeave={() => setImageHover(false)}
+                    >
+                      <img
+                        src={editing.image_url}
+                        alt="Event"
+                        style={{ width: '64px', height: '64px', objectFit: 'cover', borderRadius: '6px', border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}` }}
+                      />
+                      {imageHover && (
+                        <div
+                          style={{
+                            position: 'absolute',
+                            top: 0,
+                            right: 0,
+                            bottom: 0,
+                            left: 0,
+                            zIndex: 20,
+                            padding: '12px',
+                            pointerEvents: 'none',
+                            background: 'transparent',
+                            display: 'flex',
+                            alignItems: 'stretch',
+                            justifyContent: 'center'
+                          }}
+                        >
+                          <div style={{
+                            width: '100%',
+                            height: '100%',
+                            borderRadius: '8px',
+                            boxShadow: '0 20px 40px rgba(0,0,0,0.25)',
+                            background: darkMode ? 'rgba(31,41,55,0.96)' : 'rgba(255,255,255,0.96)',
+                            border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}>
+                            <img
+                              src={editing.image_url}
+                              alt="Event preview"
+                              style={{
+                                maxWidth: 'calc(100% - 24px)',
+                                maxHeight: 'calc(100% - 24px)',
+                                objectFit: 'contain',
+                                borderRadius: '6px',
+                                display: 'block'
+                              }}
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Status and Sort Order */}

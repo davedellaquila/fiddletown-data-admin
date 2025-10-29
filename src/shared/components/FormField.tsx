@@ -100,7 +100,7 @@ export default function FormField({
         return (
           <textarea
             key={fieldKey}
-            defaultValue={value || ''}
+            value={(value as any) ?? ''}
             onChange={handleChange}
             onFocus={(e) => {
               Object.assign(e.target.style, focusStyle)
@@ -124,7 +124,7 @@ export default function FormField({
         return (
           <select
             key={fieldKey}
-            defaultValue={value || ''}
+            value={(value as any) ?? ''}
             onChange={handleChange}
             onFocus={(e) => {
               Object.assign(e.target.style, focusStyle)
@@ -151,7 +151,7 @@ export default function FormField({
             <input
               key={fieldKey}
               type={type}
-              defaultValue={value || ''}
+              value={(value as any) ?? ''}
               onChange={handleChange}
               onInput={handleInput}
               onFocus={(e) => {

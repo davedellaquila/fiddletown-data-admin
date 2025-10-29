@@ -25,7 +25,8 @@ export function NavigationButtons<T extends Record<string, any>>({
   const isFirst = currentIndex === 0
   const isLast = currentIndex === rows.length - 1
 
-  const isCompact = itemType === 'location'
+  // Use compact arrow-only buttons for all item types
+  const isCompact = true
 
   const buttonStyle = {
     background: darkMode ? '#374151' : '#f3f4f6',
@@ -54,17 +55,17 @@ export function NavigationButtons<T extends Record<string, any>>({
         onClick={() => onNavigateToPrevious()}
         disabled={isFirst}
         style={isFirst ? disabledStyle : buttonStyle}
-        title={`Previous ${itemType}`}
+        title={`Previous ${itemType} (⌘← / Ctrl←)`}
       >
-        {isCompact ? '←' : '← Previous'}
+        {isCompact ? '←' : '←'}
       </button>
       <button 
         onClick={() => onNavigateToNext()}
         disabled={isLast}
         style={isLast ? disabledStyle : buttonStyle}
-        title={`Next ${itemType}`}
+        title={`Next ${itemType} (⌘→ / Ctrl→)`}
       >
-        {isCompact ? '→' : 'Next →'}
+        {isCompact ? '→' : '→'}
       </button>
     </div>
   )
