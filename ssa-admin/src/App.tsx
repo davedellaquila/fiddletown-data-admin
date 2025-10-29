@@ -25,22 +25,39 @@ export default function App() {
 
   useEffect(() => {
     console.log('Setting up auth...')
+    
+    // Always hide loading screen after a maximum of 2 seconds
+    const loadingTimeout = setTimeout(() => {
+      console.log('Loading timeout reached, hiding loading screen')
+      setIsLoading(false)
+    }, 2000)
+    
     try {
       supabase.auth.getSession().then(({ data }) => {
         console.log('Session data:', data)
         setSession(data.session)
         // Hide loading screen after initial auth check
-        setTimeout(() => setIsLoading(false), 1000)
+        clearTimeout(loadingTimeout)
+        setTimeout(() => setIsLoading(false), 500)
+      }).catch((error) => {
+        console.error('Session fetch error:', error)
+        clearTimeout(loadingTimeout)
+        setTimeout(() => setIsLoading(false), 500)
       })
+      
       const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
         console.log('Auth state changed:', s)
         setSession(s)
       })
-      return () => sub.subscription.unsubscribe()
+      return () => {
+        clearTimeout(loadingTimeout)
+        sub.subscription.unsubscribe()
+      }
     } catch (error) {
       console.error('Auth setup error:', error)
       // Hide loading screen even if there's an error
-      setTimeout(() => setIsLoading(false), 1000)
+      clearTimeout(loadingTimeout)
+      setTimeout(() => setIsLoading(false), 500)
     }
   }, [])
 
