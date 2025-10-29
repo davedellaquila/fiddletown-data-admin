@@ -34,6 +34,102 @@ const slugify = (s: string) => s
 
 const formatISO = (d: Date) => d.toISOString().slice(0, 10)
 
+// Helper functions for time conversion
+function simpleTimeToStandard(simpleTime: string, context?: { startTime?: string }): string {
+  if (!simpleTime || simpleTime.trim() === '') return ''
+  
+  const trimmed = simpleTime.trim()
+  
+  // Check if it's a full time format (e.g., "3:30", "14:45")
+  const timeMatch = trimmed.match(/^(\d{1,2}):(\d{2})$/)
+  if (timeMatch) {
+    const hour = parseInt(timeMatch[1])
+    const minute = parseInt(timeMatch[2])
+    
+    if (isNaN(hour) || isNaN(minute) || hour < 0 || hour > 23 || minute < 0 || minute > 59) {
+      return ''
+    }
+    
+    // Smart context logic: if start time is AM and end time is < 12, assume PM
+    if (context?.startTime) {
+      const startHour = parseInt(context.startTime)
+      if (!isNaN(startHour) && startHour < 12 && hour < 12 && hour !== 0) {
+        // Start time is AM, end time is < 12, assume end time is PM
+        return `${(hour + 12).toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
+      }
+    }
+    
+    return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
+  }
+  
+  // Handle simple hour format (e.g., "3", "14")
+  const hour = parseInt(trimmed)
+  if (isNaN(hour) || hour < 0 || hour > 23) return ''
+  
+  // Smart context logic: if start time is AM and end time is < 12, assume PM
+  if (context?.startTime) {
+    const startHour = parseInt(context.startTime)
+    if (!isNaN(startHour) && startHour < 12 && hour < 12 && hour !== 0) {
+      // Start time is AM, end time is < 12, assume end time is PM
+      return `${(hour + 12).toString().padStart(2, '0')}:00`
+    }
+  }
+  
+  return `${hour.toString().padStart(2, '0')}:00`
+}
+
+function standardTimeToSimple(standardTime: string): string {
+  if (!standardTime || standardTime.trim() === '') return ''
+  
+  // Handle both "HH:MM" and "HH:MM:SS" formats
+  const timeMatch = standardTime.match(/^(\d{1,2}):(\d{2})(:\d{2})?$/)
+  if (!timeMatch) return ''
+  
+  const hour = parseInt(timeMatch[1])
+  const minute = parseInt(timeMatch[2])
+  
+  if (isNaN(hour) || isNaN(minute) || hour < 0 || hour > 23 || minute < 0 || minute > 59) return ''
+  
+  // If minutes are 00, return just the hour for simple format
+  if (minute === 0) {
+    return hour.toString()
+  }
+  
+  // Otherwise return the full time format
+  return `${hour}:${minute.toString().padStart(2, '0')}`
+}
+
+function formatTimeForDisplay(simpleTime: string): string {
+  if (!simpleTime || simpleTime.trim() === '') return ''
+  
+  const trimmed = simpleTime.trim()
+  
+  // Check if it's a full time format (e.g., "3:30", "14:45")
+  const timeMatch = trimmed.match(/^(\d{1,2}):(\d{2})$/)
+  if (timeMatch) {
+    const hour = parseInt(timeMatch[1])
+    const minute = parseInt(timeMatch[2])
+    
+    if (isNaN(hour) || isNaN(minute) || hour < 0 || hour > 23 || minute < 0 || minute > 59) {
+      return simpleTime
+    }
+    
+    if (hour === 0) return `12:${minute.toString().padStart(2, '0')} AM`
+    if (hour < 12) return `${hour}:${minute.toString().padStart(2, '0')} AM`
+    if (hour === 12) return `12:${minute.toString().padStart(2, '0')} PM`
+    return `${hour - 12}:${minute.toString().padStart(2, '0')} PM`
+  }
+  
+  // Handle simple hour format (e.g., "3", "14")
+  const hour = parseInt(trimmed)
+  if (isNaN(hour) || hour < 0 || hour > 23) return simpleTime
+  
+  if (hour === 0) return '12:00 AM'
+  if (hour < 12) return `${hour}:00 AM`
+  if (hour === 12) return '12:00 PM'
+  return `${hour - 12}:00 PM`
+}
+
 function parseEventText(text: string) {
   const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean)
   const dateMarker = /(Mon|Tue|Wed|Thu|Fri|Sat|Sun)|\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\b|\b20\d{2}\b/i
@@ -168,6 +264,16 @@ export default function Events({ darkMode = false }: EventsProps) {
     const saved = localStorage.getItem('events-ocr-draft')
     return saved ? JSON.parse(saved) : null
   })
+  
+  // Display state for time fields
+  const [ocrStartTimeDisplay, setOcrStartTimeDisplay] = useState('')
+  const [ocrEndTimeDisplay, setOcrEndTimeDisplay] = useState('')
+  const [editStartTimeDisplay, setEditStartTimeDisplay] = useState('')
+  const [editEndTimeDisplay, setEditEndTimeDisplay] = useState('')
+  
+  // Image hover preview state
+  const [hoveredImage, setHoveredImage] = useState<{ src: string; alt: string } | null>(null)
+  const [hoverPosition, setHoverPosition] = useState({ x: 0, y: 0 })
 
   // Helper function to update OCR draft safely
   const updateOcrDraft = (updates: Partial<EventRow>) => {
@@ -203,7 +309,15 @@ export default function Events({ darkMode = false }: EventsProps) {
     }
   }
 
-  // Handle escape key and click outside to cancel editing
+  // Debug: Log editing state changes
+  useEffect(() => {
+    console.log('🔄 Events - editing state changed to:', editing);
+    if (editing) {
+      console.log('🔄 Events - Rendering edit dialog for:', editing);
+    }
+  }, [editing]);
+
+  // Handle escape key and Enter key for dialogs
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -216,6 +330,14 @@ export default function Events({ darkMode = false }: EventsProps) {
           setOcrImageUrl(null)
           setOcrError(null)
         }
+      } else if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+        // Cmd+Enter or Ctrl+Enter to accept
+        e.preventDefault()
+        if (editing) {
+          save()
+        } else if (ocrOpen && ocrDraft && ocrDraft.name) {
+          confirmOcrInsert()
+        }
       }
     }
 
@@ -223,7 +345,7 @@ export default function Events({ darkMode = false }: EventsProps) {
       document.addEventListener('keydown', handleKeyDown)
       return () => document.removeEventListener('keydown', handleKeyDown)
     }
-  }, [editing, ocrOpen])
+  }, [editing, ocrOpen, ocrDraft])
 
   // Use centralized form field population
   useFormFieldPopulation({
@@ -697,18 +819,13 @@ export default function Events({ darkMode = false }: EventsProps) {
   }
 
   return (
-    <div style={{ 
-      background: darkMode ? '#111827' : '#ffffff',
-      color: darkMode ? '#f9fafb' : '#1f2937'
-    }}>
-      <h2 style={{ 
+    <>
+      <div style={{ 
+        background: darkMode ? '#111827' : '#ffffff',
         color: darkMode ? '#f9fafb' : '#1f2937',
-        marginBottom: '24px',
-        fontSize: '28px',
-        fontWeight: '600'
-      }}>📅 Events</h2>
-      
-
+        filter: editing ? 'blur(2px)' : 'none',
+        transition: 'filter 0.3s ease'
+      }}>
       {/* Events Toolbar */}
       <div
         className="events-toolbar"
@@ -734,6 +851,14 @@ export default function Events({ darkMode = false }: EventsProps) {
           alignItems: 'center',
           marginBottom: 12
         }}>
+          {/* Module Title */}
+          <h2 style={{
+            color: darkMode ? '#f9fafb' : '#1f2937',
+            margin: 0,
+            fontSize: '24px',
+            fontWeight: '600',
+            marginRight: '16px'
+          }}>📅 Events</h2>
           <button 
             className="btn" 
             onClick={startNew} 
@@ -1051,41 +1176,78 @@ export default function Events({ darkMode = false }: EventsProps) {
             onClick={(e) => e.stopPropagation()}
             style={{ 
               background: darkMode ? '#1f2937' : 'white', 
-              padding: '32px', 
               borderRadius: '12px', 
               maxWidth: '900px', 
               width: '100%', 
               maxHeight: '90vh', 
-              overflow: 'auto',
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
               boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
             }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
-              <h3 style={{ margin: 0, fontSize: '24px', fontWeight: '600', color: darkMode ? '#f9fafb' : '#1f2937' }}>
-                📷 Add Event from Image
-              </h3>
-              <button 
-                onClick={() => {
-                  setOcrOpen(false)
-                  setOcrDraft(null)
-                  setOcrRawText('')
-                  setOcrImageUrl(null)
-                  setOcrError(null)
-                }}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  fontSize: '24px',
-                  cursor: 'pointer',
-                  color: darkMode ? '#6b7280' : '#6b7280',
-                  padding: '4px'
-                }}
-                title="Close"
-              >
-                ✕
-              </button>
+            {/* Sticky Header */}
+            <div style={{ 
+              padding: '32px 32px 0 32px',
+              position: 'sticky',
+              top: 0,
+              background: darkMode ? '#1f2937' : 'white',
+              zIndex: 10,
+              borderBottom: `1px solid ${darkMode ? '#374151' : '#e5e7eb'}`,
+              marginBottom: '24px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
+                <h3 style={{ margin: 0, fontSize: '24px', fontWeight: '600', color: darkMode ? '#f9fafb' : '#1f2937' }}>
+                  📷 Add Event from Image
+                </h3>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                  <button 
+                    onClick={confirmOcrInsert}
+                    disabled={!ocrDraft || !ocrDraft.name}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      fontSize: '24px',
+                      cursor: ocrDraft && ocrDraft.name ? 'pointer' : 'not-allowed',
+                      color: darkMode ? '#10b981' : '#059669',
+                      padding: '4px',
+                      opacity: ocrDraft && ocrDraft.name ? 1 : 0.5
+                    }}
+                    title="Accept (Cmd+Enter)"
+                  >
+                    ✓
+                  </button>
+                  <button 
+                    onClick={() => {
+                      setOcrOpen(false)
+                      setOcrDraft(null)
+                      setOcrRawText('')
+                      setOcrImageUrl(null)
+                      setOcrError(null)
+                    }}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      fontSize: '24px',
+                      cursor: 'pointer',
+                      color: darkMode ? '#6b7280' : '#6b7280',
+                      padding: '4px'
+                    }}
+                    title="Close (ESC)"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
             </div>
 
-            <div style={{ display: 'grid', gap: '20px' }}>
+            {/* Scrollable Content */}
+            <div style={{ 
+              flex: 1, 
+              overflow: 'auto', 
+              padding: '0 32px',
+              display: 'grid', 
+              gap: '20px' 
+            }}>
               {/* Image Upload Section */}
               <div style={{ 
                 border: `1px dashed ${darkMode ? '#6b7280' : '#c8b68a'}`,
@@ -1111,12 +1273,19 @@ export default function Events({ darkMode = false }: EventsProps) {
                       <img 
                         src={ocrImageUrl} 
                         alt="pasted" 
+                        onMouseEnter={(e) => {
+                          const rect = e.currentTarget.getBoundingClientRect()
+                          setHoverPosition({ x: rect.right, y: rect.top })
+                          setHoveredImage({ src: ocrImageUrl, alt: 'OCR Image Preview' })
+                        }}
+                        onMouseLeave={() => setHoveredImage(null)}
                         style={{ 
                           maxWidth: 120, 
                           maxHeight: 120, 
                           objectFit: 'contain', 
                           borderRadius: 6, 
-                          border: '1px solid #eee' 
+                          border: '1px solid #eee',
+                          cursor: 'pointer'
                         }} 
                       />
                     ) : (
@@ -1238,8 +1407,8 @@ export default function Events({ darkMode = false }: EventsProps) {
                         </div>
                       </div>
 
-                      {/* Date and Time row */}
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '12px' }}>
+                      {/* Date row */}
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                         <div>
                           <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: darkMode ? '#f9fafb' : '#374151' }}>
                             Start Date
@@ -1247,7 +1416,43 @@ export default function Events({ darkMode = false }: EventsProps) {
                           <input 
                             type="date" 
                             value={ocrDraft?.start_date ?? ''} 
-                            onChange={e=>updateOcrDraft({ start_date: e.target.value })} 
+                            onChange={e => {
+                              const startDate = e.target.value;
+                              const updates: Partial<EventRow> = { start_date: startDate };
+                              
+                              // If end_date is null or empty, set it to the same value as start_date
+                              if (!ocrDraft?.end_date || ocrDraft.end_date === '') {
+                                updates.end_date = startDate;
+                              }
+                              
+                              updateOcrDraft(updates);
+                            }}
+                            onBlur={e => {
+                              const startDate = e.target.value;
+                              if (startDate) {
+                                const updates: Partial<EventRow> = { start_date: startDate };
+                                
+                                // If end_date is null or empty, set it to the same value as start_date
+                                if (!ocrDraft?.end_date || ocrDraft.end_date === '') {
+                                  updates.end_date = startDate;
+                                }
+                                
+                                updateOcrDraft(updates);
+                              }
+                            }}
+                            onInput={e => {
+                              const startDate = (e.target as HTMLInputElement).value;
+                              if (startDate) {
+                                const updates: Partial<EventRow> = { start_date: startDate };
+                                
+                                // If end_date is null or empty, set it to the same value as start_date
+                                if (!ocrDraft?.end_date || ocrDraft.end_date === '') {
+                                  updates.end_date = startDate;
+                                }
+                                
+                                updateOcrDraft(updates);
+                              }
+                            }}
                             style={{ 
                               width: '100%', 
                               padding: '12px', 
@@ -1278,14 +1483,35 @@ export default function Events({ darkMode = false }: EventsProps) {
                             }} 
                           />
                         </div>
+                      </div>
+
+                      {/* Time row */}
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                         <div>
                           <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: darkMode ? '#f9fafb' : '#374151' }}>
                             Start Time
                           </label>
                           <input 
-                            type="time" 
-                            value={ocrDraft?.start_time ?? ''} 
-                            onChange={e=>updateOcrDraft({ start_time: e.target.value })} 
+                            type="text" 
+                            placeholder="6 (6 AM), 14 (2 PM)"
+                            value={ocrStartTimeDisplay || (ocrDraft?.start_time ? standardTimeToSimple(ocrDraft.start_time) : '')} 
+                            onChange={e => {
+                              const simpleTime = e.target.value
+                              setOcrStartTimeDisplay(simpleTime)
+                              const standardTime = simpleTimeToStandard(simpleTime)
+                              updateOcrDraft({ start_time: standardTime })
+                            }}
+                            onBlur={e => {
+                              const simpleTime = e.target.value
+                              if (simpleTime) {
+                                const formattedTime = formatTimeForDisplay(simpleTime)
+                                setOcrStartTimeDisplay(formattedTime)
+                              }
+                            }}
+                            onFocus={e => {
+                              const simpleTime = ocrDraft?.start_time ? standardTimeToSimple(ocrDraft.start_time) : ''
+                              setOcrStartTimeDisplay(simpleTime)
+                            }}
                             style={{ 
                               width: '100%', 
                               padding: '12px', 
@@ -1302,9 +1528,30 @@ export default function Events({ darkMode = false }: EventsProps) {
                             End Time
                           </label>
                           <input 
-                            type="time" 
-                            value={ocrDraft?.end_time ?? ''} 
-                            onChange={e=>updateOcrDraft({ end_time: e.target.value })} 
+                            type="text" 
+                            placeholder="18 (6 PM), 22 (10 PM)"
+                            value={ocrEndTimeDisplay || (ocrDraft?.end_time ? standardTimeToSimple(ocrDraft.end_time) : '')} 
+                            onChange={e => {
+                              const simpleTime = e.target.value
+                              setOcrEndTimeDisplay(simpleTime)
+                              const startTime = ocrDraft?.start_time ? standardTimeToSimple(ocrDraft.start_time) : ''
+                              const standardTime = simpleTimeToStandard(simpleTime, { startTime })
+                              updateOcrDraft({ end_time: standardTime })
+                            }}
+                            onBlur={e => {
+                              const simpleTime = e.target.value
+                              if (simpleTime) {
+                                const startTime = ocrDraft?.start_time ? standardTimeToSimple(ocrDraft.start_time) : ''
+                                const contextHour = simpleTimeToStandard(simpleTime, { startTime })
+                                const displayHour = standardTimeToSimple(contextHour)
+                                const formattedTime = formatTimeForDisplay(displayHour)
+                                setOcrEndTimeDisplay(formattedTime)
+                              }
+                            }}
+                            onFocus={e => {
+                              const simpleTime = ocrDraft?.end_time ? standardTimeToSimple(ocrDraft.end_time) : ''
+                              setOcrEndTimeDisplay(simpleTime)
+                            }}
                             style={{ 
                               width: '100%', 
                               padding: '12px', 
@@ -1324,21 +1571,51 @@ export default function Events({ darkMode = false }: EventsProps) {
                           <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: darkMode ? '#f9fafb' : '#374151' }}>
                             Website URL
                           </label>
-                          <input 
-                            type="url" 
-                            value={ocrDraft?.website_url ?? ''} 
-                            onChange={e=>updateOcrDraft({ website_url: e.target.value })} 
-                            style={{ 
-                              width: '100%', 
-                              padding: '12px', 
-                              border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`, 
-                              borderRadius: '8px',
-                              fontSize: '14px',
-                              background: darkMode ? '#374151' : '#ffffff',
-                              color: darkMode ? '#ffffff' : '#000000'
-                            }} 
-                            placeholder="https://example.com"
-                          />
+                          <div style={{ position: 'relative' }}>
+                            <input 
+                              type="url" 
+                              value={ocrDraft?.website_url ?? ''} 
+                              onChange={e=>updateOcrDraft({ website_url: e.target.value })} 
+                              style={{ 
+                                width: '100%', 
+                                padding: '12px 40px 12px 12px', 
+                                border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`, 
+                                borderRadius: '8px',
+                                fontSize: '14px',
+                                background: darkMode ? '#374151' : '#ffffff',
+                                color: darkMode ? '#ffffff' : '#000000'
+                              }} 
+                              placeholder="https://example.com"
+                            />
+                            {ocrDraft?.website_url && (
+                              <button
+                                onClick={() => {
+                                  const url = ocrDraft.website_url?.startsWith('http') 
+                                    ? ocrDraft.website_url 
+                                    : `https://${ocrDraft.website_url}`;
+                                  window.open(url, '_blank', 'noopener,noreferrer');
+                                }}
+                                style={{
+                                  position: 'absolute',
+                                  right: '8px',
+                                  top: '50%',
+                                  transform: 'translateY(-50%)',
+                                  background: 'none',
+                                  border: 'none',
+                                  color: darkMode ? '#6b7280' : '#9ca3af',
+                                  cursor: 'pointer',
+                                  fontSize: '16px',
+                                  padding: '4px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center'
+                                }}
+                                title="Open website in new tab"
+                              >
+                                🔗
+                              </button>
+                            )}
+                          </div>
                         </div>
                         <div>
                           <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: darkMode ? '#f9fafb' : '#374151' }}>
@@ -1636,8 +1913,7 @@ export default function Events({ darkMode = false }: EventsProps) {
             >
               <td style={{ 
                 padding: '8px 6px', 
-                borderBottom: `1px solid ${darkMode ? '#374151' : '#f1f1f1'}`,
-                background: darkMode ? '#1f2937' : '#ffffff'
+                borderBottom: `1px solid ${darkMode ? '#374151' : '#f1f1f1'}`
               }}>
                 <input 
                   type="checkbox" 
@@ -1651,8 +1927,7 @@ export default function Events({ darkMode = false }: EventsProps) {
               </td>
               <td style={{ 
                 padding: '8px 6px', 
-                borderBottom: `1px solid ${darkMode ? '#374151' : '#f1f1f1'}`,
-                background: darkMode ? '#1f2937' : '#ffffff'
+                borderBottom: `1px solid ${darkMode ? '#374151' : '#f1f1f1'}`
               }}>
                 <div style={{ fontWeight: 600, color: darkMode ? '#f9fafb' : '#1f2937' }}>{r.name}</div>
                 {r.host_org ? (
@@ -1662,20 +1937,20 @@ export default function Events({ darkMode = false }: EventsProps) {
                   <div style={{ fontSize: 12, color: '#666' }}>{r.recurrence}</div>
                 ) : null}
               </td>
-              <td style={{ padding: '8px 6px', borderBottom: '1px solid #f1f1f1' }}>
+              <td style={{ padding: '8px 6px', borderBottom: `1px solid ${darkMode ? '#374151' : '#f1f1f1'}` }}>
                 {r.start_date ? new Date(r.start_date + 'T00:00:00').toLocaleDateString() : ''}
               </td>
-              <td style={{ padding: '8px 6px', borderBottom: '1px solid #f1f1f1' }}>
+              <td style={{ padding: '8px 6px', borderBottom: `1px solid ${darkMode ? '#374151' : '#f1f1f1'}` }}>
                 {r.end_date ? new Date(r.end_date + 'T00:00:00').toLocaleDateString() : ''}
               </td>
-              <td style={{ padding: '8px 6px', borderBottom: '1px solid #f1f1f1' }}>
+              <td style={{ padding: '8px 6px', borderBottom: `1px solid ${darkMode ? '#374151' : '#f1f1f1'}` }}>
                 {r.start_time || '—'}
               </td>
-              <td style={{ padding: '8px 6px', borderBottom: '1px solid #f1f1f1' }}>
+              <td style={{ padding: '8px 6px', borderBottom: `1px solid ${darkMode ? '#374151' : '#f1f1f1'}` }}>
                 {r.end_time || '—'}
               </td>
-              <td style={{ padding: '8px 6px', borderBottom: '1px solid #f1f1f1' }}>{r.location ?? ''}</td>
-              <td style={{ padding: '8px 6px', borderBottom: '1px solid #f1f1f1' }}>
+              <td style={{ padding: '8px 6px', borderBottom: `1px solid ${darkMode ? '#374151' : '#f1f1f1'}` }}>{r.location ?? ''}</td>
+              <td style={{ padding: '8px 6px', borderBottom: `1px solid ${darkMode ? '#374151' : '#f1f1f1'}` }}>
                 <span style={{
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -1684,15 +1959,21 @@ export default function Events({ darkMode = false }: EventsProps) {
                   borderRadius: '12px',
                   fontSize: '12px',
                   fontWeight: '500',
-                  background: r.status === 'published' ? '#e8f5e8' : r.status === 'archived' ? '#fff3e0' : '#f5f5f5',
-                  color: r.status === 'published' ? '#2e7d32' : r.status === 'archived' ? '#f57c00' : '#666',
-                  border: `1px solid ${r.status === 'published' ? '#c8e6c9' : r.status === 'archived' ? '#ffcc02' : '#e0e0e0'}`
+                  background: darkMode 
+                    ? (r.status === 'published' ? '#1b5e20' : r.status === 'archived' ? '#e65100' : '#424242')
+                    : (r.status === 'published' ? '#e8f5e8' : r.status === 'archived' ? '#fff3e0' : '#f5f5f5'),
+                  color: darkMode
+                    ? (r.status === 'published' ? '#a5d6a7' : r.status === 'archived' ? '#ffb74d' : '#bdbdbd')
+                    : (r.status === 'published' ? '#2e7d32' : r.status === 'archived' ? '#f57c00' : '#666'),
+                  border: darkMode
+                    ? `1px solid ${r.status === 'published' ? '#2e7d32' : r.status === 'archived' ? '#ff9800' : '#616161'}`
+                    : `1px solid ${r.status === 'published' ? '#c8e6c9' : r.status === 'archived' ? '#ffcc02' : '#e0e0e0'}`
                 }}>
                   {r.status === 'published' ? '✅' : r.status === 'archived' ? '📦' : '📝'}
                   {r.status === 'published' ? 'Published' : r.status === 'archived' ? 'Archived' : 'Draft'}
                 </span>
               </td>
-              <td style={{ padding: '8px 6px', borderBottom: '1px solid #f1f1f1' }}>
+              <td style={{ padding: '8px 6px', borderBottom: `1px solid ${darkMode ? '#374151' : '#f1f1f1'}` }}>
                 {r.website_url ? (
                   <a 
                     href={r.website_url} 
@@ -1703,11 +1984,11 @@ export default function Events({ darkMode = false }: EventsProps) {
                       alignItems: 'center',
                       gap: '4px',
                       padding: '4px 8px',
-                      background: '#e3f2fd',
-                      border: '1px solid #bbdefb',
+                      background: darkMode ? '#1e3a8a' : '#e3f2fd',
+                      border: darkMode ? '1px solid #3b82f6' : '1px solid #bbdefb',
                       borderRadius: '4px',
                       textDecoration: 'none',
-                      color: '#1976d2',
+                      color: darkMode ? '#93c5fd' : '#1976d2',
                       fontSize: '12px',
                       fontWeight: '500'
                     }}
@@ -1719,24 +2000,31 @@ export default function Events({ darkMode = false }: EventsProps) {
                   <span style={{ color: '#bbb', fontSize: '12px' }}>—</span>
                 )}
               </td>
-              <td style={{ padding: '8px 6px', borderBottom: '1px solid #f1f1f1' }}>
+              <td style={{ padding: '8px 6px', borderBottom: `1px solid ${darkMode ? '#374151' : '#f1f1f1'}` }}>
                 {r.image_url ? (
                   <img 
                     src={r.image_url} 
                     alt={r.name} 
+                    onMouseEnter={(e) => {
+                      const rect = e.currentTarget.getBoundingClientRect()
+                      setHoverPosition({ x: rect.right, y: rect.top })
+                      setHoveredImage({ src: r.image_url, alt: r.name })
+                    }}
+                    onMouseLeave={() => setHoveredImage(null)}
                     style={{ 
                       width: 40, 
                       height: 40, 
                       objectFit: 'cover', 
                       borderRadius: '4px',
-                      border: '1px solid #ddd'
+                      border: '1px solid #ddd',
+                      cursor: 'pointer'
                     }} 
                   />
                 ) : (
                   <span style={{ color: '#bbb', fontSize: '12px' }}>—</span>
                 )}
               </td>
-              <td style={{ padding: '8px 6px', borderBottom: '1px solid #f1f1f1' }}>
+              <td style={{ padding: '8px 6px', borderBottom: `1px solid ${darkMode ? '#374151' : '#f1f1f1'}` }}>
                 <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                   <button 
                     className="btn secondary" 
@@ -1750,7 +2038,10 @@ export default function Events({ darkMode = false }: EventsProps) {
                       display: 'flex',
                       alignItems: 'center',
                       gap: '4px',
-                      borderRadius: '4px'
+                      borderRadius: '4px',
+                      background: darkMode ? '#374151' : '#f3f4f6',
+                      border: darkMode ? '1px solid #4b5563' : '1px solid #d1d5db',
+                      color: darkMode ? '#f9fafb' : '#374151'
                     }}
                     title="Edit event"
                   >
@@ -1769,7 +2060,10 @@ export default function Events({ darkMode = false }: EventsProps) {
                       display: 'flex',
                       alignItems: 'center',
                       gap: '4px',
-                      borderRadius: '4px'
+                      borderRadius: '4px',
+                      background: darkMode ? '#1e40af' : '#3b82f6',
+                      border: darkMode ? '1px solid #3b82f6' : '1px solid #3b82f6',
+                      color: '#ffffff'
                     }}
                     title="Duplicate event"
                   >
@@ -1788,7 +2082,10 @@ export default function Events({ darkMode = false }: EventsProps) {
                       display: 'flex',
                       alignItems: 'center',
                       gap: '4px',
-                      borderRadius: '4px'
+                      borderRadius: '4px',
+                      background: darkMode ? '#dc2626' : '#ef4444',
+                      border: darkMode ? '1px solid #dc2626' : '1px solid #ef4444',
+                      color: '#ffffff'
                     }}
                     title="Delete event"
                   >
@@ -1801,40 +2098,29 @@ export default function Events({ darkMode = false }: EventsProps) {
             ))}
           </tbody>
         </table>
+      </div>
 
       {editing && (
         <div 
-          onClick={async () => await save()}
           style={{ 
             position: 'fixed', 
-            top: 0, 
-            left: 0, 
-            right: 0, 
-            bottom: 0, 
-            background: 'rgba(0,0,0,0.5)', 
+            top: '50%', 
+            left: '50%', 
+            transform: 'translate(-50%, -50%)',
             zIndex: 1000, 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'center',
-            padding: '20px'
+            maxWidth: '800px', 
+            width: '90%', 
+            maxHeight: '90vh', 
+            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.05)',
+            background: darkMode ? '#1f2937' : 'white',
+            borderRadius: '12px',
+            border: `1px solid ${darkMode ? '#374151' : '#e5e7eb'}`
           }}
         >
-          <div 
-            onClick={(e) => e.stopPropagation()}
-            style={{ 
-              background: darkMode ? '#1f2937' : 'white', 
-              padding: '32px',
-              borderRadius: '12px', 
-              maxWidth: '800px', 
-              width: '100%', 
-              maxHeight: '90vh', 
-              overflow: 'hidden',
-              display: 'flex',
-              flexDirection: 'column',
-              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
-            }}
-          >
-            {/* Header */}
+          {/* Header */}
             <div style={{ 
               display: 'flex', 
               alignItems: 'center', 
@@ -1860,8 +2146,22 @@ export default function Events({ darkMode = false }: EventsProps) {
                   />
                 </div>
                 
-                {/* Close button - Right aligned */}
-                <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end' }}>
+                {/* Accept and Close buttons - Right aligned */}
+                <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '20px' }}>
+                  <button 
+                    onClick={async () => await save()}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      fontSize: '24px',
+                      cursor: 'pointer',
+                      color: darkMode ? '#10b981' : '#059669',
+                      padding: '4px'
+                    }}
+                    title="Accept (Cmd+Enter)"
+                  >
+                    ✓
+                  </button>
                   <button 
                     onClick={()=>setEditing(null)}
                     style={{
@@ -1995,7 +2295,43 @@ export default function Events({ darkMode = false }: EventsProps) {
                     className={darkMode ? 'form-field-white-text' : ''}
                     type="date"
                     defaultValue={editing?.start_date ? editing.start_date.split('T')[0] : ''}
-                    onChange={e=>updateEditing({ start_date: e.target.value})} 
+                    onChange={e => {
+                      const startDate = e.target.value;
+                      const updates: Partial<EventRow> = { start_date: startDate };
+                      
+                      // If end_date is null or empty, set it to the same value as start_date
+                      if (!editing?.end_date || editing.end_date === '') {
+                        updates.end_date = startDate;
+                      }
+                      
+                      updateEditing(updates);
+                    }}
+                    onBlur={e => {
+                      const startDate = e.target.value;
+                      if (startDate) {
+                        const updates: Partial<EventRow> = { start_date: startDate };
+                        
+                        // If end_date is null or empty, set it to the same value as start_date
+                        if (!editing?.end_date || editing.end_date === '') {
+                          updates.end_date = startDate;
+                        }
+                        
+                        updateEditing(updates);
+                      }
+                    }}
+                    onInput={e => {
+                      const startDate = (e.target as HTMLInputElement).value;
+                      if (startDate) {
+                        const updates: Partial<EventRow> = { start_date: startDate };
+                        
+                        // If end_date is null or empty, set it to the same value as start_date
+                        if (!editing?.end_date || editing.end_date === '') {
+                          updates.end_date = startDate;
+                        }
+                        
+                        updateEditing(updates);
+                      }
+                    }}
                     style={{ 
                       width: '100%', 
                       padding: '12px', 
@@ -2043,9 +2379,26 @@ export default function Events({ darkMode = false }: EventsProps) {
                     key={`start-time-${editing?.id || 'new'}`}
                     data-key={`start-time-${editing?.id || 'new'}`}
                     className={darkMode ? 'form-field-white-text' : ''}
-                    type="time"
-                    defaultValue={editing?.start_time ? editing.start_time.substring(0, 5) : ''}
-                    onChange={e=>updateEditing({ start_time: e.target.value})} 
+                    type="text"
+                    placeholder="6 (6 AM), 14 (2 PM)"
+                    value={editStartTimeDisplay || (editing?.start_time ? standardTimeToSimple(editing.start_time) : '')}
+                    onChange={e => {
+                      const simpleTime = e.target.value
+                      setEditStartTimeDisplay(simpleTime)
+                      const standardTime = simpleTimeToStandard(simpleTime)
+                      updateEditing({ start_time: standardTime })
+                    }}
+                    onBlur={e => {
+                      const simpleTime = e.target.value
+                      if (simpleTime) {
+                        const formattedTime = formatTimeForDisplay(simpleTime)
+                        setEditStartTimeDisplay(formattedTime)
+                      }
+                    }}
+                    onFocus={e => {
+                      const simpleTime = editing?.start_time ? standardTimeToSimple(editing.start_time) : ''
+                      setEditStartTimeDisplay(simpleTime)
+                    }}
                     style={{ 
                       width: '100%', 
                       padding: '12px', 
@@ -2066,9 +2419,30 @@ export default function Events({ darkMode = false }: EventsProps) {
                     key={`end-time-${editing?.id || 'new'}`}
                     data-key={`end-time-${editing?.id || 'new'}`}
                     className={darkMode ? 'form-field-white-text' : ''}
-                    type="time"
-                    defaultValue={editing?.end_time ? editing.end_time.substring(0, 5) : ''}
-                    onChange={e=>updateEditing({ end_time: e.target.value})} 
+                    type="text"
+                    placeholder="18 (6 PM), 22 (10 PM)"
+                    value={editEndTimeDisplay || (editing?.end_time ? standardTimeToSimple(editing.end_time) : '')}
+                    onChange={e => {
+                      const simpleTime = e.target.value
+                      setEditEndTimeDisplay(simpleTime)
+                      const startTime = editing?.start_time ? standardTimeToSimple(editing.start_time) : ''
+                      const standardTime = simpleTimeToStandard(simpleTime, { startTime })
+                      updateEditing({ end_time: standardTime })
+                    }}
+                    onBlur={e => {
+                      const simpleTime = e.target.value
+                      if (simpleTime) {
+                        const startTime = editing?.start_time ? standardTimeToSimple(editing.start_time) : ''
+                        const contextHour = simpleTimeToStandard(simpleTime, { startTime })
+                        const displayHour = standardTimeToSimple(contextHour)
+                        const formattedTime = formatTimeForDisplay(displayHour)
+                        setEditEndTimeDisplay(formattedTime)
+                      }
+                    }}
+                    onFocus={e => {
+                      const simpleTime = editing?.end_time ? standardTimeToSimple(editing.end_time) : ''
+                      setEditEndTimeDisplay(simpleTime)
+                    }}
                     style={{ 
                       width: '100%', 
                       padding: '12px', 
@@ -2089,7 +2463,7 @@ export default function Events({ darkMode = false }: EventsProps) {
                   <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: darkMode ? '#f9fafb' : '#374151' }}>
                     Website URL
                   </label>
-                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <div style={{ position: 'relative' }}>
                     <input 
                       key={`website-url-${editing?.id || 'new'}`}
                       data-key={`website-url-${editing?.id || 'new'}`}
@@ -2097,8 +2471,8 @@ export default function Events({ darkMode = false }: EventsProps) {
                       defaultValue={editing?.website_url || ''} 
                       onChange={e=>updateEditing({ website_url: e.target.value})} 
                       style={{ 
-                        flex: 1,
-                        padding: '12px', 
+                        width: '100%',
+                        padding: '12px 40px 12px 12px', 
                         border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`, 
                         borderRadius: '8px',
                         background: darkMode ? '#374151' : '#ffffff',
@@ -2116,20 +2490,19 @@ export default function Events({ darkMode = false }: EventsProps) {
                           window.open(url, '_blank', 'noopener,noreferrer');
                         }}
                         style={{
-                          padding: '8px',
-                          background: darkMode ? '#374151' : '#f3f4f6',
-                          border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`,
-                          borderRadius: '6px',
-                          color: darkMode ? '#f9fafb' : '#374151',
+                          position: 'absolute',
+                          right: '8px',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          background: 'none',
+                          border: 'none',
+                          color: darkMode ? '#6b7280' : '#9ca3af',
                           cursor: 'pointer',
-                          fontSize: '14px',
-                          fontWeight: '500',
-                          width: '36px',
-                          height: '36px',
+                          fontSize: '16px',
+                          padding: '4px',
                           display: 'flex',
                           alignItems: 'center',
-                          justifyContent: 'center',
-                          flexShrink: 0
+                          justifyContent: 'center'
                         }}
                         title="Open website in new tab"
                       >
@@ -2219,9 +2592,8 @@ export default function Events({ darkMode = false }: EventsProps) {
                         borderRadius: '8px',
                         textAlign: 'center',
                         cursor: 'pointer',
-                        background: darkMode ? '#374151' : '#ffffff',
-                        color: darkMode ? '#9ca3af' : '#6b7280',
                         background: darkMode ? '#374151' : '#f9fafb',
+                        color: darkMode ? '#9ca3af' : '#6b7280',
                         minWidth: '120px',
                         display: 'flex',
                         alignItems: 'center',
@@ -2248,12 +2620,19 @@ export default function Events({ darkMode = false }: EventsProps) {
                     <img 
                       src={editing?.image_url || editingImageUrl} 
                       alt="Event preview" 
+                      onMouseEnter={(e) => {
+                        const rect = e.currentTarget.getBoundingClientRect()
+                        setHoverPosition({ x: rect.right, y: rect.top })
+                        setHoveredImage({ src: editing?.image_url || editingImageUrl, alt: 'Event Preview' })
+                      }}
+                      onMouseLeave={() => setHoveredImage(null)}
                       style={{ 
                         width: 80, 
                         height: 80, 
                         objectFit: 'cover', 
                         borderRadius: '8px',
-                        border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`
+                        border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`,
+                        cursor: 'pointer'
                       }} 
                     />
                   )}
@@ -2314,10 +2693,45 @@ export default function Events({ darkMode = false }: EventsProps) {
                 </div>
               </div>
             </div>
+
           </div>
         </div>
+      )}
+
+      {/* Image Hover Preview Modal */}
+      {hoveredImage && (
+        <div
+          style={{
+            position: 'fixed',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            zIndex: 10000,
+            background: darkMode ? '#1f2937' : '#ffffff',
+            border: `2px solid ${darkMode ? '#374151' : '#d1d5db'}`,
+            borderRadius: '12px',
+            boxShadow: darkMode 
+              ? '0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05)'
+              : '0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.05)',
+            padding: '12px',
+            maxWidth: '500px',
+            maxHeight: '500px',
+            pointerEvents: 'none'
+          }}
+        >
+          <img
+            src={hoveredImage.src}
+            alt={hoveredImage.alt}
+            style={{
+              maxWidth: '100%',
+              maxHeight: '100%',
+              objectFit: 'contain',
+              borderRadius: '8px',
+              display: 'block'
+            }}
+          />
         </div>
       )}
-    </div>
+    </>
   )
 }
