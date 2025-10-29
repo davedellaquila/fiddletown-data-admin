@@ -1933,12 +1933,38 @@ export default function Events({ darkMode = false }: EventsProps) {
                 left: 84,
                 zIndex: 4
               }}>
-                <div style={{ fontWeight: 600, color: darkMode ? '#f9fafb' : '#1f2937' }}>{r.name}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                  {r.website_url && r.website_url.trim() ? (
+                    <div
+                      onClick={(e) => { e.stopPropagation(); window.open(r.website_url!, '_blank') }}
+                      style={{
+                        all: 'unset',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: 24,
+                        height: 24,
+                        borderRadius: 6,
+                        color: darkMode ? '#3b82f6' : '#1976d2',
+                        background: 'transparent',
+                        border: 'none',
+                        cursor: 'pointer',
+                        transition: 'background-color 0.2s ease'
+                      }}
+                      onMouseEnter={(e) => { (e.currentTarget as any).style.backgroundColor = darkMode ? 'rgba(59,130,246,0.1)' : 'rgba(25,118,210,0.1)' }}
+                      onMouseLeave={(e) => { (e.currentTarget as any).style.backgroundColor = 'transparent' }}
+                      title="Open URL in new tab"
+                    >
+                      <span>🔗</span>
+                    </div>
+                  ) : null}
+                  <div style={{ fontWeight: 600, color: darkMode ? '#f9fafb' : '#1f2937' }}>{r.name}</div>
+                </div>
                 {r.host_org ? (
-                  <div style={{ fontSize: 12, color: darkMode ? '#9ca3af' : '#666' }}>Host: {r.host_org}</div>
+                  <div style={{ fontSize: 12, color: darkMode ? '#9ca3af' : '#666', marginBottom: 10 }}>Host: {r.host_org}</div>
                 ) : null}
                 {r.recurrence ? (
-                  <div style={{ fontSize: 12, color: '#666' }}>{r.recurrence}</div>
+                  <div style={{ fontSize: 12, color: '#666', marginTop: 2 }}>{r.recurrence}</div>
                 ) : null}
               </td>
               {/* Website cell removed; icon shown in thumbnail column */}
@@ -1999,7 +2025,7 @@ export default function Events({ darkMode = false }: EventsProps) {
               <td style={{ 
                 padding: '8px 6px 8px 16px', 
                 borderBottom: `1px solid ${darkMode ? '#374151' : '#f1f1f1'}`,
-                background: darkMode ? '#1f2937' : '#ffffff',
+                background: 'transparent',
                 position: 'sticky',
                 right: 60,
                 zIndex: 5
@@ -2049,7 +2075,7 @@ export default function Events({ darkMode = false }: EventsProps) {
               <td style={{
                 padding: 0,
                 borderBottom: `1px solid ${darkMode ? '#374151' : '#f1f1f1'}`,
-                background: darkMode ? '#1f2937' : '#ffffff',
+                background: 'transparent',
                 width: 60,
                 position: 'sticky',
                 right: 0,
