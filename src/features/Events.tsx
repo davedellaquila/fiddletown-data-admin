@@ -2379,13 +2379,13 @@ export default function Events({ darkMode = false }: EventsProps) {
                           if (file && file.type.startsWith('image/')) {
                             const base = (editing.slug || slugify(editing.name)) || crypto.randomUUID()
                             const path = `${base}/${Date.now()}-${file.name.replace(/\s+/g, '_')}`
-                            const { error } = await supabase.storage.from('events').upload(path, file, {
+                            const { error } = await supabase.storage.from('event-images').upload(path, file, {
                               cacheControl: '3600',
                               upsert: false,
                               contentType: file.type
                             })
                             if (error) { setImagePasteStatus('Upload failed'); alert(`Upload failed: ${error.message}`); return }
-                            const { data } = supabase.storage.from('events').getPublicUrl(path)
+                            const { data } = supabase.storage.from('event-images').getPublicUrl(path)
                             setEditing({ ...editing, image_url: data.publicUrl })
                             setImagePasteStatus('Uploaded ✓')
                             setTimeout(() => { setImagePasteActive(false); setImagePasteStatus('Paste image here') }, 1500)
