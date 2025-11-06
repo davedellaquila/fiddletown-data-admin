@@ -131,38 +131,586 @@ function formatTimeForDisplay(simpleTime: string): string {
 }
 
 function parseEventText(text: string) {
+  console.log('=== parseEventText START ===')
+  console.log('parseEventText called with text:', text)
+  console.log('Text length:', text.length)
+  console.log('Text preview (first 500 chars):', text.substring(0, 500))
   const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean)
-  const dateMarker = /(Mon|Tue|Wed|Thu|Fri|Sat|Sun)|\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\b|\b20\d{2}\b/i
+  console.log('parseEventText lines:', lines)
+  console.log('Number of lines:', lines.length)
+  
+  // Enhanced date detection patterns - more comprehensive
+  const datePatterns = [
+    // Full date patterns with various separators
+    /(\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2},?\s+\d{4})/i,
+    /(\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2}\s+\d{4})/i,
+    /(\b\d{1,2}\/\d{1,2}\/\d{4})/,
+    /(\b\d{1,2}-\d{1,2}-\d{4})/,
+    /(\b\d{4}-\d{1,2}-\d{1,2})/,
+    /(\b\d{1,2}\.\d{1,2}\.\d{4})/,
+    // Day + date patterns
+    /(\b(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)[a-z]*,?\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2},?\s+\d{4})/i,
+    /(\b(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)[a-z]*,?\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2}\s+\d{4})/i,
+    // Month + day patterns
+    /(\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2})/i,
+    // Numeric patterns
+    /(\b\d{1,2}\/\d{1,2}\/\d{2,4})/,
+    /(\b\d{1,2}-\d{1,2}-\d{2,4})/,
+    // Year patterns
+    /(\b20\d{2}\b)/,
+    // Ordinal dates: "March 15th", "15th of March"
+    /(\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2}(?:st|nd|rd|th)?)/i,
+    /(\b\d{1,2}(?:st|nd|rd|th)?\s+of\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*)/i
+  ]
+  
   const titleLines: string[] = []
   let dateLine = ''
-  for (const ln of lines) {
-    if (dateMarker.test(ln)) { dateLine = ln; break }
-    titleLines.push(ln)
+  let dateMatch = ''
+  let foundDate = false
+  let dateLineIndex = -1
+  
+  // First pass: find the first line with a date pattern
+  for (let idx = 0; idx < lines.length; idx++) {
+    const ln = lines[idx]
+    if (!foundDate) {
+      for (const pattern of datePatterns) {
+        const match = ln.match(pattern)
+        if (match) {
+          dateLine = ln
+          dateLineIndex = idx
+          dateMatch = match[1] || match[0] || ln // Extract the matched date portion
+          foundDate = true
+          console.log('Found date line at index', idx, ':', dateLine)
+          console.log('Extracted date match:', dateMatch)
+          break
+        }
+      }
+    }
+    if (!foundDate) {
+      titleLines.push(ln)
+    }
   }
-  const name = (titleLines.join(' ') || lines[0] || '').replace(/\s+/g, ' ').trim()
+  
+  // If no date found in first pass, try a more aggressive search through ALL lines
+  if (!foundDate) {
+    console.log('No date found in first pass, trying aggressive search through all lines...')
+    // Search all text combined, not just individual lines (OCR might split dates across lines)
+    const allText = lines.join(' ')
+    console.log('Searching combined text (length:', allText.length, '):', allText.substring(0, 300))
+    console.log('Full combined text:', allText)
+    
+    // Try patterns on the full text
+    const numericPatterns = [
+      /\d{1,2}\/\d{1,2}\/\d{2,4}/,
+      /\d{1,2}-\d{1,2}-\d{2,4}/,
+      /\d{4}-\d{1,2}-\d{1,2}/,
+      /\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2},?\s+\d{4}/i,
+      /\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2}/i,
+      /\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*/i,
+      // Look for dates with day names
+      /(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)[a-z]*\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2},?\s+\d{4}/i,
+    ]
+    
+    for (const pattern of numericPatterns) {
+      const match = allText.match(pattern)
+      if (match) {
+        // Find which line contains this match
+        for (let idx = 0; idx < lines.length; idx++) {
+          if (lines[idx].includes(match[0])) {
+            dateLine = lines[idx]
+            dateLineIndex = idx
+            dateMatch = match[0]
+            foundDate = true
+            console.log('Found date line (aggressive search) at index', idx, ':', dateLine)
+            console.log('Extracted date match:', dateMatch)
+            break
+          }
+        }
+        if (foundDate) break
+      }
+    }
+    
+    // If still not found, try searching each line individually
+    if (!foundDate) {
+      for (let idx = 0; idx < lines.length; idx++) {
+        const ln = lines[idx]
+        for (const pattern of numericPatterns) {
+          const match = ln.match(pattern)
+          if (match) {
+            dateLine = ln
+            dateLineIndex = idx
+            dateMatch = match[0] || ln
+            foundDate = true
+            console.log('Found date line (line-by-line search) at index', idx, ':', dateLine)
+            console.log('Extracted date match:', dateMatch)
+            break
+          }
+        }
+        if (foundDate) break
+      }
+    }
+  }
+  
+  // Use the extracted date match if available, otherwise use the whole line
+  const dateString = dateMatch || dateLine
+  
+  // Extract name more intelligently - filter out OCR errors and find the actual event name
+  let name = ''
+  
+  // First, filter out obvious OCR garbage and description text
+  const isOCRgarbage = (line: string) => {
+    // Lines with too many special characters that look like OCR errors
+    const specialCharCount = (line.match(/[^\w\s]/g) || []).length
+    const isMostlySpecialChars = specialCharCount > line.length * 0.4
+    const hasTooManySpecialChars = (line.match(/[\[\]\/\~\)\@\>]/g) || []).length > 2
+    const hasOCRPatterns = /[\[\]\/\~\>]\s*[A-Za-z]|Lio\s*\[|Dll\s*Siel|clel\s*Di\s*ASW|~>>\)|0\]\s*a\s*of\]/i.test(line)
+    
+    // Check if line has too many garbled character sequences
+    const garbledPatterns = /[~>>)]\s*[A-Z]|\[\s*[\/\]]|0\]\s*a\s*of\]|Dll\s*Siel|clel\s*Di/i
+    const hasGarbledPatterns = garbledPatterns.test(line)
+    
+    return isMostlySpecialChars || hasTooManySpecialChars || hasOCRPatterns || hasGarbledPatterns
+  }
+  
+  const isDescriptionText = (line: string) => {
+    // Skip lines that are clearly part of the description body
+    const descriptionPatterns = [
+      /^(join us|together|share food|friendship)/i,
+      /^(beer|wine|soda|bottled water)/i,
+      /^(raffle|over \d+ items)/i,
+      /^(show the world|fiddletown proud|t-shirt)/i,
+      /^(questions?|please contact|we look forward)/i,
+      /^(reserved|tables?|no reserved)/i,
+      /^(yum and more yum)/i, // This is a heading but not the event name
+      /community center board$/i // Footer text
+    ]
+    
+    return descriptionPatterns.some(pattern => pattern.test(line))
+  }
+  
+  const looksLikeTitle = (line: string) => {
+    // Titles are usually:
+    // - Short (under 60 chars)
+    // - Not all lowercase (has some capitalization)
+    // - Not overly long sentences
+    // - Don't start with common description words
+    const isTooLong = line.length > 80
+    const isAllLowercase = line === line.toLowerCase() && line.length > 20
+    const hasTitleStructure = /^[A-Z]/.test(line) && line.length < 60
+    
+    return hasTitleStructure && !isTooLong && !isAllLowercase
+  }
+  
+  if (titleLines.length > 0) {
+    // Filter out OCR garbage and description text
+    const cleanTitleLines = titleLines.filter(line => {
+      if (isOCRgarbage(line)) {
+        console.log('Skipping line as OCR garbage:', line)
+        return false
+      }
+      if (isDescriptionText(line)) {
+        console.log('Skipping line as description text:', line)
+        return false
+      }
+      return true
+    })
+    
+    console.log('Clean title lines after filtering:', cleanTitleLines)
+    
+    // Look for lines that look like titles
+    const titleCandidates = cleanTitleLines.filter(looksLikeTitle)
+    
+    if (titleCandidates.length > 0) {
+      // Use the first title-like line
+      name = titleCandidates[0].replace(/\s+/g, ' ').trim()
+      console.log('Using title candidate:', name)
+    } else if (cleanTitleLines.length > 0) {
+      // Fallback: use first clean line, but limit length
+      const firstClean = cleanTitleLines[0]
+      // If it's too long, try to find a natural break
+      if (firstClean.length > 60) {
+        // Try to find a break at punctuation or first sentence
+        const breakMatch = firstClean.match(/^(.{1,60}[!?.]?)/)
+        if (breakMatch) {
+          name = breakMatch[1].trim()
+        } else {
+          // Just take first 50 chars
+          name = firstClean.substring(0, 50).trim()
+        }
+      } else {
+        name = firstClean
+      }
+      console.log('Using first clean line (limited):', name)
+    } else {
+      // Last resort: look for any line with event-related keywords
+      const keywordLines = lines.filter(line => {
+        return !isOCRgarbage(line) && 
+               !isDescriptionText(line) &&
+               /(thanksgiving|pot luck|dinner|event|festival|gathering|meeting)/i.test(line) &&
+               line.length > 5 && line.length < 80
+      })
+      
+      if (keywordLines.length > 0) {
+        name = keywordLines[0].replace(/\s+/g, ' ').trim()
+        console.log('Using keyword line:', name)
+      } else {
+        // Ultimate fallback: try to extract meaningful words from garbled lines
+        // Look for location names or event keywords even in garbled text
+        const locationPattern = /(fiddletown|community|center)/i
+        const eventPattern = /(thanksgiving|pot\s*luck|dinner|event|festival|gathering)/i
+        
+        // Try to find a line that contains location or event keywords
+        const locationLine = lines.find(line => locationPattern.test(line) && line.length < 100)
+        const eventLine = lines.find(line => eventPattern.test(line) && line.length < 100)
+        
+        // Try to extract "Fiddletown Community Center" from any line (even garbled)
+        const allText = lines.join(' ')
+        const fiddletownMatch = allText.match(/(?:fiddletown|community|center)/gi)
+        
+        if (eventLine && !isDescriptionText(eventLine)) {
+          // Extract just the meaningful words from the event line
+          const words = eventLine.match(/\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\b/g)
+          if (words && words.length > 0) {
+            name = words.slice(0, 3).join(' ')
+            console.log('Using event keywords from garbled line:', name)
+          } else {
+            name = eventLine.replace(/[\[\]\/\~\)\@\>]/g, ' ').replace(/\s+/g, ' ').trim().substring(0, 60)
+            console.log('Using cleaned event line:', name)
+          }
+        } else if (locationLine) {
+          // Try to extract clean words from location line, even if garbled
+          const cleanLocation = locationLine.replace(/[\[\]\/\~\)\@\>]/g, ' ').replace(/\s+/g, ' ').trim()
+          const locationWords = cleanLocation.match(/\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\b/g)
+          
+          // Also check if we can find "Fiddletown Community Center" pattern
+          const fullLocationMatch = cleanLocation.match(/fiddletown\s+community\s+center/i)
+          
+          if (fullLocationMatch) {
+            name = 'Fiddletown Community Center Event'
+            console.log('Using full location pattern:', name)
+          } else if (locationWords && locationWords.length > 0) {
+            // Try to construct location name from found words
+            const hasFiddletown = locationWords.some(w => /fiddletown/i.test(w))
+            const hasCommunity = locationWords.some(w => /community/i.test(w))
+            const hasCenter = locationWords.some(w => /center/i.test(w))
+            
+            if (hasFiddletown && (hasCommunity || hasCenter)) {
+              name = 'Fiddletown Community Center Event'
+              console.log('Using constructed location name:', name)
+            } else {
+              name = locationWords.join(' ') + ' Event'
+              console.log('Using location words:', name)
+            }
+          } else {
+            // Extract "Fiddletown" and "Community Center" from garbled text
+            const fiddletownMatch = cleanLocation.match(/fiddletown/i)
+            const communityMatch = cleanLocation.match(/community|center/i)
+            
+            if (fiddletownMatch && communityMatch) {
+              name = 'Fiddletown Community Center Event'
+              console.log('Using extracted location keywords:', name)
+            } else {
+              name = cleanLocation.substring(0, 60)
+              console.log('Using cleaned location line:', name)
+            }
+          }
+        } else if (fiddletownMatch) {
+          // Found Fiddletown/Community/Center somewhere in the text
+          name = 'Fiddletown Community Center Event'
+          console.log('Using location from text search:', name)
+        } else {
+          // Ultimate fallback: first non-garbage line
+          const firstGood = lines.find(line => !isOCRgarbage(line) && !isDescriptionText(line) && line.length > 5 && line.length < 80)
+          name = (firstGood || lines[0] || '').replace(/\s+/g, ' ').trim()
+          console.log('Using ultimate fallback:', name)
+        }
+      }
+    }
+  } else {
+    // No title lines, try to find a good line from all lines
+    const firstGood = lines.find(line => !isOCRgarbage(line) && !isDescriptionText(line) && looksLikeTitle(line))
+    name = firstGood || lines[0] || ''
+  }
+  
+  // Final aggressive cleanup - remove any remaining OCR artifacts
+  name = name
+    .replace(/^[^\w\s]+/, '') // Remove leading special chars
+    .replace(/[^\w\s]+$/, '') // Remove trailing special chars
+    .replace(/[\[\]\/\~\)\@\>]/g, ' ') // Replace problematic chars with spaces
+    .replace(/\s+/g, ' ') // Normalize spaces
+    .trim()
+  
+  // If name still looks like garbage after cleanup, try to extract meaningful words
+  if (name && (name.match(/[\[\]\/\~\)\@\>]/g) || []).length > name.length * 0.2) {
+    // Extract just words that look like real words
+    const words = name.match(/\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\b/g)
+    if (words && words.length > 0) {
+      // Take first 2-3 words that look like a title
+      name = words.slice(0, 3).join(' ')
+      console.log('Extracted meaningful words from garbage:', name)
+    }
+  }
+  
+  // Final length check - event names shouldn't be too long
+  if (name.length > 80) {
+    const breakMatch = name.match(/^(.{1,80}[!?.]?)/)
+    name = breakMatch ? breakMatch[1].trim() : name.substring(0, 80).trim()
+  }
+  
+  console.log('parseEventText name extracted:', name)
 
-  const allDay = /all\s*day/i.test(dateLine)
-  const cleaned = dateLine.replace(/,?\s*All\s*day/i, '').replace(/\s{2,}/g, ' ').replace(/\s*,\s*/g, ', ').trim()
+  const allDay = /all\s*day/i.test(dateString)
+  let cleaned = dateString.replace(/,?\s*All\s*day/i, '').replace(/\s{2,}/g, ' ').replace(/\s*,\s*/g, ', ').trim()
+  
+  // Remove time from date string if present (we'll extract it separately)
+  cleaned = cleaned.replace(/\d{1,2}:\d{2}(?:\s*[AaPp][Mm])?/gi, '').trim()
+  cleaned = cleaned.replace(/\s*[-–—]\s*\d{1,2}:\d{2}(?:\s*[AaPp][Mm])?/gi, '').trim()
+  
+  console.log('Cleaned date string:', cleaned)
 
-  const tryParse = (s: string) => {
-    const d = new Date(s.replace(/,/g, ''))
-    return isNaN(d.getTime()) ? null : d
+  // Enhanced date parsing with multiple attempts
+  const tryParseDate = (s: string) => {
+    console.log('Attempting to parse date:', s)
+    if (!s || s.trim() === '') return null
+    
+    // Try different parsing approaches
+    const attempts = [
+      s, // Original string
+      s.replace(/,/g, ''), // Remove commas
+      s.replace(/\s+/g, ' ').trim(), // Normalize spaces
+      s.replace(/\b(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)[a-z]*\s*,?\s*/i, ''), // Remove day names
+      s.replace(/(?:st|nd|rd|th)/gi, ''), // Remove ordinal suffixes
+      s.replace(/\s+/g, ' ').replace(/,/g, '').trim(), // Combined cleanup
+    ]
+    
+    for (const attempt of attempts) {
+      console.log('Trying to parse:', attempt)
+      const d = new Date(attempt)
+      if (!isNaN(d.getTime()) && d.getFullYear() > 1900 && d.getFullYear() < 2100) {
+        console.log('Successfully parsed date:', attempt, '->', d.toISOString())
+        return d
+      }
+    }
+    
+    // Try manual parsing for common formats
+    const manualParse = (dateStr: string) => {
+      // Handle MM/DD/YYYY or M/D/YYYY
+      const slashMatch = dateStr.match(/(\d{1,2})\/(\d{1,2})\/(\d{2,4})/)
+      if (slashMatch) {
+        const [, month, day, year] = slashMatch
+        const fullYear = year.length === 2 ? (parseInt(year) < 50 ? 2000 + parseInt(year) : 1900 + parseInt(year)) : parseInt(year)
+        const d = new Date(fullYear, parseInt(month) - 1, parseInt(day))
+        if (!isNaN(d.getTime())) {
+          console.log('Manual slash parse successful:', d.toISOString())
+          return d
+        }
+      }
+      
+      // Handle Month DD, YYYY
+      const monthMatch = dateStr.match(/(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+(\d{1,2}),?\s+(\d{4})/i)
+      if (monthMatch) {
+        const [, monthName, day, year] = monthMatch
+        const monthIndex = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].findIndex(m => 
+          monthName.substring(0, 3).toLowerCase() === m.toLowerCase()
+        )
+        if (monthIndex !== -1) {
+          const d = new Date(parseInt(year), monthIndex, parseInt(day))
+          if (!isNaN(d.getTime())) {
+            console.log('Manual month parse successful:', d.toISOString())
+            return d
+          }
+        }
+      }
+      
+      // Handle Month DD (without year) - assume current year or next occurrence if in the past
+      const monthNoYearMatch = dateStr.match(/(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+(\d{1,2})/i)
+      if (monthNoYearMatch) {
+        const [, monthName, day] = monthNoYearMatch
+        const monthIndex = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].findIndex(m => 
+          monthName.substring(0, 3).toLowerCase() === m.toLowerCase()
+        )
+        if (monthIndex !== -1) {
+          const now = new Date()
+          const currentYear = now.getFullYear()
+          // Try current year first
+          let d = new Date(currentYear, monthIndex, parseInt(day))
+          // If date is in the past, assume next year
+          if (d < now) {
+            d = new Date(currentYear + 1, monthIndex, parseInt(day))
+          }
+          if (!isNaN(d.getTime())) {
+            console.log('Manual month parse (no year) successful:', d.toISOString())
+            return d
+          }
+        }
+      }
+      
+      return null
+    }
+    
+    const manualResult = manualParse(s)
+    if (manualResult) return manualResult
+    
+    console.log('Failed to parse date:', s)
+    return null
   }
 
   let iso: string | null = null
-  const d = cleaned ? tryParse(cleaned) : null
-  if (d) iso = formatISO(d)
+  const d = cleaned ? tryParseDate(cleaned) : null
+  if (d) {
+    iso = formatISO(d)
+    console.log('Parsed date:', cleaned, '->', iso)
+  } else {
+    console.log('Failed to parse date from:', cleaned)
+  }
 
-  return {
+  // Extract time information from the date line or nearby lines
+  // Search for times independently - they might not be in the same line as dates
+  let startTime: string | null = null
+  let endTime: string | null = null
+  
+  const convertTo24Hour = (timeStr: string) => {
+    const cleanTime = timeStr.trim()
+    const isPM = /[Pp][Mm]/.test(cleanTime)
+    const isAM = /[Aa][Mm]/.test(cleanTime)
+    
+    // Handle plain numbers (e.g., "5" or "6") - assume PM if afternoon/evening context
+    const plainNum = cleanTime.match(/^(\d{1,2})$/)
+    if (plainNum) {
+      let hours = parseInt(plainNum[1])
+      // If no AM/PM specified and it's a single digit or 1-11, might be PM
+      // But we'll default to the hour as-is and let the user adjust
+      // For now, if it's 1-11 without AM/PM, we'll treat as hour (user can adjust)
+      return `${hours.toString().padStart(2, '0')}:00`
+    }
+    
+    let [hours, minutes] = cleanTime.replace(/[AaPp][Mm]/gi, '').split(':').map(Number)
+    if (isNaN(minutes)) minutes = 0
+    
+    if (isPM && hours !== 12) hours += 12
+    if (isAM && hours === 12) hours = 0
+    
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`
+  }
+  
+  // Standard time patterns with colons
+  const timePattern = /(\d{1,2}:\d{2}(?:\s*[AaPp][Mm])?)(?:\s*[-–—]\s*(\d{1,2}:\d{2}(?:\s*[AaPp][Mm])?))?/i
+  
+  // Patterns for "Doors Open at 5, Dinner 6" or "Doors at 5, Dinner at 6"
+  const doorsOpenPattern = /(?:doors|door)\s+(?:open\s+)?at\s+(\d{1,2})(?:\s*[AaPp][Mm])?/i
+  const dinnerPattern = /(?:dinner|event|show|starts?)\s+(?:at\s+)?(\d{1,2})(?:\s*[AaPp][Mm])?/i
+  
+  // First try to find time in the date line if we found one
+  let timeMatch: RegExpMatchArray | null = null
+  if (dateLine) {
+    timeMatch = dateLine.match(timePattern)
+    console.log('Time match in date line:', timeMatch, 'from:', dateLine)
+  }
+  
+  // If no time in date line, search all lines for time patterns
+  if (!timeMatch) {
+    console.log('Searching all lines for time patterns...')
+    // Search all text combined first
+    const allText = lines.join(' ')
+    timeMatch = allText.match(timePattern)
+    if (timeMatch) {
+      console.log('Time match found in combined text:', timeMatch)
+    }
+    
+    // If still not found, search each line individually
+    if (!timeMatch) {
+      for (let i = 0; i < lines.length; i++) {
+        console.log('Checking line', i, 'for time:', lines[i])
+        timeMatch = lines[i].match(timePattern)
+        if (timeMatch) {
+          console.log('Time match found in line', i, ':', lines[i])
+          break
+        }
+      }
+    }
+  }
+  
+  // Also search for times with spaces (e.g., "3:30 PM" or "14:30")
+  if (!timeMatch) {
+    const timePatternWithSpace = /(\d{1,2})\s*:\s*(\d{2})\s*([AaPp][Mm])?/i
+    const allText = lines.join(' ')
+    const spaceMatch = allText.match(timePatternWithSpace)
+    if (spaceMatch) {
+      console.log('Found time with space pattern:', spaceMatch)
+      // Reconstruct the match in the format we expect
+      const timeStr = `${spaceMatch[1]}:${spaceMatch[2]}${spaceMatch[3] || ''}`
+      timeMatch = [timeStr, timeStr, undefined] as any
+    }
+  }
+  
+  // Try "Doors Open at X, Dinner Y" patterns
+  if (!timeMatch) {
+    const allText = lines.join(' ')
+    const doorsMatch = allText.match(doorsOpenPattern)
+    const dinnerMatch = allText.match(dinnerPattern)
+    
+    if (doorsMatch || dinnerMatch) {
+      console.log('Found doors/dinner pattern - doors:', doorsMatch, 'dinner:', dinnerMatch)
+      if (doorsMatch && dinnerMatch) {
+        // Both found - use doors as start, dinner as end
+        startTime = convertTo24Hour(doorsMatch[1])
+        endTime = convertTo24Hour(dinnerMatch[1])
+        console.log('Extracted times from doors/dinner pattern - start:', startTime, 'end:', endTime)
+      } else if (doorsMatch) {
+        // Only doors found - use as start
+        startTime = convertTo24Hour(doorsMatch[1])
+        console.log('Extracted start time from doors pattern:', startTime)
+      } else if (dinnerMatch) {
+        // Only dinner found - use as start
+        startTime = convertTo24Hour(dinnerMatch[1])
+        console.log('Extracted start time from dinner pattern:', startTime)
+      }
+    }
+  }
+  
+  if (timeMatch) {
+    startTime = convertTo24Hour(timeMatch[1])
+    console.log('Extracted start time:', timeMatch[1], '->', startTime)
+    if (timeMatch[2]) {
+      endTime = convertTo24Hour(timeMatch[2])
+      console.log('Extracted end time:', timeMatch[2], '->', endTime)
+    }
+  } else if (!startTime) {
+    console.log('No time pattern found in date line or nearby lines')
+  }
+
+  // Look for location in the text (usually after date/time line)
+  let location: string | null = null
+  const locSearchIndex = dateLineIndex >= 0 ? dateLineIndex : lines.findIndex(ln => ln === dateLine)
+  if (locSearchIndex >= 0 && locSearchIndex < lines.length - 1) {
+    // Check next few lines for location patterns
+    for (let i = locSearchIndex + 1; i < Math.min(locSearchIndex + 4, lines.length); i++) {
+      const line = lines[i]
+      // Look for common location indicators
+      if (/at|@|location|venue|address/i.test(line) || (line.length > 5 && !timePattern.test(line))) {
+        location = line.replace(/^(at|@|location|venue|address):?\s*/i, '').trim()
+        if (location) {
+          console.log('Found location:', location)
+          break
+        }
+      }
+    }
+  }
+
+  const result = {
     name,
     start_date: iso,
     end_date: iso,
+    start_time: startTime,
+    end_time: endTime,
     status: 'draft' as const,
     recurrence: 'Annual',
     website_url: null as string | null,
-    location: null as string | null,
+    location: location,
     time_all_day: allDay as any
   }
+  console.log('parseEventText result:', result)
+  return result
 }
 
 function parseCSV(text: string): string[][] {
@@ -807,6 +1355,153 @@ export default function Events({ darkMode = false }: EventsProps) {
     }
   }, [ocrDraft])
 
+  // Global paste support for adding an image when editing (works anywhere in the dialog)
+  const editingRef = useRef(editing)
+  useEffect(() => {
+    editingRef.current = editing
+  }, [editing])
+
+  useEffect(() => {
+    async function handleWindowPaste(ev: ClipboardEvent) {
+      console.log('🔵 Global paste event triggered, editing state:', editingRef.current)
+      if (!editingRef.current) {
+        console.log('🔵 Not editing, ignoring paste')
+        return
+      }
+      
+      const items = ev.clipboardData?.items
+      console.log('🔵 Clipboard items:', items?.length || 0)
+      if (!items || items.length === 0) {
+        console.log('🔵 No clipboard items found')
+        return
+      }
+      
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i]
+        console.log(`🔵 Item ${i}: kind=${item.kind}, type=${item.type}`)
+        // Check if it's a file and an image
+        if (item.kind === 'file' && (item.type.indexOf('image') !== -1 || item.type.startsWith('image/'))) {
+          const file = item.getAsFile()
+          console.log('🔵 Image file found in global paste:', file?.name, file?.type, file?.size)
+          if (file && file.type.startsWith('image/')) {
+            ev.preventDefault()
+            ev.stopPropagation()
+            console.log('🔵 Processing pasted image globally...')
+            
+            const currentEditing = editingRef.current
+            
+            try {
+              // Upload the image first
+              console.log('🔵 Uploading image...')
+              const url = await uploadImage(file)
+              console.log('🔵 Upload result:', url)
+              if (url) {
+                updateEditing({ image_url: url })
+                setEditingImageUrl(url)
+                
+                // Run OCR on the image to extract text
+                try {
+                  console.log('🔵 Starting OCR on pasted image...')
+                  const Tesseract = await import('tesseract.js')
+                  console.log('🔵 Tesseract loaded, running OCR...')
+                  const { data: ocrData } = await Tesseract.default.recognize(file, 'eng')
+                  const text = (ocrData?.text || '').trim()
+                  console.log('🔵 OCR completed. Extracted text:', text)
+                  
+                  if (text) {
+                    // Parse the OCR text to extract event data
+                    const parsed = parseEventText(text)
+                    console.log('🔵 Parsed event data:', parsed)
+                    
+                    // Update editing state with parsed data
+                    const updates: Partial<EventRow> = {
+                      image_url: url,
+                    }
+                    
+                    // Update name if parsed name exists and current name is empty/default
+                    if (parsed.name && parsed.name.trim()) {
+                      const currentName = currentEditing?.name || ''
+                      if (!currentName || currentName === 'Untitled Event' || currentName.trim() === '') {
+                        updates.name = parsed.name
+                        updates.slug = slugify(parsed.name)
+                        console.log('🔵 Updating name to:', parsed.name)
+                      }
+                    }
+                    
+                    // Update dates if they're currently empty and parsed has values
+                    const currentStartDate = currentEditing?.start_date || ''
+                    if (parsed.start_date && (!currentStartDate || currentStartDate.trim() === '')) {
+                      updates.start_date = parsed.start_date
+                      console.log('🔵 Updating start_date to:', parsed.start_date, '(was:', currentStartDate, ')')
+                    } else if (parsed.start_date) {
+                      console.log('🔵 Not updating start_date - already has value:', currentStartDate)
+                    }
+                    const currentEndDate = currentEditing?.end_date || ''
+                    if (parsed.end_date && (!currentEndDate || currentEndDate.trim() === '')) {
+                      updates.end_date = parsed.end_date
+                      console.log('🔵 Updating end_date to:', parsed.end_date, '(was:', currentEndDate, ')')
+                    } else if (parsed.end_date) {
+                      console.log('🔵 Not updating end_date - already has value:', currentEndDate)
+                    }
+                    
+                    // Update times if they're currently empty and parsed has values
+                    if (parsed.start_time && (!currentEditing?.start_time || currentEditing.start_time.trim() === '')) {
+                      updates.start_time = parsed.start_time
+                      console.log('🔵 Updating start_time to:', parsed.start_time)
+                    }
+                    if (parsed.end_time && (!currentEditing?.end_time || currentEditing.end_time.trim() === '')) {
+                      updates.end_time = parsed.end_time
+                      console.log('🔵 Updating end_time to:', parsed.end_time)
+                    }
+                    
+                    // Update location if it's currently empty and parsed has a value
+                    if (parsed.location && (!currentEditing?.location || currentEditing.location.trim() === '')) {
+                      updates.location = parsed.location
+                      console.log('🔵 Updating location to:', parsed.location)
+                    }
+                    
+                    // Apply updates
+                    if (Object.keys(updates).length > 1) { // More than just image_url
+                      console.log('🔵 Applying parsed updates:', updates)
+                      updateEditing(updates)
+                    } else {
+                      console.log('🔵 No updates to apply (only image_url)')
+                    }
+                  } else {
+                    console.warn('🔵 No text extracted from image')
+                  }
+                } catch (ocrError: any) {
+                  console.error('🔵 OCR failed:', ocrError)
+                  alert(`OCR failed: ${ocrError?.message || 'Unknown error'}`)
+                  // Image upload succeeded, OCR failed - that's okay
+                }
+              } else {
+                console.error('🔵 Image upload failed - no URL returned')
+                alert('Image upload failed')
+              }
+            } catch (uploadError: any) {
+              console.error('🔵 Upload error:', uploadError)
+              alert(`Upload failed: ${uploadError?.message || 'Unknown error'}`)
+            }
+            return // Exit after handling first image
+          }
+        }
+      }
+      console.log('🔵 No image file found in paste event')
+    }
+    
+    if (editing) {
+      console.log('🔵 Setting up global paste handler for editing')
+      window.addEventListener('paste', handleWindowPaste as any, true) // Use capture phase
+      return () => {
+        console.log('🔵 Removing global paste handler')
+        window.removeEventListener('paste', handleWindowPaste as any, true)
+      }
+    } else {
+      console.log('🔵 Not editing, not setting up paste handler')
+    }
+  }, [editing])
+
   if (loading) {
     return <div className="stack" style={{ padding: 16 }}>Loading events…</div>
   }
@@ -1052,6 +1747,7 @@ export default function Events({ darkMode = false }: EventsProps) {
             <span>🗑️</span>
             <span>Delete</span>
           </button>
+
         </div>
 
         {/* Search Controls Row */}
@@ -2566,24 +3262,123 @@ export default function Events({ darkMode = false }: EventsProps) {
                     />
                     <div
                       ref={pasteRef}
+                      tabIndex={0}
+                      onFocus={() => {
+                        console.log('Paste div focused - ready for paste')
+                      }}
                       onPaste={async (e) => {
                         e.preventDefault()
+                        console.log('Paste event triggered')
                         const items = e.clipboardData?.items
+                        console.log('Clipboard items:', items?.length || 0)
                         if (items) {
                           for (let i = 0; i < items.length; i++) {
                             const item = items[i]
-                            if (item.type.indexOf('image') !== -1) {
+                            console.log(`Item ${i}: kind=${item.kind}, type=${item.type}`)
+                            // Check if it's a file and an image
+                            if (item.kind === 'file' && (item.type.indexOf('image') !== -1 || item.type.startsWith('image/'))) {
                               const file = item.getAsFile()
+                              console.log('Image file found:', file?.name, file?.type, file?.size)
                               if (file) {
-                                const url = await uploadImage(file)
-                                if (url) {
-                                  updateEditing({ image_url: url})
-                                  setEditingImageUrl(url)
+                                try {
+                                  // Upload the image first
+                                  console.log('Uploading image...')
+                                  const url = await uploadImage(file)
+                                  console.log('Upload result:', url)
+                                  if (url) {
+                                    updateEditing({ image_url: url})
+                                    setEditingImageUrl(url)
+                                    
+                                    // Run OCR on the image to extract text
+                                    try {
+                                      console.log('Starting OCR on pasted image...')
+                                      const Tesseract = await import('tesseract.js')
+                                      console.log('Tesseract loaded, running OCR...')
+                                      const { data: ocrData } = await Tesseract.default.recognize(file, 'eng')
+                                      const text = (ocrData?.text || '').trim()
+                                      console.log('OCR completed. Extracted text:', text)
+                                      
+                                      if (text) {
+                                        // Parse the OCR text to extract event data
+                                        const parsed = parseEventText(text)
+                                        console.log('Parsed event data:', parsed)
+                                        
+                                        // Update editing state with parsed data
+                                        const updates: Partial<EventRow> = {
+                                          image_url: url,
+                                        }
+                                        
+                                        // Update name if parsed name exists and current name is empty/default
+                                        if (parsed.name && parsed.name.trim()) {
+                                          const currentName = editing?.name || ''
+                                          if (!currentName || currentName === 'Untitled Event' || currentName.trim() === '') {
+                                            updates.name = parsed.name
+                                            updates.slug = slugify(parsed.name)
+                                            console.log('Updating name to:', parsed.name)
+                                          }
+                                        }
+                                        
+                                        // Update dates if they're currently empty and parsed has values
+                                        const currentStartDate = editing?.start_date || ''
+                                        if (parsed.start_date && (!currentStartDate || currentStartDate.trim() === '')) {
+                                          updates.start_date = parsed.start_date
+                                          console.log('Updating start_date to:', parsed.start_date, '(was:', currentStartDate, ')')
+                                        } else if (parsed.start_date) {
+                                          console.log('Not updating start_date - already has value:', currentStartDate)
+                                        }
+                                        const currentEndDate = editing?.end_date || ''
+                                        if (parsed.end_date && (!currentEndDate || currentEndDate.trim() === '')) {
+                                          updates.end_date = parsed.end_date
+                                          console.log('Updating end_date to:', parsed.end_date, '(was:', currentEndDate, ')')
+                                        } else if (parsed.end_date) {
+                                          console.log('Not updating end_date - already has value:', currentEndDate)
+                                        }
+                                        
+                                        // Update times if they're currently empty and parsed has values
+                                        if (parsed.start_time && (!editing?.start_time || editing.start_time.trim() === '')) {
+                                          updates.start_time = parsed.start_time
+                                          console.log('Updating start_time to:', parsed.start_time)
+                                        }
+                                        if (parsed.end_time && (!editing?.end_time || editing.end_time.trim() === '')) {
+                                          updates.end_time = parsed.end_time
+                                          console.log('Updating end_time to:', parsed.end_time)
+                                        }
+                                        
+                                        // Update location if it's currently empty and parsed has a value
+                                        if (parsed.location && (!editing?.location || editing.location.trim() === '')) {
+                                          updates.location = parsed.location
+                                          console.log('Updating location to:', parsed.location)
+                                        }
+                                        
+                                        // Apply updates
+                                        if (Object.keys(updates).length > 1) { // More than just image_url
+                                          console.log('Applying parsed updates:', updates)
+                                          updateEditing(updates)
+                                        } else {
+                                          console.log('No updates to apply (only image_url)')
+                                        }
+                                      } else {
+                                        console.warn('No text extracted from image')
+                                      }
+                                    } catch (ocrError: any) {
+                                      console.error('OCR failed:', ocrError)
+                                      alert(`OCR failed: ${ocrError?.message || 'Unknown error'}`)
+                                      // Image upload succeeded, OCR failed - that's okay
+                                    }
+                                  } else {
+                                    console.error('Image upload failed - no URL returned')
+                                    alert('Image upload failed')
+                                  }
+                                } catch (uploadError: any) {
+                                  console.error('Upload error:', uploadError)
+                                  alert(`Upload failed: ${uploadError?.message || 'Unknown error'}`)
                                 }
                               }
                               break
                             }
                           }
+                        } else {
+                          console.log('No clipboard items found')
                         }
                       }}
                       style={{

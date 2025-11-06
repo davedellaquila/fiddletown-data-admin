@@ -1130,16 +1130,80 @@ export default function Events({ darkMode = false }: EventsProps) {
           const file = it.getAsFile()
           if (file && file.type.startsWith('image/')) {
             ev.preventDefault()
+            
+            // Upload the image first
             const base = (editing.slug || slugify(editing.name)) || crypto.randomUUID()
             const path = `${base}/${Date.now()}-${file.name.replace(/\s+/g, '_')}`
-            const { error } = await supabase.storage.from('events').upload(path, file, {
+            const { error } = await supabase.storage.from('event-images').upload(path, file, {
               cacheControl: '3600',
               upsert: false,
               contentType: file.type
             })
             if (error) { alert(`Upload failed: ${error.message}`); return }
-            const { data } = supabase.storage.from('events').getPublicUrl(path)
-            setEditing({ ...editing, image_url: data.publicUrl })
+            const { data } = supabase.storage.from('event-images').getPublicUrl(path)
+            
+            // Run OCR on the image to extract text
+            console.log('Starting OCR on pasted image...')
+            try {
+              const Tesseract = await import('tesseract.js')
+              console.log('Tesseract loaded, running OCR...')
+              const { data: ocrData } = await Tesseract.default.recognize(file, 'eng')
+              const text = (ocrData?.text || '').trim()
+              console.log('OCR completed. Extracted text:', text)
+              
+              if (!text) {
+                console.warn('No text extracted from image')
+                setEditing({ ...editing, image_url: data.publicUrl })
+                return
+              }
+              
+              // Parse the OCR text to extract event data
+              const parsed = parseEventText(text)
+              console.log('Parsed event data:', parsed)
+              
+              // Update the editing state with parsed data and image URL
+              const updates: Partial<EventRow> = {
+                image_url: data.publicUrl,
+                ocr_text: text,
+              }
+              
+              // Update name if parsed name exists and current name is default/empty
+              if (parsed.name && parsed.name.trim()) {
+                const shouldUpdateName = !editing.name || editing.name === 'Untitled Event' || (editing.name && editing.name.trim() === '')
+                if (shouldUpdateName) {
+                  updates.name = parsed.name
+                  updates.slug = slugify(parsed.name)
+                  console.log('Updating name to:', parsed.name)
+                }
+              }
+              
+              // Update date/time fields only if they're currently empty and parsed has a value
+              if (parsed.start_date && (!editing.start_date || (editing.start_date && editing.start_date.trim() === ''))) {
+                updates.start_date = parsed.start_date
+                console.log('Updating start_date to:', parsed.start_date)
+              }
+              if (parsed.end_date && (!editing.end_date || (editing.end_date && editing.end_date.trim() === ''))) {
+                updates.end_date = parsed.end_date
+                console.log('Updating end_date to:', parsed.end_date)
+              }
+              if (parsed.start_time && (!editing.start_time || (editing.start_time && editing.start_time.trim() === ''))) {
+                updates.start_time = parsed.start_time
+                console.log('Updating start_time to:', parsed.start_time)
+              }
+              if (parsed.end_time && (!editing.end_time || (editing.end_time && editing.end_time.trim() === ''))) {
+                updates.end_time = parsed.end_time
+                console.log('Updating end_time to:', parsed.end_time)
+              }
+              
+              console.log('Final updates to apply:', updates)
+              setEditing({ ...editing, ...updates })
+              console.log('State updated successfully')
+            } catch (ocrError: any) {
+              console.error('OCR failed:', ocrError)
+              alert(`OCR failed: ${ocrError?.message || 'Unknown error'}`)
+              // Still set the image URL even if OCR fails
+              setEditing({ ...editing, image_url: data.publicUrl })
+            }
             break
           }
         }
@@ -1412,7 +1476,7 @@ export default function Events({ darkMode = false }: EventsProps) {
         >
           <div style={{ position: 'relative', flex: 1, minWidth: 220 }}>
             <input 
-              placeholder="Search name…" 
+              placeholder="Hello there!" 
               value={q} 
               onChange={(e)=>setQ(e.target.value)} 
               style={{ 
@@ -2340,14 +2404,70 @@ export default function Events({ darkMode = false }: EventsProps) {
                         try {
                           const base = (editing.slug || slugify(editing.name)) || crypto.randomUUID()
                           const path = `${base}/${Date.now()}-${file.name.replace(/\s+/g, '_')}`
-                          const { error } = await supabase.storage.from('events').upload(path, file, {
+                          const { error } = await supabase.storage.from('event-images').upload(path, file, {
                             cacheControl: '3600',
                             upsert: false,
                             contentType: file.type || 'image/*'
                           })
                           if (error) { alert(`Upload failed: ${error.message}`); return }
-                          const { data } = supabase.storage.from('events').getPublicUrl(path)
-                          setEditing({ ...editing, image_url: data.publicUrl })
+                          const { data } = supabase.storage.from('event-images').getPublicUrl(path)
+                          
+                          // Run OCR on the image to extract text
+                          console.log('Starting OCR on uploaded image...')
+                          try {
+                            const Tesseract = await import('tesseract.js')
+                            console.log('Tesseract loaded, running OCR...')
+                            const { data: ocrData } = await Tesseract.default.recognize(file, 'eng')
+                            const text = (ocrData?.text || '').trim()
+                            console.log('OCR completed. Extracted text:', text)
+                            
+                            if (!text) {
+                              console.warn('No text extracted from image')
+                              setEditing({ ...editing, image_url: data.publicUrl })
+                              return
+                            }
+                            
+                            const parsed = parseEventText(text)
+                            console.log('Parsed event data:', parsed)
+                            
+                            const updates: Partial<EventRow> = {
+                              image_url: data.publicUrl,
+                              ocr_text: text,
+                            }
+                            
+                            if (parsed.name && parsed.name.trim()) {
+                              const shouldUpdateName = !editing.name || editing.name === 'Untitled Event' || (editing.name && editing.name.trim() === '')
+                              if (shouldUpdateName) {
+                                updates.name = parsed.name
+                                updates.slug = slugify(parsed.name)
+                                console.log('Updating name to:', parsed.name)
+                              }
+                            }
+                            if (parsed.start_date && (!editing.start_date || (editing.start_date && editing.start_date.trim() === ''))) {
+                              updates.start_date = parsed.start_date
+                              console.log('Updating start_date to:', parsed.start_date)
+                            }
+                            if (parsed.end_date && (!editing.end_date || (editing.end_date && editing.end_date.trim() === ''))) {
+                              updates.end_date = parsed.end_date
+                              console.log('Updating end_date to:', parsed.end_date)
+                            }
+                            if (parsed.start_time && (!editing.start_time || (editing.start_time && editing.start_time.trim() === ''))) {
+                              updates.start_time = parsed.start_time
+                              console.log('Updating start_time to:', parsed.start_time)
+                            }
+                            if (parsed.end_time && (!editing.end_time || (editing.end_time && editing.end_time.trim() === ''))) {
+                              updates.end_time = parsed.end_time
+                              console.log('Updating end_time to:', parsed.end_time)
+                            }
+                            
+                            console.log('Final updates to apply:', updates)
+                            setEditing({ ...editing, ...updates })
+                            console.log('State updated successfully')
+                          } catch (ocrError: any) {
+                            console.error('OCR failed:', ocrError)
+                            alert(`OCR failed: ${ocrError?.message || 'Unknown error'}`)
+                            setEditing({ ...editing, image_url: data.publicUrl })
+                          }
                         } finally {
                           e.currentTarget.value = ''
                         }
@@ -2386,7 +2506,68 @@ export default function Events({ darkMode = false }: EventsProps) {
                             })
                             if (error) { setImagePasteStatus('Upload failed'); alert(`Upload failed: ${error.message}`); return }
                             const { data } = supabase.storage.from('event-images').getPublicUrl(path)
-                            setEditing({ ...editing, image_url: data.publicUrl })
+                            
+                            // Run OCR on the image to extract text
+                            setImagePasteStatus('Processing OCR…')
+                            console.log('Starting OCR on pasted image in paste area...')
+                            try {
+                              const Tesseract = await import('tesseract.js')
+                              console.log('Tesseract loaded, running OCR...')
+                              const { data: ocrData } = await Tesseract.default.recognize(file, 'eng')
+                              const text = (ocrData?.text || '').trim()
+                              console.log('OCR completed. Extracted text:', text)
+                              
+                              if (!text) {
+                                console.warn('No text extracted from image')
+                                setImagePasteStatus('No text found')
+                                setEditing({ ...editing, image_url: data.publicUrl })
+                                setTimeout(() => { setImagePasteActive(false); setImagePasteStatus('Paste image here') }, 1500)
+                                return
+                              }
+                              
+                              const parsed = parseEventText(text)
+                              console.log('Parsed event data:', parsed)
+                              
+                              const updates: Partial<EventRow> = {
+                                image_url: data.publicUrl,
+                                ocr_text: text,
+                              }
+                              
+                              if (parsed.name && parsed.name.trim()) {
+                                const shouldUpdateName = !editing.name || editing.name === 'Untitled Event' || (editing.name && editing.name.trim() === '')
+                                if (shouldUpdateName) {
+                                  updates.name = parsed.name
+                                  updates.slug = slugify(parsed.name)
+                                  console.log('Updating name to:', parsed.name)
+                                }
+                              }
+                              if (parsed.start_date && (!editing.start_date || (editing.start_date && editing.start_date.trim() === ''))) {
+                                updates.start_date = parsed.start_date
+                                console.log('Updating start_date to:', parsed.start_date)
+                              }
+                              if (parsed.end_date && (!editing.end_date || (editing.end_date && editing.end_date.trim() === ''))) {
+                                updates.end_date = parsed.end_date
+                                console.log('Updating end_date to:', parsed.end_date)
+                              }
+                              if (parsed.start_time && (!editing.start_time || (editing.start_time && editing.start_time.trim() === ''))) {
+                                updates.start_time = parsed.start_time
+                                console.log('Updating start_time to:', parsed.start_time)
+                              }
+                              if (parsed.end_time && (!editing.end_time || (editing.end_time && editing.end_time.trim() === ''))) {
+                                updates.end_time = parsed.end_time
+                                console.log('Updating end_time to:', parsed.end_time)
+                              }
+                              
+                              console.log('Final updates to apply:', updates)
+                              setEditing({ ...editing, ...updates })
+                              console.log('State updated successfully')
+                            } catch (ocrError: any) {
+                              console.error('OCR failed:', ocrError)
+                              setImagePasteStatus('OCR failed')
+                              alert(`OCR failed: ${ocrError?.message || 'Unknown error'}`)
+                              setEditing({ ...editing, image_url: data.publicUrl })
+                            }
+                            
                             setImagePasteStatus('Uploaded ✓')
                             setTimeout(() => { setImagePasteActive(false); setImagePasteStatus('Paste image here') }, 1500)
                             break
