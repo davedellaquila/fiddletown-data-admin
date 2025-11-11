@@ -1476,7 +1476,7 @@ export default function Events({ darkMode = false }: EventsProps) {
         >
           <div style={{ position: 'relative', flex: 1, minWidth: 220 }}>
             <input 
-              placeholder="Hello there!" 
+              placeholder="Search events..." 
               value={q} 
               onChange={(e)=>setQ(e.target.value)} 
               style={{ 
