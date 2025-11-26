@@ -3,9 +3,10 @@ import { supabase } from './lib/supabaseClient'
 import Events from './features/Events'
 import Locations from './features/Locations'
 import Routes from './features/Routes'
+import OCRTest from './features/OCRTest'
 
 
-type View = 'locations' | 'events' | 'routes'
+type View = 'locations' | 'events' | 'routes' | 'ocr-test'
 
 export default function App() {
   console.log('App component rendering...')
@@ -46,6 +47,7 @@ export default function App() {
       if (e.key === '1') { e.preventDefault(); setView('locations') }
       if (e.key === '2') { e.preventDefault(); setView('events') }
       if (e.key === '3') { e.preventDefault(); setView('routes') }
+      if (e.key === '4') { e.preventDefault(); setView('ocr-test') }
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
@@ -302,6 +304,22 @@ export default function App() {
           >
             🗺️ Routes
           </button>
+          <button 
+            className="btn" 
+            onClick={() => setView('ocr-test')}
+            title="OCR Test Page (⌘4 / Ctrl4)"
+            style={{
+              background: view === 'ocr-test' ? (darkMode ? '#3b82f6' : '#3b82f6') : (darkMode ? '#374151' : '#ffffff'),
+              border: `1px solid ${view === 'ocr-test' ? '#3b82f6' : (darkMode ? '#4b5563' : '#d1d5db')}`,
+              color: view === 'ocr-test' ? 'white' : (darkMode ? '#f9fafb' : '#374151'),
+              textAlign: 'left',
+              padding: '12px 16px',
+              borderRadius: '8px',
+              marginBottom: '8px'
+            }}
+          >
+            🔍 OCR Test
+          </button>
         </nav>
       </aside>
       <main className="main" style={{ 
@@ -323,6 +341,7 @@ export default function App() {
         {view === 'locations' && <Locations darkMode={darkMode} />}
         {view === 'events' && <Events darkMode={darkMode} />}
         {view === 'routes' && <Routes darkMode={darkMode} />}
+        {view === 'ocr-test' && <OCRTest darkMode={darkMode} />}
       </main>
     </div>
   )

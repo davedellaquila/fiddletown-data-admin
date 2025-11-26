@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabaseClient'
 import FormField from '../shared/components/FormField'
 import AutoSaveEditDialog from '../shared/components/AutoSaveEditDialog'
 import KeywordSelector from '../shared/components/KeywordSelector'
+import { parseEventText as parseEventTextImproved } from '../shared/utils/ocrParser'
 
 type EventRow = {
   id?: number
@@ -214,217 +215,71 @@ function normalizeUrl(u?: string | null) {
 
 const formatISO = (d: Date) => d.toISOString().slice(0, 10)
 
+/**
+ * Optimized OCR function using worker with PSM/OEM settings
+ * Matches the OCR test page configuration for consistent results
+ */
+async function runOptimizedOCR(file: File): Promise<string> {
+  const Tesseract = await import('tesseract.js')
+  
+  // Create worker with optimized configuration (same as test page)
+  const worker = await Tesseract.createWorker('eng', 1, {
+    logger: (m) => {
+      if (m.status === 'recognizing text') {
+        // Progress logging if needed
+      }
+    }
+  })
+
+  // Set page segmentation mode and OCR engine mode (same defaults as test page)
+  // PSM 6 = Uniform block of text, OEM 3 = Default (LSTM + Legacy)
+  await worker.setParameters({
+    tessedit_pageseg_mode: '6',
+    tessedit_ocr_engine_mode: '3',
+  } as any)
+
+  // Run OCR with optimized settings
+  const { data } = await worker.recognize(file, {
+    rectangle: undefined, // Process entire image
+  })
+
+  await worker.terminate()
+
+  return (data?.text || '').trim()
+}
+
 function parseEventText(text: string) {
-  console.log('Parsing OCR text:', text)
-  const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean)
-  console.log('OCR lines:', lines)
+  console.log('Parsing OCR text with improved parser:', text)
   
-  // Enhanced date detection patterns - more comprehensive
-  const datePatterns = [
-    // Full date patterns with various separators
-    /(\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2},?\s+\d{4})/i,
-    /(\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2}\s+\d{4})/i,
-    /(\b\d{1,2}\/\d{1,2}\/\d{4})/,
-    /(\b\d{1,2}-\d{1,2}-\d{4})/,
-    /(\b\d{4}-\d{1,2}-\d{1,2})/,
-    /(\b\d{1,2}\.\d{1,2}\.\d{4})/,
-    // Day + date patterns
-    /(\b(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)[a-z]*,?\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2},?\s+\d{4})/i,
-    /(\b(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)[a-z]*,?\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2}\s+\d{4})/i,
-    // Month + day patterns
-    /(\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2})/i,
-    // Numeric patterns
-    /(\b\d{1,2}\/\d{1,2}\/\d{2,4})/,
-    /(\b\d{1,2}-\d{1,2}-\d{2,4})/,
-    // Year patterns
-    /(\b20\d{2}\b)/,
-    // Ordinal dates: "March 15th", "15th of March"
-    /(\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2}(?:st|nd|rd|th)?)/i,
-    /(\b\d{1,2}(?:st|nd|rd|th)?\s+of\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*)/i
-  ]
+  // Use the improved parser
+  const parsed = parseEventTextImproved(text)
+  console.log('Improved parser result:', parsed)
   
-  const titleLines: string[] = []
-  let dateLine = ''
-  let foundDate = false
-  
-  // First pass: find the first line with a date pattern
-  for (const ln of lines) {
-    if (!foundDate) {
-      for (const pattern of datePatterns) {
-        if (pattern.test(ln)) {
-          dateLine = ln
-          foundDate = true
-          console.log('Found date line:', dateLine)
-          break
-        }
-      }
-    }
-    if (!foundDate) {
-    titleLines.push(ln)
-  }
-  }
-  
-  // If no date found in first pass, try a more aggressive search
-  if (!foundDate) {
-    console.log('No date found in first pass, trying aggressive search...')
-    for (const ln of lines) {
-      // Look for any numeric patterns that might be dates
-      const numericPatterns = [
-        /\d{1,2}\/\d{1,2}\/\d{2,4}/,
-        /\d{1,2}-\d{1,2}-\d{2,4}/,
-        /\d{4}-\d{1,2}-\d{1,2}/,
-        /\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2}/i,
-        /\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*/i
-      ]
-      
-      for (const pattern of numericPatterns) {
-        if (pattern.test(ln)) {
-          dateLine = ln
-          foundDate = true
-          console.log('Found date line (aggressive search):', dateLine)
-          break
-        }
-      }
-      if (foundDate) break
-    }
-  }
-  
-  const name = (titleLines.join(' ') || lines[0] || '').replace(/\s+/g, ' ').trim()
-  console.log('Extracted name:', name)
-
-  const allDay = /all\s*day/i.test(dateLine)
-  const cleaned = dateLine.replace(/,?\s*All\s*day/i, '').replace(/\s{2,}/g, ' ').replace(/\s*,\s*/g, ', ').trim()
-  console.log('Cleaned date line:', cleaned)
-
-  // Extract time information
-  const timePattern = /(\d{1,2}:\d{2}(?:\s*[AaPp][Mm])?)(?:\s*[-–—]\s*(\d{1,2}:\d{2}(?:\s*[AaPp][Mm])?))?/i
-  const timeMatch = cleaned.match(timePattern)
-  console.log('Time match:', timeMatch)
-  
-  let startTime = null
-  let endTime = null
-  
-  if (timeMatch) {
-    const startTimeStr = timeMatch[1]
-    const endTimeStr = timeMatch[2]
-    
-    console.log('Extracted start time string:', startTimeStr)
-    console.log('Extracted end time string:', endTimeStr)
-    
-    // Convert to 24-hour format for HTML time inputs
-    const convertTo24Hour = (timeStr: string) => {
-      const cleanTime = timeStr.trim()
-      const isPM = /[Pp][Mm]/.test(cleanTime)
-      const isAM = /[Aa][Mm]/.test(cleanTime)
-      
-      let [hours, minutes] = cleanTime.replace(/[AaPp][Mm]/gi, '').split(':').map(Number)
-      
-      if (isPM && hours !== 12) hours += 12
-      if (isAM && hours === 12) hours = 0
-      
-      const result = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`
-      console.log('Converted time:', cleanTime, '->', result)
-      return result
-    }
-    
-    startTime = convertTo24Hour(startTimeStr)
-    if (endTimeStr) {
-      endTime = convertTo24Hour(endTimeStr)
-    } else {
-      console.log('No end time found in time match')
-    }
-    
-    console.log('Final start time:', startTime)
-    console.log('Final end time:', endTime)
-  }
-
-  // Enhanced date parsing with multiple attempts
-  const tryParseDate = (s: string) => {
-    console.log('Attempting to parse date:', s)
-    
-    // Try different parsing approaches
-    const attempts = [
-      s, // Original string
-      s.replace(/,/g, ''), // Remove commas
-      s.replace(/\s+/g, ' ').trim(), // Normalize spaces
-      s.replace(/\b(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)[a-z]*\s*,?\s*/i, ''), // Remove day names
-      s.replace(/(?:st|nd|rd|th)/gi, ''), // Remove ordinal suffixes
-      s.replace(/\bof\s+/gi, ''), // Remove "of" from "15th of March"
-      s.replace(/\s+/g, ' ').replace(/,/g, '').trim(), // Combined cleanup
-    ]
-    
-    for (const attempt of attempts) {
-      console.log('Trying to parse:', attempt)
-      const d = new Date(attempt)
-      if (!isNaN(d.getTime()) && d.getFullYear() > 1900 && d.getFullYear() < 2100) {
-        console.log('Successfully parsed date:', attempt, '->', d.toISOString())
-        return d
-      }
-    }
-    
-    // Try manual parsing for common formats
-    const manualParse = (dateStr: string) => {
-      // Handle MM/DD/YYYY or M/D/YYYY
-      const slashMatch = dateStr.match(/(\d{1,2})\/(\d{1,2})\/(\d{2,4})/)
-      if (slashMatch) {
-        const [, month, day, year] = slashMatch
-        const fullYear = year.length === 2 ? (parseInt(year) < 50 ? 2000 + parseInt(year) : 1900 + parseInt(year)) : parseInt(year)
-        const d = new Date(fullYear, parseInt(month) - 1, parseInt(day))
-        if (!isNaN(d.getTime())) {
-          console.log('Manual slash parse successful:', d.toISOString())
-          return d
-        }
-      }
-      
-      // Handle Month DD, YYYY
-      const monthMatch = dateStr.match(/(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+(\d{1,2}),?\s+(\d{4})/i)
-      if (monthMatch) {
-        const [, monthName, day, year] = monthMatch
-        const monthIndex = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].indexOf(monthName.substring(0, 3))
-        if (monthIndex !== -1) {
-          const d = new Date(parseInt(year), monthIndex, parseInt(day))
-          if (!isNaN(d.getTime())) {
-            console.log('Manual month parse successful:', d.toISOString())
-            return d
-          }
-        }
-      }
-      
-      return null
-    }
-    
-    const manualResult = manualParse(s)
-    if (manualResult) return manualResult
-    
-    console.log('Failed to parse date:', s)
-    return null
-  }
-
-  let startDate: string | null = null
-  let endDate: string | null = null
-  
-  if (cleaned) {
-    const parsedDate = tryParseDate(cleaned)
-    if (parsedDate) {
-      startDate = formatISO(parsedDate)
-      endDate = formatISO(parsedDate) // Default to same date for single-day events
-    }
-  }
-  
-  console.log('Parsed dates - start:', startDate, 'end:', endDate)
-
-  return {
-    name,
-    start_date: startDate,
-    end_date: endDate,
-    start_time: startTime,
-    end_time: endTime,
+  // Map to the format expected by Events.tsx (add default fields)
+  const result = {
+    name: parsed.name || '',
+    start_date: parsed.start_date || null,
+    end_date: parsed.end_date || null,
+    start_time: parsed.start_time || null,
+    end_time: parsed.end_time || null,
+    location: parsed.location || null,
+    host_org: parsed.host_org || null,
+    website_url: parsed.website_url || null,
+    recurrence: parsed.recurrence || null,
+    description: parsed.description || null,
     status: 'draft' as const,
-    recurrence: 'Annual',
-    website_url: null as string | null,
-    location: null as string | null,
-    time_all_day: allDay as any
+    time_all_day: (!parsed.start_time && !parsed.end_time) as any
   }
+  
+  console.log('Final parsed result for Events.tsx:', result)
+  console.log('Date values:', { 
+    start_date: result.start_date, 
+    end_date: result.end_date,
+    start_time: result.start_time,
+    end_time: result.end_time
+  })
+  
+  return result
 }
 
 function parseCSV(text: string): string[][] {
@@ -1179,9 +1034,7 @@ export default function Events({ darkMode = false }: EventsProps) {
   async function runOCRFromFile(file: File) {
     setOcrError(null); setOcrLoading(true); setOcrRawText(''); setOcrDraft(null)
     try {
-      const Tesseract = await import('tesseract.js')
-      const { data } = await Tesseract.default.recognize(file, 'eng')
-      const text = (data?.text || '').trim()
+      const text = await runOptimizedOCR(file)
       setOcrRawText(text)
       const parsed = parseEventText(text)
       if (typeof parsed === 'object' && parsed !== null && 'name' in parsed) {
@@ -1422,10 +1275,8 @@ export default function Events({ darkMode = false }: EventsProps) {
             // Run OCR on the image to extract text
             console.log('Starting OCR on pasted image...')
             try {
-              const Tesseract = await import('tesseract.js')
-              console.log('Tesseract loaded, running OCR...')
-              const { data: ocrData } = await Tesseract.default.recognize(file, 'eng')
-              const text = (ocrData?.text || '').trim()
+              console.log('Running optimized OCR...')
+              const text = await runOptimizedOCR(file)
               console.log('OCR completed. Extracted text:', text)
               
               if (!text) {
@@ -1454,22 +1305,44 @@ export default function Events({ darkMode = false }: EventsProps) {
                 }
               }
               
-              // Update date/time fields only if they're currently empty and parsed has a value
-              if (parsed.start_date && (!editing.start_date || (editing.start_date && editing.start_date.trim() === ''))) {
+              // Always apply parsed dates/times when they exist (OCR should override existing values)
+              console.log('Parsed data:', parsed)
+              console.log('Current editing state:', { 
+                start_date: editing.start_date, 
+                end_date: editing.end_date,
+                start_time: editing.start_time,
+                end_time: editing.end_time
+              })
+              
+              if (parsed.start_date) {
                 updates.start_date = parsed.start_date
-                console.log('Updating start_date to:', parsed.start_date)
+                console.log('Setting start_date to:', parsed.start_date)
               }
-              if (parsed.end_date && (!editing.end_date || (editing.end_date && editing.end_date.trim() === ''))) {
+              if (parsed.end_date) {
                 updates.end_date = parsed.end_date
-                console.log('Updating end_date to:', parsed.end_date)
+                console.log('Setting end_date to:', parsed.end_date)
               }
-              if (parsed.start_time && (!editing.start_time || (editing.start_time && editing.start_time.trim() === ''))) {
+              if (parsed.start_time) {
                 updates.start_time = parsed.start_time
-                console.log('Updating start_time to:', parsed.start_time)
+                console.log('Setting start_time to:', parsed.start_time)
               }
-              if (parsed.end_time && (!editing.end_time || (editing.end_time && editing.end_time.trim() === ''))) {
+              if (parsed.end_time) {
                 updates.end_time = parsed.end_time
-                console.log('Updating end_time to:', parsed.end_time)
+                console.log('Setting end_time to:', parsed.end_time)
+              }
+              
+              // Also apply location, host_org, website_url, etc. if parsed
+              if (parsed.location) {
+                updates.location = parsed.location
+                console.log('Setting location to:', parsed.location)
+              }
+              if (parsed.host_org) {
+                updates.host_org = parsed.host_org
+                console.log('Setting host_org to:', parsed.host_org)
+              }
+              if (parsed.website_url) {
+                updates.website_url = parsed.website_url
+                console.log('Setting website_url to:', parsed.website_url)
               }
               
               console.log('Final updates to apply:', updates)
@@ -2541,10 +2414,8 @@ export default function Events({ darkMode = false }: EventsProps) {
                           // Run OCR on the image to extract text
                           console.log('Starting OCR on uploaded image...')
                           try {
-                            const Tesseract = await import('tesseract.js')
-                            console.log('Tesseract loaded, running OCR...')
-                            const { data: ocrData } = await Tesseract.default.recognize(file, 'eng')
-                            const text = (ocrData?.text || '').trim()
+                            console.log('Running optimized OCR...')
+                            const text = await runOptimizedOCR(file)
                             console.log('OCR completed. Extracted text:', text)
                             
                             if (!text) {
@@ -2569,21 +2440,32 @@ export default function Events({ darkMode = false }: EventsProps) {
                                 console.log('Updating name to:', parsed.name)
                               }
                             }
-                            if (parsed.start_date && (!editing.start_date || (editing.start_date && editing.start_date.trim() === ''))) {
+                            // Always apply parsed dates/times when they exist
+                            console.log('Parsed data:', parsed)
+                            if (parsed.start_date) {
                               updates.start_date = parsed.start_date
-                              console.log('Updating start_date to:', parsed.start_date)
+                              console.log('Setting start_date to:', parsed.start_date)
                             }
-                            if (parsed.end_date && (!editing.end_date || (editing.end_date && editing.end_date.trim() === ''))) {
+                            if (parsed.end_date) {
                               updates.end_date = parsed.end_date
-                              console.log('Updating end_date to:', parsed.end_date)
+                              console.log('Setting end_date to:', parsed.end_date)
                             }
-                            if (parsed.start_time && (!editing.start_time || (editing.start_time && editing.start_time.trim() === ''))) {
+                            if (parsed.start_time) {
                               updates.start_time = parsed.start_time
-                              console.log('Updating start_time to:', parsed.start_time)
+                              console.log('Setting start_time to:', parsed.start_time)
                             }
-                            if (parsed.end_time && (!editing.end_time || (editing.end_time && editing.end_time.trim() === ''))) {
+                            if (parsed.end_time) {
                               updates.end_time = parsed.end_time
-                              console.log('Updating end_time to:', parsed.end_time)
+                              console.log('Setting end_time to:', parsed.end_time)
+                            }
+                            if (parsed.location) {
+                              updates.location = parsed.location
+                            }
+                            if (parsed.host_org) {
+                              updates.host_org = parsed.host_org
+                            }
+                            if (parsed.website_url) {
+                              updates.website_url = parsed.website_url
                             }
                             
                             console.log('Final updates to apply:', updates)
@@ -2637,10 +2519,8 @@ export default function Events({ darkMode = false }: EventsProps) {
                             setImagePasteStatus('Processing OCR…')
                             console.log('Starting OCR on pasted image in paste area...')
                             try {
-                              const Tesseract = await import('tesseract.js')
-                              console.log('Tesseract loaded, running OCR...')
-                              const { data: ocrData } = await Tesseract.default.recognize(file, 'eng')
-                              const text = (ocrData?.text || '').trim()
+                              console.log('Running optimized OCR...')
+                              const text = await runOptimizedOCR(file)
                               console.log('OCR completed. Extracted text:', text)
                               
                               if (!text) {
@@ -2667,21 +2547,32 @@ export default function Events({ darkMode = false }: EventsProps) {
                                   console.log('Updating name to:', parsed.name)
                                 }
                               }
-                              if (parsed.start_date && (!editing.start_date || (editing.start_date && editing.start_date.trim() === ''))) {
+                              // Always apply parsed dates/times when they exist
+                              console.log('Parsed data:', parsed)
+                              if (parsed.start_date) {
                                 updates.start_date = parsed.start_date
-                                console.log('Updating start_date to:', parsed.start_date)
+                                console.log('Setting start_date to:', parsed.start_date)
                               }
-                              if (parsed.end_date && (!editing.end_date || (editing.end_date && editing.end_date.trim() === ''))) {
+                              if (parsed.end_date) {
                                 updates.end_date = parsed.end_date
-                                console.log('Updating end_date to:', parsed.end_date)
+                                console.log('Setting end_date to:', parsed.end_date)
                               }
-                              if (parsed.start_time && (!editing.start_time || (editing.start_time && editing.start_time.trim() === ''))) {
+                              if (parsed.start_time) {
                                 updates.start_time = parsed.start_time
-                                console.log('Updating start_time to:', parsed.start_time)
+                                console.log('Setting start_time to:', parsed.start_time)
                               }
-                              if (parsed.end_time && (!editing.end_time || (editing.end_time && editing.end_time.trim() === ''))) {
+                              if (parsed.end_time) {
                                 updates.end_time = parsed.end_time
-                                console.log('Updating end_time to:', parsed.end_time)
+                                console.log('Setting end_time to:', parsed.end_time)
+                              }
+                              if (parsed.location) {
+                                updates.location = parsed.location
+                              }
+                              if (parsed.host_org) {
+                                updates.host_org = parsed.host_org
+                              }
+                              if (parsed.website_url) {
+                                updates.website_url = parsed.website_url
                               }
                               
                               console.log('Final updates to apply:', updates)
