@@ -277,25 +277,9 @@
     let filteredRows = filterEventsByKeywords(rows, selectedKeywords);
     filteredRows = filterEventsByDateRange(filteredRows, fromDate, toDate);
     
-    // Fetch all keywords from the system
-    let allKeywords = [];
-    if (mount._widgetOpts && mount._widgetOpts.url && mount._widgetOpts.key) {
-      try {
-        allKeywords = await fetchAllKeywords({ 
-          url: mount._widgetOpts.url, 
-          key: mount._widgetOpts.key 
-        });
-        console.debug('Fetched keywords from system:', allKeywords.length);
-      } catch (e) {
-        console.error('Error fetching keywords, falling back to event keywords:', e);
-        // Fallback: use keywords from loaded events
-        allKeywords = getAllKeywords(rows);
-      }
-    } else {
-      // Fallback: use keywords from loaded events
-      console.debug('No widget opts, using keywords from events');
-      allKeywords = getAllKeywords(rows);
-    }
+    // Get keywords only from events that are actually loaded
+    // This ensures we only show keywords that are used by at least one event
+    const allKeywords = getAllKeywords(rows);
     
     // If no keywords found, log for debugging
     if (allKeywords.length === 0) {

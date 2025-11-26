@@ -290,17 +290,9 @@
     let filteredRows = filterEventsByKeywords(rows, selectedKeywords);
     filteredRows = filterEventsByDateRange(filteredRows, fromDate, toDate);
     
-    // Fetch all keywords from the system
-    let allKeywords = [];
-    if (mount._widgetOpts && mount._widgetOpts.url && mount._widgetOpts.key) {
-      allKeywords = await fetchAllKeywords({ 
-        url: mount._widgetOpts.url, 
-        key: mount._widgetOpts.key 
-      });
-    } else {
-      // Fallback: use keywords from loaded events
-      allKeywords = getAllKeywords(rows);
-    }
+    // Get keywords only from events that are actually loaded
+    // This ensures we only show keywords that are used by at least one event
+    const allKeywords = getAllKeywords(rows);
     
     // Render controls
     let controlsHTML = '<div class="ssa-controls">';
