@@ -1,21 +1,7 @@
-<!-- 
-  SSA Events Widget - Squarespace Code Injection
-  
-  This widget fetches events from a Supabase database and displays them with filtering and layout options.
-  Features:
-  - Fetches upcoming events from the 'events' table
-  - Multiple layout options: list (by month), grid tiles
-  - Keyword filtering
-  - Date range filtering (from/to dates)
-  - Includes caching for better performance
-  - Handles loading states and error conditions
-  
-  Usage: Include this code in Squarespace Code Injection and it will render events in the #events-list div
--->
+// Event List Widget - Development Version
+// This file can be edited and tested locally, then the code from event-list.html can be copied to Squarespace
 
-<!-- 1) One-time: widget script -->
-<script>
-(() => {
+(function() {
   function todayISO() { const d=new Date(); d.setHours(0,0,0,0); return d.toISOString().slice(0,10); }
 
   // Layout types
@@ -35,6 +21,7 @@
 	  //  - end_date >= from  OR
 	  //  - start_date >= from  OR
 	  //  - both dates are null (undated events)
+	  // If from is null/empty, show all events
 	  if (from) {
 	    // IMPORTANT: wrap conditions in parentheses
 	    const orFilter =
@@ -293,13 +280,26 @@
     // Fetch all keywords from the system
     let allKeywords = [];
     if (mount._widgetOpts && mount._widgetOpts.url && mount._widgetOpts.key) {
-      allKeywords = await fetchAllKeywords({ 
-        url: mount._widgetOpts.url, 
-        key: mount._widgetOpts.key 
-      });
+      try {
+        allKeywords = await fetchAllKeywords({ 
+          url: mount._widgetOpts.url, 
+          key: mount._widgetOpts.key 
+        });
+        console.debug('Fetched keywords from system:', allKeywords.length);
+      } catch (e) {
+        console.error('Error fetching keywords, falling back to event keywords:', e);
+        // Fallback: use keywords from loaded events
+        allKeywords = getAllKeywords(rows);
+      }
     } else {
       // Fallback: use keywords from loaded events
+      console.debug('No widget opts, using keywords from events');
       allKeywords = getAllKeywords(rows);
+    }
+    
+    // If no keywords found, log for debugging
+    if (allKeywords.length === 0) {
+      console.debug('No keywords found to display');
     }
     
     // Render controls
@@ -440,7 +440,7 @@
             const maxW = Math.min(800, viewportW - gap * 2);
             
             let top = rect.top;
-            // Position based on icon location
+            // Position based on item location
             if (rect.top < 120) {
               top = Math.max(gap, rect.top);
             } else if (rect.bottom > viewportH - 120) {
@@ -567,11 +567,11 @@
       .ssa-events-list{list-style:none;padding:0;margin:0 0 32px}
       .ssa-event-item{margin-bottom:8px;padding:8px 0;border-bottom:1px solid #f3f4f6}
       .ssa-event-item:last-child{border-bottom:none}
-      .ssa-event-name-wrapper{display:inline-flex;align-items:center;gap:8px}
-      .ssa-image-icon{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;font-size:1rem;cursor:pointer;opacity:0.7;transition:opacity 0.2s;flex-shrink:0}
-      .ssa-image-icon:hover{opacity:1}
+      .ssa-event-name-wrapper{display:inline-flex;align-items:center;gap:6px}
       .ssa-event-link{color:#3b82f6;text-decoration:none}
       .ssa-event-link:hover{text-decoration:underline}
+      .ssa-link-icon{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;color:#3b82f6;text-decoration:none;font-size:0.875rem;opacity:0.7;transition:opacity 0.2s}
+      .ssa-link-icon:hover{opacity:1}
       .ssa-keywords-inline{display:inline-flex;flex-wrap:wrap;gap:4px;margin-left:8px}
       .ssa-tag{display:inline-block;padding:2px 8px;background:#f3f4f6;border-radius:12px;font-size:0.75rem;color:#6b7280}
       .ssa-grid{display:grid;gap:16px}
@@ -665,17 +665,4 @@
   window.SSWidgets = window.SSWidgets || {};
   window.SSWidgets.renderEvents = renderEventsWidget;
 })();
-</script>
 
-<!-- 2) Mount + init call -->
-<div id="events-list"></div>
-<script>
-  SSWidgets.renderEvents({
-    mount: '#events-list',
-    url: 'https://ydftcebaftngcdjvxrgl.supabase.co',
-    key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlkZnRjZWJhZnRuZ2NkanZ4cmdsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA1NDA5NDcsImV4cCI6MjA3NjExNjk0N30.8AlcsUMJSxBlua-ehaGLAn69bbORoMBdjM--MSxxXF0',
-    //from: undefined,   // default = today (only ongoing/upcoming)
-    //to: undefined,     // set like '2025-12-31' to cap the range if you want
-    limit: 200
-  });
-</script>
