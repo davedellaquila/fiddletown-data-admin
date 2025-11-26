@@ -4,6 +4,7 @@ import trashIcon from '../assets/trash.svg'
 import { supabase } from '../lib/supabaseClient'
 import FormField from '../shared/components/FormField'
 import AutoSaveEditDialog from '../shared/components/AutoSaveEditDialog'
+import KeywordSelector from '../shared/components/KeywordSelector'
 
 type EventRow = {
   id?: number
@@ -26,6 +27,7 @@ type EventRow = {
   created_at?: string
   updated_at?: string
   deleted_at?: string | null
+  keywords?: string[]
 }
 
 const slugify = (s: string) => s
@@ -471,7 +473,7 @@ function toCSV(rows: any[], headers: string[]): string {
 }
 
 function downloadTemplateCSV() {
-  const headers = ['name','slug','host_org','start_date','end_date','start_time','end_time','location','recurrence','website_url','status','sort_order']
+  const headers = ['name','slug','host_org','start_date','end_date','start_time','end_time','location','recurrence','website_url','status','sort_order','keywords']
   const csv = toCSV([], headers) + '\n'
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
   const url = URL.createObjectURL(blob)
@@ -559,6 +561,8 @@ export default function Events({ darkMode = false }: EventsProps) {
   const [hoverPreviewStyle, setHoverPreviewStyle] = useState<{ top: number, left: number, height: number, width: number } | null>(null)
   const [sortBy, setSortBy] = useState<'start_date' | 'end_date' | 'name' | 'location' | 'status' | 'start_time' | 'end_time' | 'created_at'>('start_date')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
+  const [existingKeywords, setExistingKeywords] = useState<string[]>([])
+  const [selectedKeywordFilters, setSelectedKeywordFilters] = useState<string[]>([])
 
   const handleSort = (column: 'start_date' | 'end_date' | 'name' | 'location' | 'status' | 'start_time' | 'end_time' | 'created_at') => {
     if (sortBy === column) {
@@ -595,7 +599,7 @@ export default function Events({ darkMode = false }: EventsProps) {
   const [imagePasteStatus, setImagePasteStatus] = useState<string>('Paste image here')
   const [imagePasteActive, setImagePasteActive] = useState<boolean>(false)
 
-  const headers = ['name','slug','host_org','start_date','end_date','start_time','end_time','location','recurrence','website_url','status','sort_order']
+  const headers = ['name','slug','host_org','start_date','end_date','start_time','end_time','location','recurrence','website_url','status','sort_order','keywords']
 
   // Dynamic sticky offset for table headers to sit right under the toolbar
   const toolbarRef = useRef<HTMLDivElement | null>(null)
@@ -637,6 +641,21 @@ export default function Events({ darkMode = false }: EventsProps) {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [editing])
 
+  // Load all existing keywords for autocomplete
+  const loadKeywords = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('keywords')
+        .select('name')
+        .order('name', { ascending: true })
+      
+      if (error) throw error
+      setExistingKeywords((data ?? []).map(k => k.name))
+    } catch (e: any) {
+      console.error('Failed to load keywords:', e)
+    }
+  }
+
   // Client-side filtering function
   const applyFilters = (events: EventRow[]) => {
     let filtered = events
@@ -646,6 +665,16 @@ export default function Events({ darkMode = false }: EventsProps) {
       filtered = filtered.filter(event => 
         event.name.toLowerCase().includes(q.toLowerCase())
       )
+    }
+    
+    // Apply keyword filter (OR logic - event must have ANY of the selected keywords)
+    if (selectedKeywordFilters.length > 0) {
+      filtered = filtered.filter(event => {
+        if (!event.keywords || event.keywords.length === 0) return false
+        return selectedKeywordFilters.some(filterKeyword => 
+          event.keywords!.includes(filterKeyword)
+        )
+      })
     }
     
     setRows(filtered)
@@ -669,7 +698,77 @@ export default function Events({ darkMode = false }: EventsProps) {
     const { data, error } = await query
       if (error) throw error
       const allEvents = (data ?? []) as EventRow[]
+      
+      // Load keywords for each event
+      const eventIds = allEvents.map(e => e.id).filter((id): id is number => id !== undefined)
+      if (eventIds.length > 0) {
+        // Fetch event_keywords relationships
+        const { data: keywordRelations, error: relationError } = await supabase
+          .from('event_keywords')
+          .select('event_id, keyword_id')
+          .in('event_id', eventIds)
+        
+        if (relationError) {
+          console.error('Error loading keyword relationships:', relationError)
+        }
+        
+        if (keywordRelations && keywordRelations.length > 0) {
+          // Get unique keyword IDs
+          const keywordIds = [...new Set(keywordRelations.map((r: any) => r.keyword_id))]
+          
+          // Fetch keyword names
+          const { data: keywords, error: keywordError } = await supabase
+            .from('keywords')
+            .select('id, name')
+            .in('id', keywordIds)
+          
+          if (keywordError) {
+            console.error('Error loading keywords:', keywordError)
+          }
+          
+          if (keywords) {
+            // Create a map of keyword_id to keyword name
+            const keywordMap = new Map<string, string>()
+            keywords.forEach((kw: any) => {
+              keywordMap.set(kw.id, kw.name.toLowerCase())
+            })
+            
+            // Group keywords by event_id
+            const keywordsByEventId = new Map<number | string, string[]>()
+            keywordRelations.forEach((relation: any) => {
+              const eventId = relation.event_id
+              const keywordName = keywordMap.get(relation.keyword_id)
+              if (keywordName) {
+                if (!keywordsByEventId.has(eventId)) {
+                  keywordsByEventId.set(eventId, [])
+                }
+                keywordsByEventId.get(eventId)!.push(keywordName)
+              }
+            })
+            
+            // Attach keywords to events
+            allEvents.forEach(event => {
+              if (event.id) {
+                event.keywords = keywordsByEventId.get(event.id) || []
+              }
+            })
+            
+            console.log('Loaded keywords for events:', keywordsByEventId)
+          }
+        } else {
+          // No keywords found, initialize empty arrays
+          allEvents.forEach(event => {
+            if (event.id) {
+              event.keywords = []
+            }
+          })
+        }
+      }
+      
       setAllRows(allEvents)
+      
+      // Load all keywords for autocomplete
+      await loadKeywords()
       
       // Apply client-side search filtering
       applyFilters(allEvents)
@@ -701,12 +800,18 @@ export default function Events({ darkMode = false }: EventsProps) {
       created_by: session.session?.user.id ?? null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-      deleted_at: null
+      deleted_at: null,
+      keywords: []
     })
   }
 
   const exportCSV = () => {
-    const csv = toCSV(rows, headers)
+    // Format rows for CSV export - convert keywords array to comma-separated string
+    const formattedRows = rows.map(row => ({
+      ...row,
+      keywords: row.keywords ? row.keywords.join(', ') : ''
+    }))
+    const csv = toCSV(formattedRows, headers)
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -741,7 +846,7 @@ export default function Events({ darkMode = false }: EventsProps) {
         'status': 'status'
       }
 
-      const headers = ['name','slug','host_org','start_date','end_date','start_time','end_time','location','recurrence','website_url','status','sort_order']
+      const headers = ['name','slug','host_org','start_date','end_date','start_time','end_time','location','recurrence','website_url','status','sort_order','keywords']
       const rows = grid.slice(1).map(cols => {
         const obj: Record<string, any> = {}
         headers.forEach((h, i) => { obj[h] = (cols[i] ?? '').trim() })
@@ -761,7 +866,8 @@ export default function Events({ darkMode = false }: EventsProps) {
           recurrence: r.recurrence || null,
           website_url: r.website_url || null,
           status: r.status || 'draft',
-          sort_order: r.sort_order ? Number(r.sort_order) : null
+          sort_order: r.sort_order ? Number(r.sort_order) : null,
+          keywords: r.keywords ? r.keywords.split(',').map((k: string) => k.trim().toLowerCase()).filter((k: string) => k.length > 0) : []
         }
         if (!['draft','published','archived'].includes(rec.status)) rec.status = 'draft'
         return rec
@@ -784,22 +890,92 @@ export default function Events({ darkMode = false }: EventsProps) {
     const { data: session } = await supabase.auth.getSession()
     const uid = session.session?.user.id ?? null
 
-    const payload = importPreview.map(r => ({
+    // Separate keywords from event data
+    const eventsPayload = importPreview.map(({ keywords, ...r }) => ({
       ...r,
       created_by: uid
     }))
 
-    const { error } = await supabase
+    const { data: insertedEvents, error } = await supabase
       .from('events')
-      .upsert(payload, { onConflict: 'slug' })
+      .upsert(eventsPayload, { onConflict: 'slug' })
+      .select('id, slug')
 
     if (error) { setImportErrors([error.message]); return }
+
+    // Handle keywords for imported events
+    if (insertedEvents) {
+      // Create a map of slug to event ID
+      const slugToIdMap = new Map<string, number>()
+      insertedEvents.forEach((e: any) => {
+        if (e.slug) slugToIdMap.set(e.slug, e.id)
+      })
+
+      // Process keywords for each imported event
+      for (const previewItem of importPreview) {
+        if (!previewItem.keywords || previewItem.keywords.length === 0) continue
+        
+        const eventId = previewItem.slug ? slugToIdMap.get(previewItem.slug) : null
+        if (!eventId) continue
+
+        // Get or create keyword IDs
+        const keywordIds: string[] = []
+        for (const keywordName of previewItem.keywords) {
+          const normalizedKeyword = keywordName.trim().toLowerCase()
+          if (!normalizedKeyword) continue
+
+          // Check if keyword exists
+          const { data: existingKeyword } = await supabase
+            .from('keywords')
+            .select('id')
+            .eq('name', normalizedKeyword)
+            .single()
+          
+          let keywordId: string
+          if (existingKeyword) {
+            keywordId = existingKeyword.id
+          } else {
+            // Create new keyword
+            const { data: newKeyword, error: createError } = await supabase
+              .from('keywords')
+              .insert({ name: normalizedKeyword })
+              .select('id')
+              .single()
+            
+            if (createError) {
+              console.error('Error creating keyword:', createError)
+              continue
+            }
+            keywordId = newKeyword.id
+          }
+          keywordIds.push(keywordId)
+        }
+
+        // Delete old event_keywords relationships
+        await supabase
+          .from('event_keywords')
+          .delete()
+          .eq('event_id', eventId)
+
+        // Create new event_keywords relationships
+        if (keywordIds.length > 0) {
+          const junctionRecords = keywordIds.map(keywordId => ({
+            event_id: eventId,
+            keyword_id: keywordId
+          }))
+          
+          await supabase
+            .from('event_keywords')
+            .insert(junctionRecords)
+        }
+      }
+    }
 
     setImporting(false)
     setImportPreview(null)
     setImportErrors([])
     await load()
-    alert(`Imported ${payload.length} events`)
+    alert(`Imported ${eventsPayload.length} events`)
   }
 
   const toggleSelect = (id: string, checked: boolean) => {
@@ -898,7 +1074,7 @@ export default function Events({ darkMode = false }: EventsProps) {
   }
 
 
-  const exportCSVFiltered = () => {
+  const exportCSVFiltered = async () => {
     let query = supabase
       .from('events')
       .select('id, name, slug, description, host_org, start_date, end_date, start_time, end_time, location, recurrence, website_url, status, sort_order')
@@ -910,16 +1086,49 @@ export default function Events({ darkMode = false }: EventsProps) {
     if (from) query = query.gte('start_date', from)
     if (to) query = query.lte('start_date', to)
 
-    query.then(async ({ data, error }) => {
+    const { data, error } = await query
     if (error) { alert(error.message); return }
-    const headers = ['name','slug','host_org','start_date','end_date','start_time','end_time','location','recurrence','website_url','status','sort_order']
-    const csv = toCSV(data || [], headers)
+    
+    // Load keywords for exported events
+    const eventIds = (data || []).map((e: any) => e.id).filter((id: any): id is number => id !== undefined)
+    const eventsWithKeywords = [...(data || [])]
+    
+    if (eventIds.length > 0) {
+      const { data: keywordData } = await supabase
+        .from('event_keywords')
+        .select('event_id, keywords(name)')
+        .in('event_id', eventIds)
+      
+      if (keywordData) {
+        const keywordsByEventId = new Map<number, string[]>()
+        keywordData.forEach((item: any) => {
+          const eventId = item.event_id
+          const keywordName = item.keywords?.name?.toLowerCase()
+          if (keywordName) {
+            if (!keywordsByEventId.has(eventId)) {
+              keywordsByEventId.set(eventId, [])
+            }
+            keywordsByEventId.get(eventId)!.push(keywordName)
+          }
+        })
+        
+        eventsWithKeywords.forEach((event: any) => {
+          event.keywords = keywordsByEventId.get(event.id)?.join(', ') || ''
+        })
+      }
+    } else {
+      eventsWithKeywords.forEach((event: any) => {
+        event.keywords = ''
+      })
+    }
+    
+    const headers = ['name','slug','host_org','start_date','end_date','start_time','end_time','location','recurrence','website_url','status','sort_order','keywords']
+    const csv = toCSV(eventsWithKeywords, headers)
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-      const url = URL.createObjectURL(blob)
+    const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
-      a.href = url; a.download = 'events_export.csv'; a.click()
-      URL.revokeObjectURL(url)
-    })
+    a.href = url; a.download = 'events_export.csv'; a.click()
+    URL.revokeObjectURL(url)
   }
 
   async function handlePaste(ev: React.ClipboardEvent<HTMLDivElement>) {
@@ -1030,6 +1239,7 @@ export default function Events({ darkMode = false }: EventsProps) {
   const save = async (options?: { suppressClose?: boolean }) => {
     if (!editing) return
     const payload = { ...editing }
+    const keywordsToSave = payload.keywords || []
 
     console.log('Save function - editing state:', editing)
     console.log('Save function - start_date:', payload.start_date, 'type:', typeof payload.start_date)
@@ -1071,10 +1281,77 @@ export default function Events({ darkMode = false }: EventsProps) {
       }
       console.log('Database update successful')
     } else {
-      const { id, created_at, updated_at, deleted_at, ...insertable } = payload
+      const { id, created_at, updated_at, deleted_at, keywords, ...insertable } = payload
       const { data, error } = await supabase.from('events').insert(insertable).select().single()
       if (error) { alert(error.message); return }
       payload.id = data!.id
+    }
+
+    // Handle keywords: create missing keywords and update relationships
+    if (payload.id) {
+      // Normalize keywords to lowercase
+      const normalizedKeywords = keywordsToSave.map(k => k.trim().toLowerCase()).filter(k => k.length > 0)
+      
+      // Get or create keyword IDs
+      const keywordIds: string[] = []
+      for (const keywordName of normalizedKeywords) {
+        // Check if keyword exists
+        const { data: existingKeyword } = await supabase
+          .from('keywords')
+          .select('id')
+          .eq('name', keywordName)
+          .single()
+        
+        let keywordId: string
+        if (existingKeyword) {
+          keywordId = existingKeyword.id
+        } else {
+          // Create new keyword
+          const { data: newKeyword, error: createError } = await supabase
+            .from('keywords')
+            .insert({ name: keywordName })
+            .select('id')
+            .single()
+          
+          if (createError) {
+            console.error('Error creating keyword:', createError)
+            continue
+          }
+          keywordId = newKeyword.id
+          
+          // Update existing keywords list for autocomplete
+          setExistingKeywords(prev => [...prev, keywordName].sort())
+        }
+        keywordIds.push(keywordId)
+      }
+      
+      // Delete old event_keywords relationships
+      const { error: deleteError } = await supabase
+        .from('event_keywords')
+        .delete()
+        .eq('event_id', payload.id)
+      
+      if (deleteError) {
+        console.error('Error deleting old keywords:', deleteError)
+      }
+      
+      // Create new event_keywords relationships
+      if (keywordIds.length > 0) {
+        const junctionRecords = keywordIds.map(keywordId => ({
+          event_id: payload.id,
+          keyword_id: keywordId
+        }))
+        
+        const { error: insertError } = await supabase
+          .from('event_keywords')
+          .insert(junctionRecords)
+        
+        if (insertError) {
+          console.error('Error creating keyword relationships:', insertError)
+        } else {
+          console.log('Successfully saved keyword relationships:', junctionRecords)
+        }
+      }
     }
 
     if (!options?.suppressClose) setEditing(null)
@@ -1096,10 +1373,10 @@ export default function Events({ darkMode = false }: EventsProps) {
     load()
   }, [from, to, sortBy, sortOrder])
 
-  // Apply client-side search filtering when search query changes
+  // Apply client-side search filtering when search query or keyword filters change
   useEffect(() => {
     applyFilters(allRows)
-  }, [q, allRows])
+  }, [q, selectedKeywordFilters, allRows])
 
   // Persist OCR state to localStorage
   useEffect(() => {
@@ -1542,6 +1819,90 @@ export default function Events({ darkMode = false }: EventsProps) {
               }}
             />
           </label>
+
+          {/* Keyword Filter */}
+          <div style={{ position: 'relative', minWidth: '200px' }}>
+            <select
+              value=""
+              onChange={(e) => {
+                const keyword = e.target.value
+                if (keyword && !selectedKeywordFilters.includes(keyword)) {
+                  setSelectedKeywordFilters([...selectedKeywordFilters, keyword])
+                }
+                e.target.value = ''
+              }}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                background: darkMode ? '#374151' : '#ffffff',
+                border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`,
+                borderRadius: '6px',
+                color: darkMode ? '#f9fafb' : '#1f2937',
+                fontSize: '14px'
+              }}
+            >
+              <option value="">Filter by keyword...</option>
+              {existingKeywords
+                .filter(kw => !selectedKeywordFilters.includes(kw))
+                .map(kw => (
+                  <option key={kw} value={kw}>{kw}</option>
+                ))}
+            </select>
+          </div>
+
+          {/* Selected keyword filters as chips */}
+          {selectedKeywordFilters.length > 0 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center' }}>
+              {selectedKeywordFilters.map(keyword => (
+                <span
+                  key={keyword}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '4px 10px',
+                    background: darkMode ? '#3b82f6' : '#3b82f6',
+                    color: '#ffffff',
+                    borderRadius: '16px',
+                    fontSize: '13px',
+                    fontWeight: '500'
+                  }}
+                >
+                  {keyword}
+                  <button
+                    type="button"
+                    onClick={() => setSelectedKeywordFilters(selectedKeywordFilters.filter(k => k !== keyword))}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: '#ffffff',
+                      cursor: 'pointer',
+                      padding: '0',
+                      marginLeft: '4px',
+                      fontSize: '16px',
+                      lineHeight: '1',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: '18px',
+                      height: '18px',
+                      borderRadius: '50%',
+                      transition: 'background-color 0.2s'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)'
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = 'transparent'
+                    }}
+                    title="Remove filter"
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
           
           <label style={{ color: darkMode ? '#f9fafb' : '#374151', display: 'flex', alignItems: 'center', gap: '4px' }}>
             Sort by
@@ -2137,241 +2498,6 @@ export default function Events({ darkMode = false }: EventsProps) {
         >
           <div style={{ padding: '32px' }}>
             <div style={{ display: 'grid', gap: '20px' }}>
-              {/* Event Name and Slug */}
-              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '16px' }}>
-                <FormField
-                  label="Event Name"
-                  name="name"
-                  value={editing?.name || ''}
-                  onChange={(value) => setEditing({...editing!, name: value as string, slug: slugify(value as string)})}
-                  required
-                  editingId={editing?.id?.toString()}
-                  darkMode={darkMode}
-                />
-                <FormField
-                  label="Slug"
-                  name="slug"
-                  value={editing?.slug || ''}
-                  onChange={(value) => setEditing({...editing!, slug: slugify(value as string)})}
-                  editingId={editing?.id?.toString()}
-                  darkMode={darkMode}
-                />
-              </div>
-
-              <FormField
-                label="Description"
-                name="description"
-                value={editing?.description || ''}
-                onChange={(value) => setEditing({...editing!, description: value as string})}
-                type="textarea"
-                minHeight="100px"
-                editingId={editing?.id?.toString()}
-                darkMode={darkMode}
-              />
-
-              {/* Host Org and Location */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                <FormField
-                  label="Host Organization"
-                  name="host_org"
-                  value={editing?.host_org || ''}
-                  onChange={(value) => setEditing({...editing!, host_org: value as string})}
-                  editingId={editing?.id?.toString()}
-                  darkMode={darkMode}
-                />
-                <FormField
-                  label="Location"
-                  name="location"
-                  value={editing?.location || ''}
-                  onChange={(value) => setEditing({...editing!, location: value as string})}
-                  editingId={editing?.id?.toString()}
-                  darkMode={darkMode}
-                />
-              </div>
-
-              {/* Dates */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                <FormField
-                  label="Start Date"
-                  name="start_date"
-                  value={editing?.start_date || ''}
-                  onChange={(value) => {
-                    const newStartDate = value as string
-                    const currentEndDate = editing?.end_date
-                    const today = new Date().toISOString().slice(0, 10)
-                    
-                    console.log('Start date changed to:', newStartDate)
-                    
-                    let updatedEndDate = currentEndDate
-                    
-                    // If end date is today, blank, or null, set it to the start date
-                    if (!currentEndDate || currentEndDate === '' || currentEndDate === today) {
-                      updatedEndDate = newStartDate
-                      console.log('End date is today/blank/null, setting to start date:', newStartDate)
-                    }
-                    // If end date exists and is before the new start date, set it to the start date
-                    else if (currentEndDate && newStartDate && currentEndDate < newStartDate) {
-                      updatedEndDate = newStartDate
-                      console.log('End date is before start date, adjusting to start date')
-                    }
-                    
-                    setEditing({
-                      ...editing!,
-                      start_date: newStartDate,
-                      end_date: updatedEndDate
-                    })
-                  }}
-                  onInput={(value) => {
-                    const newStartDate = value as string
-                    const currentEndDate = editing?.end_date
-                    
-                    console.log('Start date input to:', newStartDate)
-                    
-                    // If end date exists and is before the new start date, set it to the start date
-                    let updatedEndDate = currentEndDate
-                    if (currentEndDate && newStartDate && currentEndDate < newStartDate) {
-                      updatedEndDate = newStartDate
-                    }
-                    
-                    setEditing({
-                      ...editing!,
-                      start_date: newStartDate,
-                      end_date: updatedEndDate
-                    })
-                  }}
-                  type="date"
-                  editingId={editing?.id?.toString()}
-                  darkMode={darkMode}
-                />
-                <FormField
-                  label="End Date"
-                  name="end_date"
-                  value={editing?.end_date || ''}
-                  onChange={(value) => {
-                    console.log('End date changed to:', value)
-                    setEditing({...editing!, end_date: value as string})
-                  }}
-                  onInput={(value) => {
-                    console.log('End date input to:', value)
-                    setEditing({...editing!, end_date: value as string})
-                  }}
-                  type="date"
-                  editingId={editing?.id?.toString()}
-                  darkMode={darkMode}
-                />
-              </div>
-
-              {/* Times */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                <FormField
-                  label="Start Time"
-                  name="start_time"
-                  value={editing?.start_time ?? ''}
-                  onChange={(value) => {
-                    const inputValue = value as string
-                    console.log('Start time input:', inputValue)
-                    
-                    // Store the raw input value without conversion, convert empty string to null
-                    setEditing({
-                      ...editing!,
-                      start_time: inputValue === '' ? null : inputValue
-                    })
-                  }}
-                  onBlur={(value) => {
-                    const inputValue = value as string
-                    const convertedTime = convertTo24Hour(inputValue, false)
-                    console.log('Start time blur - converting:', inputValue, 'to:', convertedTime)
-                    
-                    // If end time exists and is before the new start time, set it to the start time
-                    const currentEndTime = editing?.end_time
-                    let updatedEndTime = currentEndTime
-                    if (currentEndTime && convertedTime && currentEndTime < convertedTime) {
-                      console.log('End time is before new start time, adjusting end time to start time')
-                      updatedEndTime = convertedTime
-                    }
-                    
-                    setEditing({
-                      ...editing!,
-                      start_time: convertedTime,
-                      end_time: updatedEndTime
-                    })
-                  }}
-                  placeholder="HH:MM (e.g., 14:30)"
-                  editingId={editing?.id?.toString()}
-                  darkMode={darkMode}
-                />
-                <FormField
-                  label="End Time"
-                  name="end_time"
-                  value={editing?.end_time ?? ''}
-                  onChange={(value) => {
-                    const inputValue = value as string
-                    console.log('End time input:', inputValue)
-                    
-                    // Store the raw input value without conversion, convert empty string to null
-                    setEditing({
-                      ...editing!,
-                      end_time: inputValue === '' ? null : inputValue
-                    })
-                  }}
-                  onBlur={(value) => {
-                    const inputValue = value as string
-                    const convertedTime = convertTo24Hour(inputValue, true, editing?.start_time)
-                    console.log('End time blur - converting:', inputValue, 'to:', convertedTime)
-                    
-                    // Check if end time is before start time
-                    const startTime = editing?.start_time
-                    if (startTime && convertedTime && convertedTime < startTime) {
-                      console.log('End time is before start time, adjusting...')
-                      setEditing({...editing!, end_time: startTime})
-                    } else {
-                      setEditing({...editing!, end_time: convertedTime})
-                    }
-                  }}
-                  placeholder="HH:MM (e.g., 16:30)"
-                  editingId={editing?.id?.toString()}
-                  darkMode={darkMode}
-                />
-              </div>
-
-              {/* Website and Recurrence */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: darkMode ? '#f9fafb' : '#374151' }}>
-                    Website URL
-                  </label>
-                  <div>
-                    <FormField
-                      label=""
-                      name="website_url"
-                      value={editing?.website_url || ''}
-                      onChange={(value) => setEditing({...editing!, website_url: value as string})}
-                      type="url"
-                      editingId={editing?.id?.toString()}
-                      darkMode={darkMode}
-                      endIcon={editing?.website_url ? '🔗' : undefined}
-                      endIconTitle="Open URL in new tab"
-                      onEndIconClick={editing?.website_url ? () => {
-                        const url = editing.website_url
-                        if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
-                          window.open(url, '_blank', 'noopener,noreferrer')
-                        } else if (url) {
-                          window.open(`https://${url}`, '_blank', 'noopener,noreferrer')
-                        }
-                      } : undefined}
-                    />
-                  </div>
-                </div>
-                <FormField
-                  label="Recurrence"
-                  name="recurrence"
-                  value={editing?.recurrence || ''}
-                  onChange={(value) => setEditing({...editing!, recurrence: value as string})}
-                  editingId={editing?.id?.toString()}
-                  darkMode={darkMode}
-                />
-              </div>
-
               {/* Event Image (upload/paste + preview) */}
               <div>
                 <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: darkMode ? '#f9fafb' : '#374151' }}>
@@ -2650,6 +2776,251 @@ export default function Events({ darkMode = false }: EventsProps) {
                     </div>
                   )}
                 </div>
+              </div>
+
+              {/* Event Name and Slug */}
+              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '16px' }}>
+                <FormField
+                  label="Event Name"
+                  name="name"
+                  value={editing?.name || ''}
+                  onChange={(value) => setEditing({...editing!, name: value as string, slug: slugify(value as string)})}
+                  required
+                  editingId={editing?.id?.toString()}
+                  darkMode={darkMode}
+                />
+                <FormField
+                  label="Slug"
+                  name="slug"
+                  value={editing?.slug || ''}
+                  onChange={(value) => setEditing({...editing!, slug: slugify(value as string)})}
+                  editingId={editing?.id?.toString()}
+                  darkMode={darkMode}
+                />
+              </div>
+
+              <FormField
+                label="Description"
+                name="description"
+                value={editing?.description || ''}
+                onChange={(value) => setEditing({...editing!, description: value as string})}
+                type="textarea"
+                minHeight="100px"
+                resize="vertical"
+                editingId={editing?.id?.toString()}
+                darkMode={darkMode}
+              />
+
+              <KeywordSelector
+                label="Keywords"
+                value={editing?.keywords || []}
+                onChange={(keywords) => setEditing({...editing!, keywords})}
+                existingKeywords={existingKeywords}
+                darkMode={darkMode}
+                editingId={editing?.id?.toString()}
+              />
+
+              {/* Host Org and Location */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <FormField
+                  label="Host Organization"
+                  name="host_org"
+                  value={editing?.host_org || ''}
+                  onChange={(value) => setEditing({...editing!, host_org: value as string})}
+                  editingId={editing?.id?.toString()}
+                  darkMode={darkMode}
+                />
+                <FormField
+                  label="Location"
+                  name="location"
+                  value={editing?.location || ''}
+                  onChange={(value) => setEditing({...editing!, location: value as string})}
+                  editingId={editing?.id?.toString()}
+                  darkMode={darkMode}
+                />
+              </div>
+
+              {/* Dates */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <FormField
+                  label="Start Date"
+                  name="start_date"
+                  value={editing?.start_date || ''}
+                  onChange={(value) => {
+                    const newStartDate = value as string
+                    const currentEndDate = editing?.end_date
+                    const today = new Date().toISOString().slice(0, 10)
+                    
+                    console.log('Start date changed to:', newStartDate)
+                    
+                    let updatedEndDate = currentEndDate
+                    
+                    // If end date is today, blank, or null, set it to the start date
+                    if (!currentEndDate || currentEndDate === '' || currentEndDate === today) {
+                      updatedEndDate = newStartDate
+                      console.log('End date is today/blank/null, setting to start date:', newStartDate)
+                    }
+                    // If end date exists and is before the new start date, set it to the start date
+                    else if (currentEndDate && newStartDate && currentEndDate < newStartDate) {
+                      updatedEndDate = newStartDate
+                      console.log('End date is before start date, adjusting to start date')
+                    }
+                    
+                    setEditing({
+                      ...editing!,
+                      start_date: newStartDate,
+                      end_date: updatedEndDate
+                    })
+                  }}
+                  onInput={(value) => {
+                    const newStartDate = value as string
+                    const currentEndDate = editing?.end_date
+                    
+                    console.log('Start date input to:', newStartDate)
+                    
+                    // If end date exists and is before the new start date, set it to the start date
+                    let updatedEndDate = currentEndDate
+                    if (currentEndDate && newStartDate && currentEndDate < newStartDate) {
+                      updatedEndDate = newStartDate
+                    }
+                    
+                    setEditing({
+                      ...editing!,
+                      start_date: newStartDate,
+                      end_date: updatedEndDate
+                    })
+                  }}
+                  type="date"
+                  editingId={editing?.id?.toString()}
+                  darkMode={darkMode}
+                />
+                <FormField
+                  label="End Date"
+                  name="end_date"
+                  value={editing?.end_date || ''}
+                  onChange={(value) => {
+                    console.log('End date changed to:', value)
+                    setEditing({...editing!, end_date: value as string})
+                  }}
+                  onInput={(value) => {
+                    console.log('End date input to:', value)
+                    setEditing({...editing!, end_date: value as string})
+                  }}
+                  type="date"
+                  editingId={editing?.id?.toString()}
+                  darkMode={darkMode}
+                />
+              </div>
+
+              {/* Times */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <FormField
+                  label="Start Time"
+                  name="start_time"
+                  value={editing?.start_time ?? ''}
+                  onChange={(value) => {
+                    const inputValue = value as string
+                    console.log('Start time input:', inputValue)
+                    
+                    // Store the raw input value without conversion, convert empty string to null
+                    setEditing({
+                      ...editing!,
+                      start_time: inputValue === '' ? null : inputValue
+                    })
+                  }}
+                  onBlur={(value) => {
+                    const inputValue = value as string
+                    const convertedTime = convertTo24Hour(inputValue, false)
+                    console.log('Start time blur - converting:', inputValue, 'to:', convertedTime)
+                    
+                    // If end time exists and is before the new start time, set it to the start time
+                    const currentEndTime = editing?.end_time
+                    let updatedEndTime = currentEndTime
+                    if (currentEndTime && convertedTime && currentEndTime < convertedTime) {
+                      console.log('End time is before new start time, adjusting end time to start time')
+                      updatedEndTime = convertedTime
+                    }
+                    
+                    setEditing({
+                      ...editing!,
+                      start_time: convertedTime,
+                      end_time: updatedEndTime
+                    })
+                  }}
+                  placeholder="HH:MM (e.g., 14:30)"
+                  editingId={editing?.id?.toString()}
+                  darkMode={darkMode}
+                />
+                <FormField
+                  label="End Time"
+                  name="end_time"
+                  value={editing?.end_time ?? ''}
+                  onChange={(value) => {
+                    const inputValue = value as string
+                    console.log('End time input:', inputValue)
+                    
+                    // Store the raw input value without conversion, convert empty string to null
+                    setEditing({
+                      ...editing!,
+                      end_time: inputValue === '' ? null : inputValue
+                    })
+                  }}
+                  onBlur={(value) => {
+                    const inputValue = value as string
+                    const convertedTime = convertTo24Hour(inputValue, true, editing?.start_time)
+                    console.log('End time blur - converting:', inputValue, 'to:', convertedTime)
+                    
+                    // Check if end time is before start time
+                    const startTime = editing?.start_time
+                    if (startTime && convertedTime && convertedTime < startTime) {
+                      console.log('End time is before start time, adjusting...')
+                      setEditing({...editing!, end_time: startTime})
+                    } else {
+                      setEditing({...editing!, end_time: convertedTime})
+                    }
+                  }}
+                  placeholder="HH:MM (e.g., 16:30)"
+                  editingId={editing?.id?.toString()}
+                  darkMode={darkMode}
+                />
+              </div>
+
+              {/* Website and Recurrence */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: darkMode ? '#f9fafb' : '#374151' }}>
+                    Website URL
+                  </label>
+                  <div>
+                    <FormField
+                      label=""
+                      name="website_url"
+                      value={editing?.website_url || ''}
+                      onChange={(value) => setEditing({...editing!, website_url: value as string})}
+                      type="url"
+                      editingId={editing?.id?.toString()}
+                      darkMode={darkMode}
+                      endIcon={editing?.website_url ? '🔗' : undefined}
+                      endIconTitle="Open URL in new tab"
+                      onEndIconClick={editing?.website_url ? () => {
+                        const url = editing.website_url
+                        if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
+                          window.open(url, '_blank', 'noopener,noreferrer')
+                        } else if (url) {
+                          window.open(`https://${url}`, '_blank', 'noopener,noreferrer')
+                        }
+                      } : undefined}
+                    />
+                  </div>
+                </div>
+                <FormField
+                  label="Recurrence"
+                  name="recurrence"
+                  value={editing?.recurrence || ''}
+                  onChange={(value) => setEditing({...editing!, recurrence: value as string})}
+                  editingId={editing?.id?.toString()}
+                  darkMode={darkMode}
+                />
               </div>
 
               {/* Status and Sort Order */}

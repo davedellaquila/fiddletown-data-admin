@@ -314,10 +314,10 @@ export default function AutoSaveEditDialog<T extends Record<string, any>>({
             }}>
               <div style={{
                 color: darkMode ? '#f9fafb' : '#374151',
-                fontSize: '14px',
+                fontSize: '24px',
                 fontWeight: '500'
               }}>
-                Navigating...
+                Loading...
               </div>
             </div>
           )}
