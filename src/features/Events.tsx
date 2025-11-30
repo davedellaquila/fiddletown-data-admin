@@ -1080,11 +1080,13 @@ export default function Events({ darkMode = false }: EventsProps) {
     if (!payload.name) { alert('Name is required'); return }
     
     // Ensure slug exists and is unique
-    if (!payload.slug || !payload.slug.trim()) {
+    const slugValue = payload.slug?.trim() || ''
+    if (!slugValue) {
+      // Slug is empty/null/undefined, generate from name
       const baseSlug = slugify(payload.name)
       payload.slug = await ensureUniqueSlug(baseSlug)
     } else {
-      payload.slug = await ensureUniqueSlug(payload.slug)
+      payload.slug = await ensureUniqueSlug(slugValue)
     }
 
     const { error } = await supabase.from('events').insert(payload)
@@ -1098,32 +1100,47 @@ export default function Events({ darkMode = false }: EventsProps) {
 
   // Helper function to ensure slug is unique
   const ensureUniqueSlug = async (baseSlug: string, excludeId?: number): Promise<string> => {
-    let candidateSlug = baseSlug
-    let counter = 1
+    if (!baseSlug || !baseSlug.trim()) {
+      throw new Error('Base slug cannot be empty')
+    }
     
-    while (true) {
+    let candidateSlug = baseSlug.trim()
+    let counter = 1
+    const maxAttempts = 100 // Safety limit
+    
+    while (counter <= maxAttempts) {
       // Check if slug exists (excluding current event if updating)
+      // Note: We check ALL records (including soft-deleted) because the unique constraint applies to all rows
       let query = supabase
         .from('events')
         .select('id')
         .eq('slug', candidateSlug)
-        .is('deleted_at', null)
       
       if (excludeId) {
         query = query.neq('id', excludeId)
       }
       
-      const { data } = await query.maybeSingle()
+      const { data, error } = await query.maybeSingle()
+      
+      if (error && error.code !== 'PGRST116') {
+        // PGRST116 is "no rows returned" which is expected, other errors are real problems
+        console.error('Error checking slug uniqueness:', error)
+        throw error
+      }
       
       // If no data found, slug is unique
       if (!data) {
+        console.log(`Found unique slug: ${candidateSlug}`)
         return candidateSlug
       }
       
       // Slug exists, try with counter suffix
+      console.log(`Slug ${candidateSlug} exists, trying ${baseSlug}-${counter + 1}`)
       counter++
       candidateSlug = `${baseSlug}-${counter}`
     }
+    
+    throw new Error(`Could not find unique slug after ${maxAttempts} attempts`)
   }
 
   const save = async (options?: { suppressClose?: boolean }) => {
@@ -1141,12 +1158,30 @@ export default function Events({ darkMode = false }: EventsProps) {
     if (!payload.name) return alert('Name is required')
     
     // Ensure slug exists and is unique
-    if (!payload.slug || !payload.slug.trim()) {
-      const baseSlug = slugify(payload.name)
-      payload.slug = await ensureUniqueSlug(baseSlug, payload.id || undefined)
-    } else if (!payload.id) {
-      // For new events, ensure the provided slug is unique
-      payload.slug = await ensureUniqueSlug(payload.slug)
+    try {
+      const slugValue = payload.slug?.trim() || ''
+      console.log('Slug check - slugValue:', slugValue, 'hasId:', !!payload.id, 'isNew:', !payload.id)
+      
+      if (!slugValue) {
+        // Slug is empty/null/undefined, generate from name
+        const baseSlug = slugify(payload.name)
+        console.log('Generating slug from name:', baseSlug)
+        payload.slug = await ensureUniqueSlug(baseSlug, payload.id || undefined)
+      } else if (!payload.id) {
+        // For new events, ensure the provided slug is unique
+        console.log('Checking uniqueness of provided slug:', slugValue)
+        payload.slug = await ensureUniqueSlug(slugValue)
+      } else {
+        // For updates, ensure slug is still unique (excluding current event)
+        console.log('Updating event, checking slug uniqueness:', slugValue)
+        payload.slug = await ensureUniqueSlug(slugValue, payload.id)
+      }
+      
+      console.log('Final slug before save:', payload.slug)
+    } catch (error: any) {
+      console.error('Error ensuring unique slug:', error)
+      alert(`Error checking slug uniqueness: ${error?.message || 'Unknown error'}`)
+      return
     }
 
     if (payload.id) {
