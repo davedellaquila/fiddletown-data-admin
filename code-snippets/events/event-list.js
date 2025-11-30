@@ -230,9 +230,21 @@
         
         // Info icon for description (only if description exists)
         const hasDescription = event.description && event.description.trim();
+        html += `<span class="ssa-icon-group">`;
         if (hasDescription) {
           html += `<span class="ssa-info-icon" data-event-id="${eventId}" data-description="${event.description.replace(/"/g, '&quot;').replace(/'/g, '&#39;')}" title="Hover to view description"></span>`;
         }
+        
+        // Image icon button for mobile (only if image exists)
+        if (hasImage) {
+          html += `<span class="ssa-image-icon-btn" data-event-id="${eventId}" data-image-url="${event.image_url}" title="Tap to view image">🖼️</span>`;
+        }
+        
+        // Location icon button (only if location exists)
+        if (event.location) {
+          html += `<span class="ssa-location-icon-btn" data-location="${event.location.replace(/"/g, '&quot;').replace(/'/g, '&#39;')}" title="Tap to view map">📍</span>`;
+        }
+        html += `</span>`;
         
         // Event name - only make it a link if website_url exists
         const nameClasses = hasWebsiteUrl ? 'ssa-event-link' : 'ssa-event-name';
@@ -246,15 +258,18 @@
         }
         html += `</span>`;
         
+        // Event metadata - each on its own line for better mobile readability
+        html += `<div class="ssa-event-meta">`;
+        if (dateRange) {
+          html += `<div class="ssa-event-meta-item"><strong>Date:</strong> ${dateRange}</div>`;
+        }
         if (event.location) {
-          html += ` <strong><span class="ssa-location" data-location="${event.location.replace(/"/g, '&quot;').replace(/'/g, '&#39;')}" title="Hover to view map">(${event.location})</span></strong>`;
+          html += `<div class="ssa-event-meta-item"><strong>Location:</strong> <span class="ssa-location" data-location="${event.location.replace(/"/g, '&quot;').replace(/'/g, '&#39;')}" title="Click to get directions">${event.location}</span></div>`;
         }
         if (event.host_org) {
-          html += ` – ${event.host_org}`;
+          html += `<div class="ssa-event-meta-item"><strong>Host:</strong> ${event.host_org}</div>`;
         }
-        if (dateRange) {
-          html += ` – ${dateRange}`;
-        }
+        html += `</div>`;
         html += `</div>`;
         
         // Keywords on their own line
@@ -292,13 +307,17 @@
       <article class="ssa-card" ${hasImage ? `data-has-image="true"` : ''} ${imageStyle}>
         <div class="ssa-card-content">
           <header class="ssa-card-head">
-            ${hasImage ? `<div class="ssa-card-image-icon" data-event-id="${eventId}" data-image-url="${imageUrl}" title="Hover to preview image"><img src="${imageUrl}" alt="${ev.name}" class="ssa-card-icon-thumb" /></div>` : ''}
+            ${hasImage ? `<div class="ssa-card-image-icon" data-event-id="${eventId}" data-image-url="${imageUrl}" title="Click to preview image"><img src="${imageUrl}" alt="${ev.name}" class="ssa-card-icon-thumb" /></div>` : ''}
             <h3 class="ssa-title">
-              ${ev.description && ev.description.trim() ? `<span class="ssa-info-icon" data-event-id="${eventId}" data-description="${ev.description.replace(/"/g, '&quot;').replace(/'/g, '&#39;')}" title="Hover to view description"></span>` : ''}
+              <span class="ssa-icon-group">
+                ${ev.description && ev.description.trim() ? `<span class="ssa-info-icon" data-event-id="${eventId}" data-description="${ev.description.replace(/"/g, '&quot;').replace(/'/g, '&#39;')}" title="Hover to view description"></span>` : ''}
+                ${hasImage ? `<span class="ssa-image-icon-btn" data-event-id="${eventId}" data-image-url="${imageUrl}" title="Tap to view image">🖼️</span>` : ''}
+                ${ev.location ? `<span class="ssa-location-icon-btn" data-location="${ev.location.replace(/"/g, '&quot;').replace(/'/g, '&#39;')}" title="Tap to view map">📍</span>` : ''}
+              </span>
               ${ev.website_url ? `<a href="${ev.website_url}" class="ssa-event-link" target="_blank" rel="noopener">${ev.name}</a>` : `<span class="ssa-event-name">${ev.name}</span>`}
             </h3>
           </header>
-          <p class="ssa-meta">${fmtRange(ev.start_date, ev.end_date)}${ev.location ? ' · <span class="ssa-location" data-location="' + ev.location.replace(/"/g, '&quot;').replace(/'/g, '&#39;') + '" title="Hover to view map">' + ev.location + '</span>' : ''}</p>
+          <p class="ssa-meta">${fmtRange(ev.start_date, ev.end_date)}${ev.location ? ' · <span class="ssa-location" data-location="' + ev.location.replace(/"/g, '&quot;').replace(/'/g, '&#39;') + '" title="Click to get directions">' + ev.location + '</span>' : ''}</p>
           ${ev.recurrence ? `<p class="ssa-meta">${ev.recurrence}</p>` : ''}
           ${ev.keywords && ev.keywords.length > 0 ? `<p class="ssa-keywords">${ev.keywords.map(kw => {
             const isSelected = selectedKeywords.includes(kw);
@@ -443,127 +462,157 @@
       });
     }
     
-    // Image hover preview for list view
-    if (state.layout === LAYOUTS.LIST) {
-      let hoverTimeout = null;
-      let hoverPreviewEl = null;
-      let hoverEventId = null;
+    // Shared image preview functionality
+    let imagePreviewEl = null;
+    
+    function closeImagePreview() {
+      if (imagePreviewEl) {
+        imagePreviewEl.remove();
+        imagePreviewEl = null;
+      }
+    }
+    
+    function showImagePreview(eventId, imageUrl, triggerElement) {
+      if (!imageUrl || !imageUrl.trim()) return;
       
+      // Close existing preview if clicking the same image
+      if (imagePreviewEl && imagePreviewEl.dataset.eventId === eventId) {
+        closeImagePreview();
+        return;
+      }
+      
+      // Close any existing preview
+      closeImagePreview();
+      
+      const gap = 8;
+      const viewportH = window.innerHeight;
+      const viewportW = window.innerWidth;
+      const maxH = Math.min(800, viewportH - gap * 2);
+      const maxW = Math.min(800, viewportW - gap * 2);
+      
+      // Center the preview
+      const previewW = maxW;
+      const left = Math.max(gap, (viewportW - previewW) / 2);
+      const top = Math.max(gap, (viewportH - maxH) / 2);
+      
+      // Create preview element with close button
+      imagePreviewEl = document.createElement('div');
+      imagePreviewEl.className = 'ssa-image-preview';
+      imagePreviewEl.dataset.eventId = eventId;
+      imagePreviewEl.style.cssText = `
+        position: fixed;
+        top: ${top}px;
+        left: ${left}px;
+        z-index: 10000;
+        padding: 8px;
+        background: rgba(255,255,255,0.98);
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        box-shadow: 0 10px 30px rgba(0,0,0,.25);
+        width: ${previewW}px;
+      `;
+      
+      // Close button
+      const closeBtn = document.createElement('button');
+      closeBtn.innerHTML = '×';
+      closeBtn.style.cssText = `
+        position: absolute;
+        top: 4px;
+        right: 4px;
+        width: 32px;
+        height: 32px;
+        border: none;
+        background: rgba(0,0,0,0.6);
+        color: white;
+        border-radius: 50%;
+        font-size: 24px;
+        line-height: 1;
+        cursor: pointer;
+        z-index: 10001;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background 0.2s;
+      `;
+      closeBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        closeImagePreview();
+      });
+      closeBtn.addEventListener('mouseenter', function() {
+        this.style.background = 'rgba(0,0,0,0.8)';
+      });
+      closeBtn.addEventListener('mouseleave', function() {
+        this.style.background = 'rgba(0,0,0,0.6)';
+      });
+      
+      const img = document.createElement('img');
+      img.src = imageUrl;
+      img.alt = 'Event preview';
+      img.style.cssText = `
+        width: auto;
+        height: auto;
+        max-width: ${previewW}px;
+        max-height: ${maxH}px;
+        border-radius: 6px;
+        display: block;
+      `;
+      
+      imagePreviewEl.appendChild(closeBtn);
+      imagePreviewEl.appendChild(img);
+      document.body.appendChild(imagePreviewEl);
+      
+      // Close on backdrop click (clicking on the preview container itself)
+      imagePreviewEl.addEventListener('click', function(e) {
+        if (e.target === imagePreviewEl) {
+          closeImagePreview();
+        }
+      });
+      
+      // Close when clicking outside the preview
+      // Use setTimeout to avoid immediate closure when opening
+      setTimeout(function() {
+        const outsideClickHandler = function(e) {
+          if (imagePreviewEl && imagePreviewEl.dataset.eventId === eventId) {
+            // Check if click is outside the preview
+            const clickedInsidePreview = imagePreviewEl.contains(e.target);
+            const clickedOnTrigger = triggerElement && triggerElement.contains(e.target);
+            if (!clickedInsidePreview && !clickedOnTrigger) {
+              closeImagePreview();
+              document.removeEventListener('click', outsideClickHandler);
+            }
+          } else {
+            // Preview was closed another way, remove listener
+            document.removeEventListener('click', outsideClickHandler);
+          }
+        };
+        document.addEventListener('click', outsideClickHandler);
+      }, 100);
+    }
+    
+    // Image click preview for list view
+    if (state.layout === LAYOUTS.LIST) {
       mount.querySelectorAll('.ssa-event-image-wrapper[data-image-url]').forEach(wrapper => {
         const eventId = wrapper.dataset.eventId;
         const imageUrl = wrapper.dataset.imageUrl;
         if (!imageUrl || !imageUrl.trim()) return;
         
-        wrapper.addEventListener('mouseenter', function(e) {
-          if (hoverTimeout) clearTimeout(hoverTimeout);
-          
-          hoverTimeout = setTimeout(() => {
-            const rect = wrapper.getBoundingClientRect();
-            const gap = 8;
-            const viewportH = window.innerHeight;
-            const viewportW = window.innerWidth;
-            const maxH = Math.min(800, viewportH - gap * 2);
-            const maxW = Math.min(800, viewportW - gap * 2);
-            
-            let top = rect.top;
-            // Position based on thumbnail location
-            if (rect.top < 120) {
-              top = Math.max(gap, rect.top);
-            } else if (rect.bottom > viewportH - 120) {
-              top = Math.max(gap, rect.bottom - maxH);
-            } else {
-              top = rect.top + rect.height / 2 - maxH / 2;
-            }
-            top = Math.max(gap, Math.min(top, viewportH - maxH - gap));
-            
-            // Horizontal placement: prefer right, fallback to left, otherwise center
-            const previewW = maxW;
-            const spaceRight = viewportW - rect.right - gap;
-            const spaceLeft = rect.left - gap;
-            let left = rect.right + gap;
-            if (spaceRight >= previewW) {
-              left = rect.right + gap;
-            } else if (spaceLeft >= previewW) {
-              left = rect.left - gap - previewW;
-            } else {
-              left = Math.max(gap, Math.min(rect.left + rect.width / 2 - previewW / 2, viewportW - previewW - gap));
-            }
-            
-            // Remove existing preview if any
-            if (hoverPreviewEl) {
-              hoverPreviewEl.remove();
-            }
-            
-            // Create preview element
-            hoverPreviewEl = document.createElement('div');
-            hoverPreviewEl.className = 'ssa-image-preview';
-            hoverPreviewEl.style.cssText = `
-              position: fixed;
-              top: ${top}px;
-              left: ${left}px;
-              z-index: 9999;
-              padding: 6px;
-              background: rgba(255,255,255,0.98);
-              border: 1px solid #d1d5db;
-              border-radius: 8px;
-              box-shadow: 0 10px 30px rgba(0,0,0,.25);
-              width: ${previewW}px;
-            `;
-            
-            const img = document.createElement('img');
-            img.src = imageUrl;
-            img.alt = 'Event preview';
-            img.style.cssText = `
-              width: auto;
-              height: auto;
-              max-width: ${previewW}px;
-              max-height: ${maxH}px;
-              border-radius: 6px;
-              display: block;
-            `;
-            
-            hoverPreviewEl.appendChild(img);
-            document.body.appendChild(hoverPreviewEl);
-            hoverEventId = eventId;
-          }, 300); // Small delay to prevent flicker
-        });
-        
-        wrapper.addEventListener('mouseleave', function() {
-          if (hoverTimeout) {
-            clearTimeout(hoverTimeout);
-            hoverTimeout = null;
-          }
-          // Delay removal to allow moving to preview
-          setTimeout(() => {
-            if (hoverPreviewEl && hoverEventId === eventId) {
-              hoverPreviewEl.remove();
-              hoverPreviewEl = null;
-              hoverEventId = null;
-            }
-          }, 100);
+        wrapper.addEventListener('click', function(e) {
+          e.stopPropagation();
+          showImagePreview(eventId, imageUrl, wrapper);
         });
       });
       
-      // Also handle mouseleave on preview itself
-      document.addEventListener('mouseenter', function(e) {
-        const target = e.target.nodeType === Node.ELEMENT_NODE ? e.target : e.target.parentElement;
-        if (target && target.closest && target.closest('.ssa-image-preview')) {
-          if (hoverTimeout) clearTimeout(hoverTimeout);
-        }
-      }, true);
-      
-      document.addEventListener('mouseleave', function(e) {
-        const target = e.target.nodeType === Node.ELEMENT_NODE ? e.target : e.target.parentElement;
-        if (target && target.closest && target.closest('.ssa-image-preview')) {
-          setTimeout(() => {
-            if (hoverPreviewEl) {
-              hoverPreviewEl.remove();
-              hoverPreviewEl = null;
-              hoverEventId = null;
-            }
-          }, 100);
-        }
-      }, true);
+      // Image icon button handlers for list view
+      mount.querySelectorAll('.ssa-image-icon-btn').forEach(btn => {
+        const eventId = btn.dataset.eventId;
+        const imageUrl = btn.dataset.imageUrl;
+        if (!imageUrl || !imageUrl.trim()) return;
+        
+        btn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          showImagePreview(eventId, imageUrl, btn);
+        });
+      });
     }
     
     // Keyword tag clicks in list view
@@ -600,128 +649,38 @@
       });
     }
     
-    // Image hover preview for grid view
+    // Image click preview for grid view
     if (state.layout === LAYOUTS.GRID) {
-      let hoverTimeout = null;
-      let hoverPreviewEl = null;
-      let hoverEventId = null;
-      
       mount.querySelectorAll('.ssa-card-image-icon').forEach(icon => {
         const eventId = icon.dataset.eventId;
         const imageUrl = icon.dataset.imageUrl;
         if (!imageUrl || !imageUrl.trim()) return;
         
-        icon.addEventListener('mouseenter', function(e) {
-          if (hoverTimeout) clearTimeout(hoverTimeout);
-          
-          hoverTimeout = setTimeout(() => {
-            const rect = icon.getBoundingClientRect();
-            const gap = 8;
-            const viewportH = window.innerHeight;
-            const viewportW = window.innerWidth;
-            const maxH = Math.min(800, viewportH - gap * 2);
-            const maxW = Math.min(800, viewportW - gap * 2);
-            
-            let top = rect.top;
-            // Position based on icon location
-            if (rect.top < 120) {
-              top = Math.max(gap, rect.top);
-            } else if (rect.bottom > viewportH - 120) {
-              top = Math.max(gap, rect.bottom - maxH);
-            } else {
-              top = rect.top + rect.height / 2 - maxH / 2;
-            }
-            top = Math.max(gap, Math.min(top, viewportH - maxH - gap));
-            
-            // Horizontal placement: prefer right, fallback to left, otherwise center
-            const previewW = maxW;
-            const spaceRight = viewportW - rect.right - gap;
-            const spaceLeft = rect.left - gap;
-            let left = rect.right + gap;
-            if (spaceRight >= previewW) {
-              left = rect.right + gap;
-            } else if (spaceLeft >= previewW) {
-              left = rect.left - gap - previewW;
-            } else {
-              left = Math.max(gap, Math.min(rect.left + rect.width / 2 - previewW / 2, viewportW - previewW - gap));
-            }
-            
-            // Remove existing preview if any
-            if (hoverPreviewEl) {
-              hoverPreviewEl.remove();
-            }
-            
-            // Create preview element
-            hoverPreviewEl = document.createElement('div');
-            hoverPreviewEl.className = 'ssa-image-preview';
-            hoverPreviewEl.style.cssText = `
-              position: fixed;
-              top: ${top}px;
-              left: ${left}px;
-              z-index: 9999;
-              padding: 6px;
-              background: rgba(255,255,255,0.98);
-              border: 1px solid #d1d5db;
-              border-radius: 8px;
-              box-shadow: 0 10px 30px rgba(0,0,0,.25);
-              width: ${previewW}px;
-            `;
-            
-            const img = document.createElement('img');
-            img.src = imageUrl;
-            img.alt = 'Event preview';
-            img.style.cssText = `
-              width: auto;
-              height: auto;
-              max-width: ${previewW}px;
-              max-height: ${maxH}px;
-              border-radius: 6px;
-              display: block;
-            `;
-            
-            hoverPreviewEl.appendChild(img);
-            document.body.appendChild(hoverPreviewEl);
-            hoverEventId = eventId;
-          }, 300); // Small delay to prevent flicker
-        });
-        
-        icon.addEventListener('mouseleave', function() {
-          if (hoverTimeout) {
-            clearTimeout(hoverTimeout);
-            hoverTimeout = null;
-          }
-          // Delay removal to allow moving to preview
-          setTimeout(() => {
-            if (hoverPreviewEl && hoverEventId === eventId) {
-              hoverPreviewEl.remove();
-              hoverPreviewEl = null;
-              hoverEventId = null;
-            }
-          }, 100);
+        icon.addEventListener('click', function(e) {
+          e.stopPropagation();
+          showImagePreview(eventId, imageUrl, icon);
         });
       });
       
-      // Also handle mouseleave on preview itself
-      document.addEventListener('mouseenter', function(e) {
-        const target = e.target.nodeType === Node.ELEMENT_NODE ? e.target : e.target.parentElement;
-        if (target && target.closest && target.closest('.ssa-image-preview')) {
-          if (hoverTimeout) clearTimeout(hoverTimeout);
-        }
-      }, true);
-      
-      document.addEventListener('mouseleave', function(e) {
-        const target = e.target.nodeType === Node.ELEMENT_NODE ? e.target : e.target.parentElement;
-        if (target && target.closest && target.closest('.ssa-image-preview')) {
-          setTimeout(() => {
-            if (hoverPreviewEl) {
-              hoverPreviewEl.remove();
-              hoverPreviewEl = null;
-              hoverEventId = null;
-            }
-          }, 100);
-        }
-      }, true);
+      // Image icon button handlers for grid view
+      mount.querySelectorAll('.ssa-image-icon-btn').forEach(btn => {
+        const eventId = btn.dataset.eventId;
+        const imageUrl = btn.dataset.imageUrl;
+        if (!imageUrl || !imageUrl.trim()) return;
+        
+        btn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          showImagePreview(eventId, imageUrl, btn);
+        });
+      });
     }
+    
+    // Close on escape key
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && imagePreviewEl) {
+        closeImagePreview();
+      }
+    });
     
     // Description popover on hover for info icons (list and grid views)
     let activePopover = null;
@@ -751,7 +710,52 @@
         // Create popover element
         const popover = document.createElement('div');
         popover.className = 'ssa-info-popover';
-        popover.textContent = decodedDescription;
+        
+        // Close button
+        const closeBtn = document.createElement('button');
+        closeBtn.innerHTML = '×';
+        closeBtn.className = 'ssa-popover-close';
+        closeBtn.style.cssText = `
+          position: absolute;
+          top: 4px;
+          right: 4px;
+          width: 24px;
+          height: 24px;
+          border: none;
+          background: rgba(0,0,0,0.6);
+          color: white;
+          border-radius: 50%;
+          font-size: 18px;
+          line-height: 1;
+          cursor: pointer;
+          z-index: 10003;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: background 0.2s;
+          padding: 0;
+        `;
+        closeBtn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          if (activePopover) {
+            activePopover.remove();
+            activePopover = null;
+          }
+        });
+        closeBtn.addEventListener('mouseenter', function() {
+          this.style.background = 'rgba(0,0,0,0.8)';
+        });
+        closeBtn.addEventListener('mouseleave', function() {
+          this.style.background = 'rgba(0,0,0,0.6)';
+        });
+        
+        // Description text
+        const descriptionText = document.createElement('div');
+        descriptionText.textContent = decodedDescription;
+        descriptionText.style.cssText = 'padding-right: 8px;';
+        
+        popover.appendChild(closeBtn);
+        popover.appendChild(descriptionText);
         document.body.appendChild(popover);
         
         // Get popover dimensions and viewport info
@@ -795,6 +799,29 @@
         popover.style.zIndex = '10002';
         
         activePopover = popover;
+        
+        // Close when clicking outside the popover
+        // Use setTimeout to avoid immediate closure when opening via hover
+        setTimeout(function() {
+          const outsideClickHandler = function(e) {
+            if (activePopover && activePopover === popover) {
+              // Check if click is outside the popover
+              const clickedInsidePopover = popover.contains(e.target);
+              const clickedOnTrigger = element.contains(e.target);
+              if (!clickedInsidePopover && !clickedOnTrigger) {
+                if (activePopover) {
+                  activePopover.remove();
+                  activePopover = null;
+                }
+                document.removeEventListener('click', outsideClickHandler);
+              }
+            } else {
+              // Popover was closed another way, remove listener
+              document.removeEventListener('click', outsideClickHandler);
+            }
+          };
+          document.addEventListener('click', outsideClickHandler);
+        }, 100);
       });
       
       element.addEventListener('mouseleave', function() {
@@ -830,25 +857,215 @@
       }, true);
     });
     
-    // Map popover on hover for location (list and grid views)
-    // Use a shared variable scope for the popover state
+    // Close description popover on escape key
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && activePopover) {
+        activePopover.remove();
+        activePopover = null;
+      }
+    });
+    
+    // Shared map popover functionality
     if (!window._ssaMapPopoverState) {
       window._ssaMapPopoverState = {
-        activePopover: null,
-        timeout: null
+        activePopover: null
       };
     }
     
     const mapPopoverState = window._ssaMapPopoverState;
-    const locationElements = mount.querySelectorAll('.ssa-location');
     
+    function closeMapPopover() {
+      if (mapPopoverState.activePopover) {
+        mapPopoverState.activePopover.remove();
+        mapPopoverState.activePopover = null;
+      }
+    }
+    
+    function showMapPopover(location, triggerElement) {
+      if (!location || !location.trim()) return;
+      
+      // Close existing popover if clicking the same location
+      if (mapPopoverState.activePopover && mapPopoverState.activePopover.dataset.location === location) {
+        closeMapPopover();
+        return;
+      }
+      
+      // Close any existing popover
+      closeMapPopover();
+      
+      const encodedLocation = encodeURIComponent(location);
+      const popoverWidth = 400;
+      const popoverHeight = 300;
+      const gap = 8;
+      const viewportW = window.innerWidth;
+      const viewportH = window.innerHeight;
+      
+      // Get trigger element position (or center if no element provided)
+      let left, top;
+      if (triggerElement) {
+        const rect = triggerElement.getBoundingClientRect();
+        left = rect.left + (rect.width / 2) - (popoverWidth / 2);
+        if (left < 10) left = 10;
+        if (left + popoverWidth > viewportW - 10) {
+          left = viewportW - popoverWidth - 10;
+        }
+        
+        top = rect.top - popoverHeight - gap;
+        if (top < 10) {
+          top = rect.bottom + gap;
+        }
+        if (top + popoverHeight > viewportH - 10) {
+          top = viewportH - popoverHeight - 10;
+        }
+      } else {
+        // Center if no trigger element
+        left = Math.max(10, (viewportW - popoverWidth) / 2);
+        top = Math.max(10, (viewportH - popoverHeight) / 2);
+      }
+      
+      // Create map popover element
+      const mapPopover = document.createElement('div');
+      mapPopover.className = 'ssa-map-popover';
+      mapPopover.dataset.location = location;
+      
+      // Close button
+      const closeBtn = document.createElement('button');
+      closeBtn.innerHTML = '×';
+      closeBtn.style.cssText = `
+        position: absolute;
+        top: 4px;
+        right: 4px;
+        width: 32px;
+        height: 32px;
+        border: none;
+        background: rgba(0,0,0,0.6);
+        color: white;
+        border-radius: 50%;
+        font-size: 24px;
+        line-height: 1;
+        cursor: pointer;
+        z-index: 10004;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background 0.2s;
+      `;
+      closeBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        closeMapPopover();
+      });
+      closeBtn.addEventListener('mouseenter', function() {
+        this.style.background = 'rgba(0,0,0,0.8)';
+      });
+      closeBtn.addEventListener('mouseleave', function() {
+        this.style.background = 'rgba(0,0,0,0.6)';
+      });
+      
+      // Create iframe with map
+      const mapIframe = document.createElement('iframe');
+      mapIframe.src = `https://www.google.com/maps?q=${encodedLocation}&output=embed`;
+      mapIframe.style.width = '100%';
+      mapIframe.style.height = '100%';
+      mapIframe.style.border = '0';
+      mapIframe.setAttribute('loading', 'lazy');
+      mapIframe.setAttribute('allowfullscreen', '');
+      mapIframe.setAttribute('referrerpolicy', 'no-referrer-when-downgrade');
+      mapIframe.setAttribute('frameborder', '0');
+      mapIframe.style.pointerEvents = 'none'; // Disable iframe interactions so overlay works
+      
+      // Create clickable overlay for the map
+      const mapOverlay = document.createElement('div');
+      mapOverlay.style.cssText = `
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        cursor: pointer;
+        z-index: 10003;
+        background: transparent;
+      `;
+      mapOverlay.title = 'Click to open directions in Google Maps';
+      
+      mapPopover.style.cssText = `
+        position: fixed;
+        left: ${left}px;
+        top: ${top}px;
+        display: block;
+        z-index: 10003;
+        width: ${popoverWidth}px;
+        height: ${popoverHeight}px;
+        padding: 0;
+        background: #fff;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        overflow: hidden;
+      `;
+      
+      // Click handler for map overlay - open directions
+      mapOverlay.addEventListener('click', function(e) {
+        // Don't open directions if clicking the close button
+        if (e.target === closeBtn || closeBtn.contains(e.target)) {
+          return;
+        }
+        e.preventDefault();
+        e.stopPropagation();
+        const mapUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodedLocation}`;
+        const newWindow = window.open(mapUrl, '_blank', 'noopener,noreferrer');
+        if (!newWindow) {
+          window.location.href = mapUrl;
+        }
+      });
+      
+      mapPopover.appendChild(closeBtn);
+      mapPopover.appendChild(mapIframe);
+      mapPopover.appendChild(mapOverlay);
+      document.body.appendChild(mapPopover);
+      
+      mapPopoverState.activePopover = mapPopover;
+      
+      // Close when clicking outside the popover
+      // Use setTimeout to avoid immediate closure when opening
+      setTimeout(function() {
+        const outsideClickHandler = function(e) {
+          if (mapPopoverState.activePopover && mapPopoverState.activePopover === mapPopover) {
+            // Check if click is outside the popover
+            const clickedInsidePopover = mapPopover.contains(e.target);
+            const clickedOnTrigger = triggerElement && triggerElement.contains(e.target);
+            if (!clickedInsidePopover && !clickedOnTrigger) {
+              closeMapPopover();
+              document.removeEventListener('click', outsideClickHandler);
+            }
+          } else {
+            // Popover was closed another way, remove listener
+            document.removeEventListener('click', outsideClickHandler);
+          }
+        };
+        document.addEventListener('click', outsideClickHandler);
+      }, 100);
+    }
+    
+    // Location icon button handlers
+    mount.querySelectorAll('.ssa-location-icon-btn').forEach(btn => {
+      const location = btn.dataset.location;
+      if (!location || !location.trim()) return;
+      
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        showMapPopover(location, btn);
+      });
+    });
+    
+    // Location text click handlers - open directions
+    const locationElements = mount.querySelectorAll('.ssa-location');
     locationElements.forEach(locationEl => {
       const location = locationEl.dataset.location;
       if (!location || !location.trim()) {
         return;
       }
       
-      // Skip if already has handler (check for data attribute)
+      // Skip if already has handler
       if (locationEl.dataset.mapHandlerAttached === 'true') {
         return;
       }
@@ -856,166 +1073,47 @@
       locationEl.dataset.mapHandlerAttached = 'true';
       locationEl.style.cursor = 'pointer';
       
-      // Click handler to open map in new tab
+      // Click handler to open directions in new tab
       locationEl.addEventListener('click', function(e) {
-        console.log('Location clicked:', location);
         e.preventDefault();
         e.stopPropagation();
         e.stopImmediatePropagation();
         const encodedLocation = encodeURIComponent(location);
-        const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodedLocation}`;
-        console.log('Opening map URL:', mapUrl);
+        // Use /dir/ endpoint for directions instead of /search/
+        const mapUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodedLocation}`;
         const newWindow = window.open(mapUrl, '_blank', 'noopener,noreferrer');
         if (!newWindow) {
-          console.log('Popup blocked, navigating directly');
-          // If popup blocked, try direct navigation
           window.location.href = mapUrl;
-        } else {
-          console.log('Map opened in new tab successfully');
         }
         return false;
-      }, true); // Use capture phase to ensure it fires first
+      }, true);
       
-      // Also handle clicks on parent elements (in case location is nested)
+      // Also handle clicks on parent elements
       const parent = locationEl.parentElement;
       if (parent && parent.tagName === 'STRONG') {
         parent.style.cursor = 'pointer';
         parent.addEventListener('click', function(e) {
           if (e.target === locationEl || locationEl.contains(e.target)) {
-            console.log('Location clicked (via parent):', location);
             e.preventDefault();
             e.stopPropagation();
             const encodedLocation = encodeURIComponent(location);
-            const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodedLocation}`;
-            console.log('Opening map URL (via parent):', mapUrl);
+            const mapUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodedLocation}`;
             const newWindow = window.open(mapUrl, '_blank', 'noopener,noreferrer');
             if (!newWindow) {
-              console.log('Popup blocked, navigating directly (via parent)');
               window.location.href = mapUrl;
-            } else {
-              console.log('Map opened in new tab successfully (via parent)');
             }
             return false;
           }
         }, true);
       }
-      
-      locationEl.addEventListener('mouseenter', function(e) {
-        console.log('Location hovered:', location);
-        e.stopPropagation();
-        
-        if (mapPopoverState.timeout) clearTimeout(mapPopoverState.timeout);
-        
-        // Remove any existing map popover
-        if (mapPopoverState.activePopover) {
-          mapPopoverState.activePopover.remove();
-          mapPopoverState.activePopover = null;
-        }
-        
-        // Get element position
-        const rect = locationEl.getBoundingClientRect();
-        
-        // Create map popover element
-        const mapPopover = document.createElement('div');
-        mapPopover.className = 'ssa-map-popover';
-        
-        // Create iframe with map
-        const mapIframe = document.createElement('iframe');
-        const encodedLocation = encodeURIComponent(location);
-        // Use Google Maps search URL with output=embed (works without API key)
-        mapIframe.src = `https://www.google.com/maps?q=${encodedLocation}&output=embed`;
-        mapIframe.style.width = '100%';
-        mapIframe.style.height = '100%';
-        mapIframe.style.border = '0';
-        mapIframe.setAttribute('loading', 'lazy');
-        mapIframe.setAttribute('allowfullscreen', '');
-        mapIframe.setAttribute('referrerpolicy', 'no-referrer-when-downgrade');
-        mapIframe.setAttribute('frameborder', '0');
-        
-        mapPopover.appendChild(mapIframe);
-        document.body.appendChild(mapPopover);
-        
-        // Position map popover above the element (after it's in the DOM)
-        const popoverWidth = 400;
-        const popoverHeight = 300;
-        const gap = 8;
-        
-        // Calculate horizontal position (center on element, but keep within viewport)
-        let left = rect.left + (rect.width / 2) - (popoverWidth / 2);
-        if (left < 10) left = 10;
-        if (left + popoverWidth > window.innerWidth - 10) {
-          left = window.innerWidth - popoverWidth - 10;
-        }
-        
-        // Calculate vertical position (above element, but keep within viewport)
-        let top = rect.top - popoverHeight - gap;
-        if (top < 10) {
-          top = rect.bottom + gap;
-        }
-        if (top + popoverHeight > window.innerHeight - 10) {
-          top = window.innerHeight - popoverHeight - 10;
-        }
-        
-        // Set all styles inline
-        mapPopover.style.cssText = `
-          position: fixed;
-          left: ${left}px;
-          top: ${top}px;
-          display: block;
-          z-index: 10003;
-          width: 400px;
-          height: 300px;
-          padding: 0;
-          background: #fff;
-          border: 1px solid #d1d5db;
-          border-radius: 8px;
-          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-          overflow: hidden;
-        `;
-        
-        mapPopoverState.activePopover = mapPopover;
-      });
-      
-      locationEl.addEventListener('mouseleave', function() {
-        if (mapPopoverState.timeout) clearTimeout(mapPopoverState.timeout);
-        mapPopoverState.timeout = setTimeout(() => {
-          if (mapPopoverState.activePopover) {
-            mapPopoverState.activePopover.remove();
-            mapPopoverState.activePopover = null;
-          }
-        }, 100);
-      });
     });
     
-    // Handle mouseenter/leave on map popover itself (use event delegation)
-    if (!window._ssaMapPopoverHandlersAttached) {
-      window._ssaMapPopoverHandlersAttached = true;
-      
-      document.addEventListener('mouseenter', function(e) {
-        const target = e.target.nodeType === Node.ELEMENT_NODE ? e.target : e.target.parentElement;
-        if (target && target.closest && target.closest('.ssa-map-popover')) {
-          if (window._ssaMapPopoverState && window._ssaMapPopoverState.timeout) {
-            clearTimeout(window._ssaMapPopoverState.timeout);
-          }
-        }
-      }, true);
-      
-      document.addEventListener('mouseleave', function(e) {
-        const target = e.target.nodeType === Node.ELEMENT_NODE ? e.target : e.target.parentElement;
-        if (target && target.closest && target.closest('.ssa-map-popover')) {
-          const mapState = window._ssaMapPopoverState;
-          if (mapState && mapState.timeout) clearTimeout(mapState.timeout);
-          if (mapState) {
-            mapState.timeout = setTimeout(() => {
-              if (mapState.activePopover) {
-                mapState.activePopover.remove();
-                mapState.activePopover = null;
-              }
-            }, 100);
-          }
-        }
-      }, true);
-    }
+    // Close map popover on escape key
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && mapPopoverState.activePopover) {
+        closeMapPopover();
+      }
+    });
   }
 
   function injectStyles() {
@@ -1048,18 +1146,31 @@
       .ssa-event-item:last-child{border-bottom:none}
       .ssa-event-content{display:flex;gap:16px;align-items:flex-start}
       .ssa-event-image-wrapper{flex-shrink:0;width:60px;height:60px;border-radius:8px;overflow:hidden;background:#f3f4f6;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:opacity 0.2s}
-      .ssa-event-image-wrapper:hover{opacity:0.9}
+      .ssa-event-image-wrapper:hover{opacity:0.8}
+      .ssa-event-image-wrapper:active{opacity:0.6}
       .ssa-event-image-wrapper.ssa-event-image-placeholder{background:#f9fafb;border:1px dashed #d1d5db;cursor:default}
       .ssa-event-image{width:100%;height:100%;object-fit:cover;display:block}
       .ssa-event-details{flex:1;min-width:0}
       .ssa-event-name-wrapper{display:inline-flex;align-items:center;gap:6px}
+      .ssa-event-meta{margin-top:8px;display:flex;flex-direction:column;gap:4px}
+      .ssa-event-meta-item{font-size:0.9rem;line-height:1.5;color:#4b5563}
+      .ssa-event-meta-item strong{color:#374151;margin-right:4px}
       .ssa-event-link{color:#3b82f6;text-decoration:none;cursor:pointer}
       .ssa-event-link:hover{text-decoration:underline}
       .ssa-event-name{cursor:default}
-      .ssa-info-icon{display:inline-flex!important;align-items:center;justify-content:center;font-size:0.7rem;opacity:0.8;cursor:help;margin-right:6px;transition:all 0.2s;flex-shrink:0;width:18px;height:18px;border-radius:50%;background:#3b82f6;color:#fff;font-weight:700;line-height:1;position:relative;vertical-align:middle}
-      .ssa-info-icon::before{content:'i';font-style:normal;font-family:Georgia,serif;font-size:0.75rem}
-      .ssa-info-icon:hover{opacity:1;background:#2563eb;transform:scale(1.15)}
-      .ssa-info-popover{padding:12px;background:#fff;border:1px solid #d1d5db;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);min-width:200px;max-width:300px;max-height:400px;overflow-y:auto;font-size:0.875rem;line-height:1.5;color:#374151;white-space:normal;word-wrap:break-word;pointer-events:auto}
+      .ssa-icon-group{display:inline-flex;align-items:center;gap:6px;flex-shrink:0}
+      .ssa-info-icon{display:inline-flex!important;align-items:center;justify-content:center;font-size:0.7rem;opacity:0.8;cursor:help;transition:all 0.2s;flex-shrink:0;width:24px;height:24px;border-radius:50%;background:#3b82f6;color:#fff;font-weight:700;line-height:1;position:relative;vertical-align:middle;min-width:24px;min-height:24px}
+      .ssa-info-icon::before{content:'i';font-style:normal;font-family:Georgia,serif;font-size:0.85rem}
+      .ssa-info-icon:hover{opacity:1;background:#2563eb;transform:scale(1.1)}
+      .ssa-image-icon-btn{display:none;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:#10b981;color:#fff;cursor:pointer;transition:all 0.2s;flex-shrink:0;font-size:0.9rem;opacity:0.8;min-width:24px;min-height:24px}
+      .ssa-image-icon-btn:hover{opacity:1;background:#059669;transform:scale(1.1)}
+      .ssa-image-icon-btn:active{opacity:0.7}
+      .ssa-location-icon-btn{display:none;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:#f59e0b;color:#fff;cursor:pointer;transition:all 0.2s;flex-shrink:0;font-size:0.9rem;opacity:0.8;min-width:24px;min-height:24px}
+      .ssa-location-icon-btn:hover{opacity:1;background:#d97706;transform:scale(1.1)}
+      .ssa-location-icon-btn:active{opacity:0.7}
+      .ssa-info-popover{padding:12px;background:#fff;border:1px solid #d1d5db;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);min-width:200px;max-width:300px;max-height:400px;overflow-y:auto;font-size:0.875rem;line-height:1.5;color:#374151;white-space:normal;word-wrap:break-word;pointer-events:auto;position:relative}
+      .ssa-popover-close{position:absolute;top:4px;right:4px;width:24px;height:24px;border:none;background:rgba(0,0,0,0.6);color:white;border-radius:50%;font-size:18px;line-height:1;cursor:pointer;z-index:10003;display:flex;align-items:center;justify-content:center;transition:background 0.2s;padding:0}
+      .ssa-popover-close:hover{background:rgba(0,0,0,0.8)}
       .ssa-info-popover::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border:6px solid transparent;border-top-color:#fff}
       .ssa-info-popover::before{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border:7px solid transparent;border-top-color:#d1d5db;margin-top:-1px}
       .ssa-link-icon{display:inline-flex;align-items:center;justify-content:center;font-size:0.875rem;opacity:0.7;transition:opacity 0.2s;margin-left:4px}
@@ -1088,7 +1199,8 @@
       .ssa-card-content{min-height:120px}
       .ssa-card-head{display:flex;align-items:center;gap:8px;position:relative}
       .ssa-card-image-icon{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:6px;overflow:hidden;cursor:pointer;opacity:0.8;transition:opacity 0.2s;flex-shrink:0;z-index:10;border:2px solid rgba(0,0,0,0.1)}
-      .ssa-card-image-icon:hover{opacity:1;border-color:rgba(0,0,0,0.2)}
+      .ssa-card-image-icon:hover{opacity:0.9;border-color:rgba(0,0,0,0.15)}
+      .ssa-card-image-icon:active{opacity:0.7}
       .ssa-card-icon-thumb{width:100%;height:100%;object-fit:cover;display:block}
       .ssa-title{margin:0;font-size:1.05rem;line-height:1.3;color:#1f2937;font-weight:600;flex:1;display:inline-flex;align-items:center;gap:4px}
       .ssa-meta{margin:.35rem 0;color:#374151;font-weight:500}
@@ -1098,6 +1210,47 @@
       .ssa-tag-clickable.ssa-tag-active{background:#374151;border-color:#374151;color:#fff}
       .ssa-tag-clickable.ssa-tag-active:hover{background:#1f2937;border-color:#1f2937}
       .ssa-link{text-decoration:underline;color:#3b82f6;font-weight:500}
+      @media(max-width:768px){
+        #events-list{padding:0 12px;box-sizing:border-box;max-width:100%;overflow-x:hidden}
+        *{box-sizing:border-box}
+        .ssa-controls{padding-bottom:16px;gap:12px;padding-left:0;padding-right:0}
+        .ssa-layout-btn{padding:10px 14px;font-size:1.1rem;min-height:44px}
+        .ssa-date-filters{flex-direction:column;align-items:stretch;gap:8px}
+        .ssa-date-filters label{flex-direction:column;align-items:flex-start;gap:4px;font-size:0.9rem}
+        .ssa-date-input{width:100%;padding:10px;font-size:1rem;min-height:44px}
+        .ssa-clear-dates{width:100%;padding:10px;font-size:0.9rem;min-height:44px}
+        .ssa-keyword-filters{gap:6px}
+        .ssa-keyword-btn{padding:10px 14px;font-size:0.9rem;min-height:44px;border-radius:22px}
+        .ssa-month-header{font-size:1.1rem;margin:20px 0 10px}
+        .ssa-event-item{padding:16px 0;margin-bottom:16px;max-width:100%;overflow-x:hidden}
+        .ssa-event-content{flex-direction:column;gap:12px;max-width:100%}
+        .ssa-event-image-wrapper{width:100%;height:200px;max-width:100%;box-sizing:border-box}
+        .ssa-event-details{width:100%;max-width:100%;overflow-wrap:break-word;word-wrap:break-word}
+        .ssa-event-name-wrapper{flex-wrap:wrap;gap:8px;margin-bottom:8px;max-width:100%}
+        .ssa-event-name-wrapper strong{font-size:1.1rem;line-height:1.4;display:block;width:100%;overflow-wrap:break-word;word-wrap:break-word}
+        .ssa-event-link{font-size:1.1rem;line-height:1.4;display:block;width:100%;margin-bottom:4px;overflow-wrap:break-word;word-wrap:break-word}
+        .ssa-icon-group{gap:8px;margin-right:10px}
+        .ssa-info-icon{width:44px;height:44px;min-width:44px;min-height:44px;flex-shrink:0;padding:0}
+        .ssa-info-icon::before{font-size:1.2rem}
+        .ssa-image-icon-btn{display:inline-flex!important;width:44px;height:44px;min-width:44px;min-height:44px;font-size:1.2rem}
+        .ssa-location-icon-btn{display:inline-flex!important;width:44px;height:44px;min-width:44px;min-height:44px;font-size:1.2rem}
+        .ssa-event-meta{margin-top:12px;gap:6px;max-width:100%}
+        .ssa-event-meta-item{font-size:0.95rem;line-height:1.6;overflow-wrap:break-word;word-wrap:break-word}
+        .ssa-event-meta-item strong{display:inline}
+        .ssa-event-keywords{margin-top:12px;padding-top:12px;border-top:1px solid #e5e7eb;display:flex;flex-wrap:wrap;gap:6px;max-width:100%}
+        .ssa-keyword-tag-clickable{padding:6px 12px;font-size:0.8rem;border-radius:16px;min-height:32px;display:inline-flex;align-items:center}
+        .ssa-info-popover{max-width:calc(100vw - 20px);width:calc(100vw - 20px);left:10px!important;right:10px;font-size:1rem;line-height:1.6;max-height:60vh;padding:16px}
+        .ssa-popover-close{width:32px;height:32px;font-size:24px;top:8px;right:8px}
+        .ssa-grid{gap:12px;max-width:100%}
+        .ssa-card{max-width:100%;overflow:hidden}
+        .ssa-card-content{padding:16px!important;min-height:auto;max-width:100%;overflow-wrap:break-word;word-wrap:break-word}
+        .ssa-title{font-size:1rem;line-height:1.4;flex-wrap:wrap;gap:6px;max-width:100%;overflow-wrap:break-word;word-wrap:break-word}
+        .ssa-title .ssa-info-icon{margin-bottom:4px}
+        .ssa-meta{font-size:0.9rem;line-height:1.5;margin:8px 0}
+        .ssa-keywords{margin:8px 0;gap:6px}
+        .ssa-tag-clickable{padding:6px 12px;font-size:0.8rem;min-height:32px;border-radius:16px}
+        .ssa-map-popover{width:calc(100vw - 20px)!important;height:250px;left:10px!important;right:10px}
+      }
     `;
     document.head.appendChild(css);
   }

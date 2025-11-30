@@ -2808,6 +2808,16 @@ export default function Events({ darkMode = false }: EventsProps) {
                   onChange={(value) => setEditing({...editing!, location: value as string})}
                   editingId={editing?.id?.toString()}
                   darkMode={darkMode}
+                  endIcon={<span style={{ fontSize: '16px' }}>📍</span>}
+                  onEndIconClick={() => {
+                    const location = editing?.location?.trim();
+                    if (location) {
+                      const encodedLocation = encodeURIComponent(location);
+                      const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodedLocation}`;
+                      window.open(mapUrl, '_blank', 'noopener,noreferrer');
+                    }
+                  }}
+                  endIconTitle="Open location in Google Maps"
                 />
               </div>
 
