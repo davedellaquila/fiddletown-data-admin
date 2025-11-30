@@ -228,19 +228,21 @@
         html += `<div class="ssa-event-details">`;
         html += `<span class="ssa-event-name-wrapper">`;
         
+        // Info icon for description (only if description exists)
+        const hasDescription = event.description && event.description.trim();
+        if (hasDescription) {
+          html += `<span class="ssa-info-icon" data-event-id="${eventId}" data-description="${event.description.replace(/"/g, '&quot;').replace(/'/g, '&#39;')}" title="Hover to view description"></span>`;
+        }
+        
         // Event name - only make it a link if website_url exists
-        // Add description data attribute for hover popover
         const nameClasses = hasWebsiteUrl ? 'ssa-event-link' : 'ssa-event-name';
-        const nameDataAttr = event.description && event.description.trim() 
-          ? ` data-event-id="${eventId}" data-description="${event.description.replace(/"/g, '&quot;').replace(/'/g, '&#39;')}"` 
-          : '';
         
         if (hasWebsiteUrl) {
-          html += `<a href="${eventUrl}" class="${nameClasses}"${nameDataAttr} target="_blank" rel="noopener">`;
+          html += `<a href="${eventUrl}" class="${nameClasses}" target="_blank" rel="noopener">`;
           html += `<strong>${event.name}</strong>`;
           html += `</a>`;
         } else {
-          html += `<strong class="${nameClasses}"${nameDataAttr}>${event.name}</strong>`;
+          html += `<strong class="${nameClasses}">${event.name}</strong>`;
         }
         html += `</span>`;
         
@@ -292,7 +294,8 @@
           <header class="ssa-card-head">
             ${hasImage ? `<div class="ssa-card-image-icon" data-event-id="${eventId}" data-image-url="${imageUrl}" title="Hover to preview image"><img src="${imageUrl}" alt="${ev.name}" class="ssa-card-icon-thumb" /></div>` : ''}
             <h3 class="ssa-title">
-              ${ev.website_url ? `<a href="${ev.website_url}" class="ssa-event-link"${ev.description && ev.description.trim() ? ` data-event-id="${eventId}" data-description="${ev.description.replace(/"/g, '&quot;').replace(/'/g, '&#39;')}"` : ''} target="_blank" rel="noopener">${ev.name}</a>` : `<span class="ssa-event-name"${ev.description && ev.description.trim() ? ` data-event-id="${eventId}" data-description="${ev.description.replace(/"/g, '&quot;').replace(/'/g, '&#39;')}"` : ''}>${ev.name}</span>`}
+              ${ev.description && ev.description.trim() ? `<span class="ssa-info-icon" data-event-id="${eventId}" data-description="${ev.description.replace(/"/g, '&quot;').replace(/'/g, '&#39;')}" title="Hover to view description"></span>` : ''}
+              ${ev.website_url ? `<a href="${ev.website_url}" class="ssa-event-link" target="_blank" rel="noopener">${ev.name}</a>` : `<span class="ssa-event-name">${ev.name}</span>`}
             </h3>
           </header>
           <p class="ssa-meta">${fmtRange(ev.start_date, ev.end_date)}${ev.location ? ' · <span class="ssa-location" data-location="' + ev.location.replace(/"/g, '&quot;').replace(/'/g, '&#39;') + '" title="Hover to view map">' + ev.location + '</span>' : ''}</p>
@@ -720,11 +723,11 @@
       }, true);
     }
     
-    // Description popover on hover for event names (list and grid views)
+    // Description popover on hover for info icons (list and grid views)
     let activePopover = null;
     let popoverTimeout = null;
     
-    mount.querySelectorAll('.ssa-event-link, .ssa-event-name').forEach(element => {
+    mount.querySelectorAll('.ssa-info-icon').forEach(element => {
       const description = element.dataset.description;
       if (!description || !description.trim()) return;
       
@@ -751,10 +754,39 @@
         popover.textContent = decodedDescription;
         document.body.appendChild(popover);
         
-        // Position popover above the element
+        // Get popover dimensions and viewport info
         const popoverRect = popover.getBoundingClientRect();
-        const left = rect.left + (rect.width / 2) - (popoverRect.width / 2);
-        const top = rect.top - popoverRect.height - 8;
+        const viewportHeight = window.innerHeight;
+        const viewportWidth = window.innerWidth;
+        const gap = 8;
+        const minGapFromEdge = 10;
+        
+        // Calculate horizontal position (centered on element, but keep within viewport)
+        let left = rect.left + (rect.width / 2) - (popoverRect.width / 2);
+        if (left < minGapFromEdge) {
+          left = minGapFromEdge;
+        } else if (left + popoverRect.width > viewportWidth - minGapFromEdge) {
+          left = viewportWidth - popoverRect.width - minGapFromEdge;
+        }
+        
+        // Calculate vertical position - prefer above, but show below if not enough space
+        let top = rect.top - popoverRect.height - gap;
+        const spaceAbove = rect.top;
+        const spaceBelow = viewportHeight - rect.bottom;
+        
+        // If not enough space above, position below instead
+        if (top < minGapFromEdge || spaceAbove < popoverRect.height + gap + minGapFromEdge) {
+          top = rect.bottom + gap;
+          // If still doesn't fit below, position it at the top of viewport
+          if (top + popoverRect.height > viewportHeight - minGapFromEdge) {
+            top = minGapFromEdge;
+          }
+        }
+        
+        // Ensure popover doesn't go off bottom of viewport
+        if (top + popoverRect.height > viewportHeight - minGapFromEdge) {
+          top = viewportHeight - popoverRect.height - minGapFromEdge;
+        }
         
         popover.style.position = 'fixed';
         popover.style.left = `${left}px`;
@@ -1023,7 +1055,10 @@
       .ssa-event-name-wrapper{display:inline-flex;align-items:center;gap:6px}
       .ssa-event-link{color:#3b82f6;text-decoration:none;cursor:pointer}
       .ssa-event-link:hover{text-decoration:underline}
-      .ssa-event-name{cursor:pointer}
+      .ssa-event-name{cursor:default}
+      .ssa-info-icon{display:inline-flex!important;align-items:center;justify-content:center;font-size:0.7rem;opacity:0.8;cursor:help;margin-right:6px;transition:all 0.2s;flex-shrink:0;width:18px;height:18px;border-radius:50%;background:#3b82f6;color:#fff;font-weight:700;line-height:1;position:relative;vertical-align:middle}
+      .ssa-info-icon::before{content:'i';font-style:normal;font-family:Georgia,serif;font-size:0.75rem}
+      .ssa-info-icon:hover{opacity:1;background:#2563eb;transform:scale(1.15)}
       .ssa-info-popover{padding:12px;background:#fff;border:1px solid #d1d5db;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);min-width:200px;max-width:300px;max-height:400px;overflow-y:auto;font-size:0.875rem;line-height:1.5;color:#374151;white-space:normal;word-wrap:break-word;pointer-events:auto}
       .ssa-info-popover::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border:6px solid transparent;border-top-color:#fff}
       .ssa-info-popover::before{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border:7px solid transparent;border-top-color:#d1d5db;margin-top:-1px}
@@ -1055,7 +1090,7 @@
       .ssa-card-image-icon{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:6px;overflow:hidden;cursor:pointer;opacity:0.8;transition:opacity 0.2s;flex-shrink:0;z-index:10;border:2px solid rgba(0,0,0,0.1)}
       .ssa-card-image-icon:hover{opacity:1;border-color:rgba(0,0,0,0.2)}
       .ssa-card-icon-thumb{width:100%;height:100%;object-fit:cover;display:block}
-      .ssa-title{margin:0;font-size:1.05rem;line-height:1.3;color:#1f2937;font-weight:600;flex:1}
+      .ssa-title{margin:0;font-size:1.05rem;line-height:1.3;color:#1f2937;font-weight:600;flex:1;display:inline-flex;align-items:center;gap:4px}
       .ssa-meta{margin:.35rem 0;color:#374151;font-weight:500}
       .ssa-keywords{margin:.5rem 0;display:flex;flex-wrap:wrap;gap:4px}
       .ssa-tag-clickable{display:inline-block;padding:2px 8px;background:#f3f4f6;border-radius:12px;font-size:0.75rem;color:#6b7280;cursor:pointer;transition:all 0.2s;border:1px solid transparent}
