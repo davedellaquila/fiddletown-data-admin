@@ -1078,7 +1078,14 @@ export default function Events({ darkMode = false }: EventsProps) {
     console.log('Payload being sent:', payload)
 
     if (!payload.name) { alert('Name is required'); return }
-    if (!payload.slug) { alert('Slug is required'); return }
+    
+    // Ensure slug exists and is unique
+    if (!payload.slug || !payload.slug.trim()) {
+      const baseSlug = slugify(payload.name)
+      payload.slug = await ensureUniqueSlug(baseSlug)
+    } else {
+      payload.slug = await ensureUniqueSlug(payload.slug)
+    }
 
     const { error } = await supabase.from('events').insert(payload)
     if (error) { alert(error.message); return }
@@ -1087,6 +1094,36 @@ export default function Events({ darkMode = false }: EventsProps) {
     localStorage.removeItem('events-ocr-text')
     localStorage.setItem('events-ocr-open', 'false')
     await load()
+  }
+
+  // Helper function to ensure slug is unique
+  const ensureUniqueSlug = async (baseSlug: string, excludeId?: number): Promise<string> => {
+    let candidateSlug = baseSlug
+    let counter = 1
+    
+    while (true) {
+      // Check if slug exists (excluding current event if updating)
+      let query = supabase
+        .from('events')
+        .select('id')
+        .eq('slug', candidateSlug)
+        .is('deleted_at', null)
+      
+      if (excludeId) {
+        query = query.neq('id', excludeId)
+      }
+      
+      const { data } = await query.maybeSingle()
+      
+      // If no data found, slug is unique
+      if (!data) {
+        return candidateSlug
+      }
+      
+      // Slug exists, try with counter suffix
+      counter++
+      candidateSlug = `${baseSlug}-${counter}`
+    }
   }
 
   const save = async (options?: { suppressClose?: boolean }) => {
@@ -1102,7 +1139,15 @@ export default function Events({ darkMode = false }: EventsProps) {
     console.log('Save function - full payload:', payload)
 
     if (!payload.name) return alert('Name is required')
-    if (!payload.slug) payload.slug = slugify(payload.name)
+    
+    // Ensure slug exists and is unique
+    if (!payload.slug || !payload.slug.trim()) {
+      const baseSlug = slugify(payload.name)
+      payload.slug = await ensureUniqueSlug(baseSlug, payload.id || undefined)
+    } else if (!payload.id) {
+      // For new events, ensure the provided slug is unique
+      payload.slug = await ensureUniqueSlug(payload.slug)
+    }
 
     if (payload.id) {
       const updateData = {
