@@ -18,14 +18,15 @@
 
 	  // Show upcoming events if FROM is set.
 	  // Include rows where:
-	  //  - end_date >= from  OR
-	  //  - start_date >= from  OR
-	  //  - both dates are null (undated events)
+	  //  - start_date >= from (events starting on or after the selected date)
+	  //  - OR (start_date < from AND end_date >= from) (events that start before but span across the selected date)
+	  //  - OR (both dates are null) (undated events)
 	  // If from is null/empty, show all events
 	  if (from) {
 	    // IMPORTANT: wrap conditions in parentheses
+	    // This ensures events that start before 'from' are only included if they have an end_date >= from
 	    const orFilter =
-	      `(end_date.gte.${from},start_date.gte.${from},and(start_date.is.null,end_date.is.null))`;
+	      `(start_date.gte.${from},and(start_date.lt.${from},end_date.gte.${from}),and(start_date.is.null,end_date.is.null))`;
 	    api.searchParams.set('or', orFilter);
 	  }
 	  if (to) {
@@ -160,10 +161,43 @@
     if (!fromDate && !toDate) return events;
     return events.filter(ev => {
       const startDate = ev.start_date;
-      const endDate = ev.end_date || startDate;
+      const endDate = ev.end_date;
       
-      if (fromDate && endDate && endDate < fromDate) return false;
-      if (toDate && startDate && startDate > toDate) return false;
+      // If fromDate is set, include events that:
+      // 1. Start on or after fromDate, OR
+      // 2. Start before fromDate but have an endDate that is on or after fromDate (event spans across fromDate)
+      // 3. Have no dates (undated events)
+      if (fromDate) {
+        if (!startDate && !endDate) {
+          // Undated event - include it
+          return true;
+        }
+        if (startDate && startDate >= fromDate) {
+          // Starts on or after fromDate - include it
+          return true;
+        }
+        if (startDate && startDate < fromDate) {
+          // Starts before fromDate - only include if it has an endDate and ends on or after fromDate
+          if (endDate && endDate >= fromDate) {
+            return true;
+          }
+          // Starts before fromDate and either has no endDate or ends before fromDate - exclude
+          return false;
+        }
+        // Has endDate but no startDate - include if endDate is on or after fromDate
+        if (!startDate && endDate && endDate >= fromDate) {
+          return true;
+        }
+        // Has endDate but no startDate and endDate is before fromDate - exclude
+        if (!startDate && endDate && endDate < fromDate) {
+          return false;
+        }
+      }
+      
+      // If toDate is set, exclude events that start after toDate
+      if (toDate && startDate && startDate > toDate) {
+        return false;
+      }
       
       return true;
     });
