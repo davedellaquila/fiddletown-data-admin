@@ -12,7 +12,7 @@
 
   async function fetchEvents({ url, key, from = null, to = null, limit = 200 }) {
       const api = new URL(url + '/rest/v1/events');
-      api.searchParams.set('select','id,name,slug,host_org,start_date,end_date,location,website_url,image_url,recurrence,sort_order,description');
+      api.searchParams.set('select','id,name,slug,host_org,start_date,end_date,start_time,end_time,location,website_url,image_url,recurrence,sort_order,description');
       api.searchParams.set('order','start_date.asc,name.asc');
       api.searchParams.set('limit', String(limit));
 
@@ -101,16 +101,85 @@
   function formatEventDate(dateString) {
     if (!dateString) return '';
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      month: 'long', 
-      day: 'numeric' 
-    });
+    
+    // Get abbreviated day name
+    const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+    
+    // Get abbreviated month name
+    const monthName = date.toLocaleDateString('en-US', { month: 'short' });
+    
+    // Get day number and add ordinal suffix
+    const day = date.getDate();
+    const ordinalSuffix = (day) => {
+      if (day > 3 && day < 21) return 'th';
+      switch (day % 10) {
+        case 1: return 'st';
+        case 2: return 'nd';
+        case 3: return 'rd';
+        default: return 'th';
+      }
+    };
+    
+    return `${dayName}, ${monthName} ${day}${ordinalSuffix(day)}`;
   }
 
   function getMonthName(dateString) {
     if (!dateString) return 'TBA';
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  }
+
+  function formatTime(timeString) {
+    if (!timeString) return '';
+    // Time is stored as HH:MM or HH:MM:SS format
+    const parts = timeString.split(':');
+    if (parts.length < 2) return timeString;
+    const hours = parseInt(parts[0], 10);
+    const minutes = parts[1];
+    if (isNaN(hours)) return timeString;
+    
+    // Format as 12-hour time with AM/PM
+    if (hours === 0) {
+      return `12:${minutes} AM`;
+    } else if (hours < 12) {
+      return `${hours}:${minutes} AM`;
+    } else if (hours === 12) {
+      return `12:${minutes} PM`;
+    } else {
+      return `${hours - 12}:${minutes} PM`;
+    }
+  }
+
+  function calculateDuration(startTime, endTime) {
+    if (!startTime || !endTime) return '';
+    
+    // Parse times (format: HH:MM or HH:MM:SS)
+    const parseTime = (timeStr) => {
+      const parts = timeStr.split(':');
+      if (parts.length < 2) return null;
+      const hours = parseInt(parts[0], 10);
+      const minutes = parseInt(parts[1], 10);
+      if (isNaN(hours) || isNaN(minutes)) return null;
+      return hours * 60 + minutes; // Convert to minutes
+    };
+    
+    const startMinutes = parseTime(startTime);
+    const endMinutes = parseTime(endTime);
+    
+    if (startMinutes === null || endMinutes === null) return '';
+    if (endMinutes < startMinutes) return ''; // Invalid time range
+    
+    const durationMinutes = endMinutes - startMinutes;
+    const hours = Math.floor(durationMinutes / 60);
+    const minutes = durationMinutes % 60;
+    
+    if (hours === 0) {
+      return `${minutes} min`;
+    } else if (minutes === 0) {
+      return `${hours} hr`;
+    } else {
+      return `${hours} hr ${minutes} min`;
+    }
   }
 
   function getAllKeywords(rows) {
@@ -121,6 +190,100 @@
       }
     });
     return Array.from(keywordSet).sort();
+  }
+
+  // Calculate upcoming weekend dates (Friday, Saturday, and Sunday)
+  function getUpcomingWeekend() {
+    const today = new Date();
+    const dayOfWeek = today.getDay(); // 0 = Sunday, 6 = Saturday
+    
+    let friday, sunday;
+    
+    if (dayOfWeek === 5) {
+      // If today is Friday, use this weekend (today through Sunday)
+      friday = new Date(today);
+      sunday = new Date(today);
+      sunday.setDate(today.getDate() + 2); // This Sunday
+    } else if (dayOfWeek === 6) {
+      // If today is Saturday, use this weekend (yesterday through tomorrow)
+      friday = new Date(today);
+      friday.setDate(today.getDate() - 1); // Yesterday (Friday)
+      sunday = new Date(today);
+      sunday.setDate(today.getDate() + 1); // Tomorrow (Sunday)
+    } else if (dayOfWeek === 0) {
+      // If today is Sunday, use this weekend (Friday through today)
+      friday = new Date(today);
+      friday.setDate(today.getDate() - 2); // Friday (2 days ago)
+      sunday = new Date(today);
+    } else {
+      // Monday-Thursday: use this coming weekend
+      const daysUntilFriday = 5 - dayOfWeek; // 1=Mon(4), 2=Tue(3), 3=Wed(2), 4=Thu(1)
+      friday = new Date(today);
+      friday.setDate(today.getDate() + daysUntilFriday);
+      sunday = new Date(friday);
+      sunday.setDate(friday.getDate() + 2); // Sunday (2 days after Friday)
+    }
+    
+    // Format dates as YYYY-MM-DD using local time to avoid timezone issues
+    function formatLocalDate(date) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+    
+    return {
+      from: formatLocalDate(friday),
+      to: formatLocalDate(sunday)
+    };
+  }
+
+  // Calculate next weekend dates (Friday, Saturday, and Sunday)
+  function getNextWeekend() {
+    const today = new Date();
+    const dayOfWeek = today.getDay(); // 0 = Sunday, 6 = Saturday
+    
+    let friday, sunday;
+    
+    if (dayOfWeek === 5) {
+      // If today is Friday, next weekend is 7 days from today
+      friday = new Date(today);
+      friday.setDate(today.getDate() + 7); // Next Friday
+      sunday = new Date(friday);
+      sunday.setDate(friday.getDate() + 2); // Next Sunday
+    } else if (dayOfWeek === 6) {
+      // If today is Saturday, next weekend is 6 days from today
+      friday = new Date(today);
+      friday.setDate(today.getDate() + 6); // Next Friday
+      sunday = new Date(friday);
+      sunday.setDate(friday.getDate() + 2); // Next Sunday
+    } else if (dayOfWeek === 0) {
+      // If today is Sunday, next weekend is 5 days from today
+      friday = new Date(today);
+      friday.setDate(today.getDate() + 5); // Next Friday
+      sunday = new Date(friday);
+      sunday.setDate(friday.getDate() + 2); // Next Sunday
+    } else {
+      // Monday-Thursday: next weekend is the weekend after this coming one
+      const daysUntilThisFriday = 5 - dayOfWeek; // Days until this Friday
+      friday = new Date(today);
+      friday.setDate(today.getDate() + daysUntilThisFriday + 7); // Next Friday (this Friday + 7 days)
+      sunday = new Date(friday);
+      sunday.setDate(friday.getDate() + 2); // Next Sunday
+    }
+    
+    // Format dates as YYYY-MM-DD using local time to avoid timezone issues
+    function formatLocalDate(date) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+    
+    return {
+      from: formatLocalDate(friday),
+      to: formatLocalDate(sunday)
+    };
   }
 
   async function fetchAllKeywords({ url, key }) {
@@ -295,7 +458,21 @@
         // Event metadata - each on its own line for better mobile readability
         html += `<div class="ssa-event-meta">`;
         if (dateRange) {
-          html += `<div class="ssa-event-meta-item"><strong>Date:</strong> ${dateRange}</div>`;
+          let dateTimeDisplay = dateRange;
+          // Add start time if available
+          if (event.start_time) {
+            dateTimeDisplay += `, ${formatTime(event.start_time)}`;
+            // Add end time if available
+            if (event.end_time) {
+              dateTimeDisplay += ` - ${formatTime(event.end_time)}`;
+              // Add duration in parentheses
+              const duration = calculateDuration(event.start_time, event.end_time);
+              if (duration) {
+                dateTimeDisplay += ` (${duration})`;
+              }
+            }
+          }
+          html += `<div class="ssa-event-meta-item"><strong>Date:</strong> ${dateTimeDisplay}</div>`;
         }
         if (event.location) {
           html += `<div class="ssa-event-meta-item"><strong>Location:</strong> <span class="ssa-location" data-location="${event.location.replace(/"/g, '&quot;').replace(/'/g, '&#39;')}" title="Click to get directions">${event.location}</span></div>`;
@@ -351,7 +528,23 @@
               ${ev.website_url ? `<a href="${ev.website_url}" class="ssa-event-link" target="_blank" rel="noopener">${ev.name}</a>` : `<span class="ssa-event-name">${ev.name}</span>`}
             </h3>
           </header>
-          <p class="ssa-meta">${fmtRange(ev.start_date, ev.end_date)}${ev.location ? ' · <span class="ssa-location" data-location="' + ev.location.replace(/"/g, '&quot;').replace(/'/g, '&#39;') + '" title="Click to get directions">' + ev.location + '</span>' : ''}</p>
+          ${(() => {
+            let dateTimeDisplay = fmtRange(ev.start_date, ev.end_date);
+            // Add start time if available
+            if (ev.start_time) {
+              dateTimeDisplay += `, ${formatTime(ev.start_time)}`;
+              // Add end time if available
+              if (ev.end_time) {
+                dateTimeDisplay += ` - ${formatTime(ev.end_time)}`;
+                // Add duration in parentheses
+                const duration = calculateDuration(ev.start_time, ev.end_time);
+                if (duration) {
+                  dateTimeDisplay += ` (${duration})`;
+                }
+              }
+            }
+            return `<p class="ssa-meta">${dateTimeDisplay}${ev.location ? ' · <span class="ssa-location" data-location="' + ev.location.replace(/"/g, '&quot;').replace(/'/g, '&#39;') + '" title="Click to get directions">' + ev.location + '</span>' : ''}</p>`;
+          })()}
           ${ev.recurrence ? `<p class="ssa-meta">${ev.recurrence}</p>` : ''}
           ${ev.keywords && ev.keywords.length > 0 ? `<p class="ssa-keywords">${ev.keywords.map(kw => {
             const isSelected = selectedKeywords.includes(kw);
@@ -399,6 +592,8 @@
     controlsHTML += `<label>From: <input type="date" class="ssa-date-input" id="ssa-from-date" value="${fromDate || ''}"></label>`;
     controlsHTML += `<label>To: <input type="date" class="ssa-date-input" id="ssa-to-date" value="${toDate || ''}"></label>`;
     controlsHTML += `<button class="ssa-clear-dates" title="Clear date filters">Clear</button>`;
+    controlsHTML += `<button class="ssa-weekend-btn" title="Set date range to upcoming weekend">📅 This Weekend</button>`;
+    controlsHTML += `<button class="ssa-weekend-btn ssa-next-weekend-btn" title="Set date range to next weekend">📅 Next Weekend</button>`;
     controlsHTML += '</div>';
     
     // Keyword filters - display all keywords from the system
@@ -487,6 +682,44 @@
       clearDatesBtn.addEventListener('click', async function() {
         const newState = { ...state, fromDate: null, toDate: null };
         // Reload events to show all
+        if (mount._widgetOpts) {
+          reloadEvents(mount, newState, mount._widgetOpts);
+        } else {
+          // Fallback: filter client-side if opts not available
+          await renderEvents(mount, rows, newState);
+        }
+      });
+    }
+    
+    // Weekend button handlers
+    const weekendBtn = mount.querySelector('.ssa-weekend-btn:not(.ssa-next-weekend-btn)');
+    if (weekendBtn) {
+      weekendBtn.addEventListener('click', async function() {
+        const weekend = getUpcomingWeekend();
+        const newState = { ...state, fromDate: weekend.from, toDate: weekend.to };
+        // Update the input values
+        if (fromInput) fromInput.value = weekend.from;
+        if (toInput) toInput.value = weekend.to;
+        // Reload events with weekend filter
+        if (mount._widgetOpts) {
+          reloadEvents(mount, newState, mount._widgetOpts);
+        } else {
+          // Fallback: filter client-side if opts not available
+          await renderEvents(mount, rows, newState);
+        }
+      });
+    }
+    
+    // Next weekend button handler
+    const nextWeekendBtn = mount.querySelector('.ssa-next-weekend-btn');
+    if (nextWeekendBtn) {
+      nextWeekendBtn.addEventListener('click', async function() {
+        const weekend = getNextWeekend();
+        const newState = { ...state, fromDate: weekend.from, toDate: weekend.to };
+        // Update the input values
+        if (fromInput) fromInput.value = weekend.from;
+        if (toInput) toInput.value = weekend.to;
+        // Reload events with next weekend filter
         if (mount._widgetOpts) {
           reloadEvents(mount, newState, mount._widgetOpts);
         } else {
@@ -1166,6 +1399,8 @@
       .ssa-date-input{padding:6px 10px;border:1px solid #d1d5db;border-radius:4px;font-size:0.875rem}
       .ssa-clear-dates{padding:6px 12px;border:1px solid #d1d5db;border-radius:4px;background:#fff;color:#374151;cursor:pointer;font-size:0.875rem}
       .ssa-clear-dates:hover{background:#f9fafb}
+      .ssa-weekend-btn{padding:6px 12px;border:1px solid #d1d5db;border-radius:4px;background:#fff;color:#374151;cursor:pointer;font-size:0.875rem;font-weight:500;white-space:nowrap}
+      .ssa-weekend-btn:hover{background:#f9fafb;border-color:#9ca3af}
       .ssa-keyword-filters{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
       .ssa-keyword-btn{padding:8px 16px;border:2px solid #d1d5db;border-radius:20px;background:#fff;color:#374151;cursor:pointer;font-size:0.875rem;font-weight:500;transition:all 0.2s}
       .ssa-keyword-btn:hover{background:#f9fafb;border-color:#9ca3af}
@@ -1253,6 +1488,7 @@
         .ssa-date-filters label{flex-direction:column;align-items:flex-start;gap:4px;font-size:0.9rem}
         .ssa-date-input{width:100%;padding:10px;font-size:1rem;min-height:44px}
         .ssa-clear-dates{width:100%;padding:10px;font-size:0.9rem;min-height:44px}
+        .ssa-weekend-btn{width:100%;padding:10px;font-size:0.9rem;min-height:44px}
         .ssa-keyword-filters{gap:6px}
         .ssa-keyword-btn{padding:10px 14px;font-size:0.9rem;min-height:44px;border-radius:22px}
         .ssa-month-header{font-size:1.1rem;margin:20px 0 10px}

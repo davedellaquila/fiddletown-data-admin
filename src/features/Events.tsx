@@ -434,6 +434,113 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
     }
   }
 
+  // Calculate upcoming weekend dates (Friday, Saturday, and Sunday)
+  const getUpcomingWeekend = () => {
+    const today = new Date()
+    const dayOfWeek = today.getDay() // 0 = Sunday, 6 = Saturday
+    
+    let friday: Date
+    let sunday: Date
+    
+    if (dayOfWeek === 5) {
+      // If today is Friday, use this weekend (today through Sunday)
+      friday = new Date(today)
+      sunday = new Date(today)
+      sunday.setDate(today.getDate() + 2) // This Sunday
+    } else if (dayOfWeek === 6) {
+      // If today is Saturday, use this weekend (yesterday through tomorrow)
+      friday = new Date(today)
+      friday.setDate(today.getDate() - 1) // Yesterday (Friday)
+      sunday = new Date(today)
+      sunday.setDate(today.getDate() + 1) // Tomorrow (Sunday)
+    } else if (dayOfWeek === 0) {
+      // If today is Sunday, use this weekend (Friday through today)
+      friday = new Date(today)
+      friday.setDate(today.getDate() - 2) // Friday (2 days ago)
+      sunday = new Date(today)
+    } else {
+      // Monday-Thursday: use this coming weekend
+      const daysUntilFriday = 5 - dayOfWeek // 1=Mon(4), 2=Tue(3), 3=Wed(2), 4=Thu(1)
+      friday = new Date(today)
+      friday.setDate(today.getDate() + daysUntilFriday)
+      sunday = new Date(friday)
+      sunday.setDate(friday.getDate() + 2) // Sunday (2 days after Friday)
+    }
+    
+    // Format dates as YYYY-MM-DD using local time to avoid timezone issues
+    const formatLocalDate = (date: Date) => {
+      const year = date.getFullYear()
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const day = String(date.getDate()).padStart(2, '0')
+      return `${year}-${month}-${day}`
+    }
+    
+    return {
+      from: formatLocalDate(friday),
+      to: formatLocalDate(sunday)
+    }
+  }
+
+  const getNextWeekend = () => {
+    const today = new Date()
+    const dayOfWeek = today.getDay() // 0 = Sunday, 6 = Saturday
+    
+    let friday: Date
+    let sunday: Date
+    
+    if (dayOfWeek === 5) {
+      // If today is Friday, next weekend is 7 days from today
+      friday = new Date(today)
+      friday.setDate(today.getDate() + 7) // Next Friday
+      sunday = new Date(friday)
+      sunday.setDate(friday.getDate() + 2) // Next Sunday
+    } else if (dayOfWeek === 6) {
+      // If today is Saturday, next weekend is 6 days from today
+      friday = new Date(today)
+      friday.setDate(today.getDate() + 6) // Next Friday
+      sunday = new Date(friday)
+      sunday.setDate(friday.getDate() + 2) // Next Sunday
+    } else if (dayOfWeek === 0) {
+      // If today is Sunday, next weekend is 5 days from today
+      friday = new Date(today)
+      friday.setDate(today.getDate() + 5) // Next Friday
+      sunday = new Date(friday)
+      sunday.setDate(friday.getDate() + 2) // Next Sunday
+    } else {
+      // Monday-Thursday: next weekend is the weekend after this coming one
+      const daysUntilThisFriday = 5 - dayOfWeek // Days until this Friday
+      friday = new Date(today)
+      friday.setDate(today.getDate() + daysUntilThisFriday + 7) // Next Friday (this Friday + 7 days)
+      sunday = new Date(friday)
+      sunday.setDate(friday.getDate() + 2) // Next Sunday
+    }
+    
+    // Format dates as YYYY-MM-DD using local time to avoid timezone issues
+    const formatLocalDate = (date: Date) => {
+      const year = date.getFullYear()
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const day = String(date.getDate()).padStart(2, '0')
+      return `${year}-${month}-${day}`
+    }
+    
+    return {
+      from: formatLocalDate(friday),
+      to: formatLocalDate(sunday)
+    }
+  }
+
+  const setWeekendFilter = () => {
+    const weekend = getUpcomingWeekend()
+    setFrom(weekend.from)
+    setTo(weekend.to)
+  }
+
+  const setNextWeekendFilter = () => {
+    const weekend = getNextWeekend()
+    setFrom(weekend.from)
+    setTo(weekend.to)
+  }
+
   // OCR / Image-to-Event state with persistence
   const [ocrOpen, setOcrOpen] = useState(() => {
     const saved = localStorage.getItem('events-ocr-open')
@@ -1812,6 +1919,41 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
               }}
             />
           </label>
+
+          <button
+            onClick={setWeekendFilter}
+            title="Set date range to upcoming weekend"
+            style={{
+              padding: '6px 12px',
+              background: darkMode ? '#374151' : '#ffffff',
+              border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`,
+              borderRadius: '6px',
+              color: darkMode ? '#f9fafb' : '#374151',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: '500',
+              whiteSpace: 'nowrap',
+              transition: 'all 0.2s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = darkMode ? '#4b5563' : '#f3f4f6'
+              e.currentTarget.style.borderColor = darkMode ? '#6b7280' : '#9ca3af'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = darkMode ? '#374151' : '#ffffff'
+              e.currentTarget.style.borderColor = darkMode ? '#4b5563' : '#d1d5db'
+            }}
+          >
+            📅 This Weekend
+          </button>
+          <button
+            type="button"
+            onClick={setNextWeekendFilter}
+            className="px-3 py-1.5 text-sm border border-gray-300 rounded bg-white hover:bg-gray-50"
+            title="Set date range to next weekend"
+          >
+            📅 Next Weekend
+          </button>
 
           {/* Keyword Filter */}
           <div style={{ position: 'relative', minWidth: '200px' }}>
