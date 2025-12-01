@@ -22,6 +22,10 @@ export default function App() {
     const saved = localStorage.getItem('darkMode')
     return saved ? JSON.parse(saved) : false
   })
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    const saved = localStorage.getItem('sidebarCollapsed')
+    return saved ? JSON.parse(saved) : false
+  })
 
   useEffect(() => {
     console.log('Setting up auth...')
@@ -64,6 +68,11 @@ export default function App() {
     localStorage.setItem('darkMode', JSON.stringify(darkMode))
     document.documentElement.setAttribute('data-theme', darkMode ? 'dark' : 'light')
   }, [darkMode])
+
+  // Persist sidebar collapsed state
+  useEffect(() => {
+    localStorage.setItem('sidebarCollapsed', JSON.stringify(sidebarCollapsed))
+  }, [sidebarCollapsed])
 
   const toggleDarkMode = () => {
     setDarkMode(!darkMode)
@@ -216,46 +225,79 @@ export default function App() {
         position: 'fixed',
         top: 0,
         left: 0,
-        width: '220px',
+        width: sidebarCollapsed ? '60px' : '220px',
         height: '100vh',
         overflowY: 'auto',
+        overflowX: 'hidden',
         background: darkMode ? '#1f2937' : '#f9fafb',
         borderRight: `1px solid ${darkMode ? '#374151' : '#e5e7eb'}`,
-        padding: '20px',
-        zIndex: 1000
+        padding: sidebarCollapsed ? '20px 8px' : '20px',
+        zIndex: 1000,
+        transition: 'width 0.3s ease, padding 0.3s ease'
       }}>
         <div style={{ marginBottom: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-            <strong style={{ color: darkMode ? '#f9fafb' : '#1f2937' }}>{session.user?.email}</strong>
-            <button 
-              onClick={toggleDarkMode}
-              style={{
-                border: 'none',
-                fontSize: '20px',
-                cursor: 'pointer',
-                padding: '6px',
-                borderRadius: '6px',
-                background: darkMode ? '#374151' : '#e5e7eb'
-              }}
-              title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
-            >
-              {darkMode ? '☀️' : '🌙'}
-            </button>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: sidebarCollapsed ? 'center' : 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+            {!sidebarCollapsed && (
+              <strong style={{ color: darkMode ? '#f9fafb' : '#1f2937', fontSize: '14px', wordBreak: 'break-word' }}>{session.user?.email}</strong>
+            )}
+            <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+              <button 
+                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                style={{
+                  border: 'none',
+                  fontSize: '18px',
+                  cursor: 'pointer',
+                  padding: '6px',
+                  borderRadius: '6px',
+                  background: darkMode ? '#374151' : '#e5e7eb',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  minWidth: '32px',
+                  height: '32px'
+                }}
+                title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              >
+                {sidebarCollapsed ? '→' : '←'}
+              </button>
+              <button 
+                onClick={toggleDarkMode}
+                style={{
+                  border: 'none',
+                  fontSize: '20px',
+                  cursor: 'pointer',
+                  padding: '6px',
+                  borderRadius: '6px',
+                  background: darkMode ? '#374151' : '#e5e7eb',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  minWidth: '32px',
+                  height: '32px'
+                }}
+                title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+              >
+                {darkMode ? '☀️' : '🌙'}
+              </button>
+            </div>
           </div>
-          <button 
-            className="btn" 
-            onClick={() => supabase.auth.signOut()} 
-            style={{ 
-              marginTop: 8,
-              background: darkMode ? '#374151' : '#ffffff',
-              border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`,
-              color: darkMode ? '#f9fafb' : '#374151'
-            }}
-          >
-            Sign out
-          </button>
+          {!sidebarCollapsed && (
+            <button 
+              className="btn" 
+              onClick={() => supabase.auth.signOut()} 
+              style={{ 
+                marginTop: 8,
+                width: '100%',
+                background: darkMode ? '#374151' : '#ffffff',
+                border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`,
+                color: darkMode ? '#f9fafb' : '#374151'
+              }}
+            >
+              Sign out
+            </button>
+          )}
         </div>
-        <nav className="stack" style={{ flexDirection: 'column', alignItems: 'stretch' }}>
+        <nav className="stack" style={{ flexDirection: 'column', alignItems: sidebarCollapsed ? 'center' : 'stretch' }}>
           <button 
             className="btn" 
             onClick={() => setView('locations')}
@@ -264,13 +306,19 @@ export default function App() {
               background: view === 'locations' ? (darkMode ? '#3b82f6' : '#3b82f6') : (darkMode ? '#374151' : '#ffffff'),
               border: `1px solid ${view === 'locations' ? '#3b82f6' : (darkMode ? '#4b5563' : '#d1d5db')}`,
               color: view === 'locations' ? 'white' : (darkMode ? '#f9fafb' : '#374151'),
-              textAlign: 'left',
-              padding: '12px 16px',
+              textAlign: sidebarCollapsed ? 'center' : 'left',
+              padding: sidebarCollapsed ? '12px' : '12px 16px',
               borderRadius: '8px',
-              marginBottom: '8px'
+              marginBottom: '8px',
+              width: sidebarCollapsed ? '44px' : '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
+              gap: sidebarCollapsed ? '0' : '8px'
             }}
           >
-            📍 Locations
+            <span>📍</span>
+            {!sidebarCollapsed && <span>Locations</span>}
           </button>
           <button 
             className="btn" 
@@ -280,13 +328,19 @@ export default function App() {
               background: view === 'events' ? (darkMode ? '#3b82f6' : '#3b82f6') : (darkMode ? '#374151' : '#ffffff'),
               border: `1px solid ${view === 'events' ? '#3b82f6' : (darkMode ? '#4b5563' : '#d1d5db')}`,
               color: view === 'events' ? 'white' : (darkMode ? '#f9fafb' : '#374151'),
-              textAlign: 'left',
-              padding: '12px 16px',
+              textAlign: sidebarCollapsed ? 'center' : 'left',
+              padding: sidebarCollapsed ? '12px' : '12px 16px',
               borderRadius: '8px',
-              marginBottom: '8px'
+              marginBottom: '8px',
+              width: sidebarCollapsed ? '44px' : '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
+              gap: sidebarCollapsed ? '0' : '8px'
             }}
           >
-            📅 Events
+            <span>📅</span>
+            {!sidebarCollapsed && <span>Events</span>}
           </button>
           <button 
             className="btn" 
@@ -296,13 +350,19 @@ export default function App() {
               background: view === 'routes' ? (darkMode ? '#3b82f6' : '#3b82f6') : (darkMode ? '#374151' : '#ffffff'),
               border: `1px solid ${view === 'routes' ? '#3b82f6' : (darkMode ? '#4b5563' : '#d1d5db')}`,
               color: view === 'routes' ? 'white' : (darkMode ? '#f9fafb' : '#374151'),
-              textAlign: 'left',
-              padding: '12px 16px',
+              textAlign: sidebarCollapsed ? 'center' : 'left',
+              padding: sidebarCollapsed ? '12px' : '12px 16px',
               borderRadius: '8px',
-              marginBottom: '8px'
+              marginBottom: '8px',
+              width: sidebarCollapsed ? '44px' : '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
+              gap: sidebarCollapsed ? '0' : '8px'
             }}
           >
-            🗺️ Routes
+            <span>🗺️</span>
+            {!sidebarCollapsed && <span>Routes</span>}
           </button>
           <button 
             className="btn" 
@@ -312,24 +372,31 @@ export default function App() {
               background: view === 'ocr-test' ? (darkMode ? '#3b82f6' : '#3b82f6') : (darkMode ? '#374151' : '#ffffff'),
               border: `1px solid ${view === 'ocr-test' ? '#3b82f6' : (darkMode ? '#4b5563' : '#d1d5db')}`,
               color: view === 'ocr-test' ? 'white' : (darkMode ? '#f9fafb' : '#374151'),
-              textAlign: 'left',
-              padding: '12px 16px',
+              textAlign: sidebarCollapsed ? 'center' : 'left',
+              padding: sidebarCollapsed ? '12px' : '12px 16px',
               borderRadius: '8px',
-              marginBottom: '8px'
+              marginBottom: '8px',
+              width: sidebarCollapsed ? '44px' : '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
+              gap: sidebarCollapsed ? '0' : '8px'
             }}
           >
-            🔍 OCR Test
+            <span>🔍</span>
+            {!sidebarCollapsed && <span>OCR Test</span>}
           </button>
         </nav>
       </aside>
       <main className="main" style={{ 
-        marginLeft: '220px',
+        marginLeft: sidebarCollapsed ? '60px' : '220px',
         marginTop: '0',
         background: darkMode ? '#111827' : '#ffffff',
         color: darkMode ? '#f9fafb' : '#1f2937',
         padding: '0 0 20px 20px',
-        width: 'calc(100vw - 220px)',
-        minHeight: '100vh'
+        width: sidebarCollapsed ? 'calc(100vw - 60px)' : 'calc(100vw - 220px)',
+        minHeight: '100vh',
+        transition: 'margin-left 0.3s ease, width 0.3s ease'
       }}>
         {/* Reserved for future notifications/info header (currently hidden) */}
         <div 
@@ -338,9 +405,9 @@ export default function App() {
           aria-live="polite" 
           style={{ display: 'none' }}
         />
-        {view === 'locations' && <Locations darkMode={darkMode} />}
-        {view === 'events' && <Events darkMode={darkMode} />}
-        {view === 'routes' && <Routes darkMode={darkMode} />}
+        {view === 'locations' && <Locations darkMode={darkMode} sidebarCollapsed={sidebarCollapsed} />}
+        {view === 'events' && <Events darkMode={darkMode} sidebarCollapsed={sidebarCollapsed} />}
+        {view === 'routes' && <Routes darkMode={darkMode} sidebarCollapsed={sidebarCollapsed} />}
         {view === 'ocr-test' && <OCRTest darkMode={darkMode} />}
       </main>
     </div>

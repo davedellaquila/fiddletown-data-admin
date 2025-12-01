@@ -23,9 +23,10 @@ type Location = {
 
 interface LocationsProps {
   darkMode?: boolean
+  sidebarCollapsed?: boolean
 }
 
-export default function Locations({ darkMode = false }: LocationsProps) {
+export default function Locations({ darkMode = false, sidebarCollapsed = false }: LocationsProps) {
   const [rows, setRows] = useState<Location[]>([])
   const [loading, setLoading] = useState(false)
   const [editing, setEditing] = useState<Location | null>(null)
@@ -721,6 +722,7 @@ export default function Locations({ darkMode = false }: LocationsProps) {
           title={editing?.id ? '✏️ Edit Location' : '➕ New Location'}
           maxWidth="600px"
           darkMode={darkMode}
+          overlayLeftOffsetPx={sidebarCollapsed ? 60 : 220}
           editing={editing}
           rows={rows}
           saveFunction={save}

@@ -99,9 +99,10 @@ function downloadTemplateCSV() {
 
 interface RoutesProps {
   darkMode?: boolean
+  sidebarCollapsed?: boolean
 }
 
-export default function Routes({ darkMode = false }: RoutesProps) {
+export default function Routes({ darkMode = false, sidebarCollapsed = false }: RoutesProps) {
   const [rows, setRows] = useState<RouteRow[]>([])
   const [loading, setLoading] = useState(false)
   const [editing, setEditing] = useState<RouteRow | null>(null)
@@ -795,6 +796,7 @@ export default function Routes({ darkMode = false }: RoutesProps) {
         title={editing?.id ? '✏️ Edit Route' : '➕ New Route'}
         maxWidth="600px"
         darkMode={darkMode}
+        overlayLeftOffsetPx={sidebarCollapsed ? 60 : 220}
         editing={editing}
         rows={rows}
         saveFunction={save}

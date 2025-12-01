@@ -339,9 +339,10 @@ function downloadTemplateCSV() {
 
 interface EventsProps {
   darkMode?: boolean
+  sidebarCollapsed?: boolean
 }
 
-export default function Events({ darkMode = false }: EventsProps) {
+export default function Events({ darkMode = false, sidebarCollapsed = false }: EventsProps) {
   const [rows, setRows] = useState<EventRow[]>([])
   const [allRows, setAllRows] = useState<EventRow[]>([]) // Store all events for client-side filtering
   const [loading, setLoading] = useState(true)
@@ -409,7 +410,10 @@ export default function Events({ darkMode = false }: EventsProps) {
   const [imageHover, setImageHover] = useState(false)
   const [editing, setEditing] = useState<EventRow | null>(null)
   const [q, setQ] = useState('')
-  const [from, setFrom] = useState('')
+  const [from, setFrom] = useState(() => {
+    // Default to today's date in YYYY-MM-DD format
+    return new Date().toISOString().slice(0, 10)
+  })
   const [to, setTo] = useState('')
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [hoverThumbId, setHoverThumbId] = useState<number | null>(null)
@@ -547,7 +551,16 @@ export default function Events({ darkMode = false }: EventsProps) {
       .order(sortBy, { ascending: sortOrder === 'asc' })
 
       // Only apply date filters server-side, not search
-      if (from) query = query.gte('start_date', from)
+      // For 'from' date: include events that:
+      //   - Start on/after the date, OR
+      //   - End on/after the date (even if they start before)
+      // This ensures events that span across or end exactly on the selected start date are included
+      if (from) {
+        // Use OR to include events where either start_date or end_date meets the criteria
+        // Also include events with no dates (undated events)
+        query = query.or(`start_date.gte.${from},end_date.gte.${from},and(start_date.is.null,end_date.is.null)`)
+      }
+      // For 'to' date: only include events that start on/before the date
       if (to) query = query.lte('start_date', to)
 
     const { data, error } = await query
@@ -921,10 +934,37 @@ export default function Events({ darkMode = false }: EventsProps) {
   const copyEvent = async (r: EventRow) => {
     const copy = { ...r }
     const newSlug = copy.slug ? `${copy.slug}-copy` : slugify(copy.name + ' copy')
-    const { id, created_at, updated_at, deleted_at, ...insertable } = copy
+    // Exclude keywords from insertable since it's not a column but a relationship
+    const { id, created_at, updated_at, deleted_at, keywords, ...insertable } = copy
     const payload: any = { ...insertable, slug: newSlug, name: r.name + ' (copy)', status: 'draft', created_at: undefined, updated_at: undefined, deleted_at: null }
-    const { error } = await supabase.from('events').insert(payload)
+    const { data: newEvent, error } = await supabase.from('events').insert(payload).select().single()
     if (error) { alert(error.message); return }
+    
+    // Copy keyword relationships if the original event had keywords
+    if (newEvent && r.id && keywords && keywords.length > 0) {
+      // Fetch the keyword IDs for the original event
+      const { data: originalRelations } = await supabase
+        .from('event_keywords')
+        .select('keyword_id')
+        .eq('event_id', r.id)
+      
+      if (originalRelations && originalRelations.length > 0) {
+        // Create the same relationships for the new event
+        const junctionRecords = originalRelations.map(rel => ({
+          event_id: newEvent.id,
+          keyword_id: rel.keyword_id
+        }))
+        
+        const { error: keywordError } = await supabase
+          .from('event_keywords')
+          .insert(junctionRecords)
+        
+        if (keywordError) {
+          console.error('Error copying keyword relationships:', keywordError)
+        }
+      }
+    }
+    
     await load();
   }
 
@@ -2443,6 +2483,7 @@ export default function Events({ darkMode = false }: EventsProps) {
           title={editing?.id ? '✏️ Edit Event' : '➕ New Event'}
           maxWidth="800px"
           darkMode={darkMode}
+          overlayLeftOffsetPx={sidebarCollapsed ? 60 : 220}
           editing={editing}
           rows={rows}
           saveFunction={save}
