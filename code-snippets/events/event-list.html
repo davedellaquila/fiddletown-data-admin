@@ -932,20 +932,141 @@
       }
     });
     
-    // Image click preview for list view
+    // Image hover preview for list view (similar to info icon hover)
+    let activeImagePopover = null;
+    let imagePopoverTimeout = null;
+    
     if (state.layout === LAYOUTS.LIST) {
       mount.querySelectorAll('.ssa-event-image-wrapper[data-image-url]').forEach(wrapper => {
         const eventId = wrapper.dataset.eventId;
         const imageUrl = wrapper.dataset.imageUrl;
         if (!imageUrl || !imageUrl.trim()) return;
         
-        wrapper.addEventListener('click', function(e) {
-          e.stopPropagation();
-          showImagePreview(eventId, imageUrl, wrapper);
+        wrapper.addEventListener('mouseenter', function(e) {
+          if (imagePopoverTimeout) clearTimeout(imagePopoverTimeout);
+          
+          // Remove any existing image popover
+          if (activeImagePopover) {
+            activeImagePopover.remove();
+            activeImagePopover = null;
+          }
+          
+          // Get element position
+          const rect = wrapper.getBoundingClientRect();
+          
+          // Create image popover element
+          const popover = document.createElement('div');
+          popover.className = 'ssa-image-popover';
+          popover.dataset.eventId = eventId;
+          
+          const gap = 8;
+          const viewportH = window.innerHeight;
+          const viewportW = window.innerWidth;
+          const maxH = Math.min(800, viewportH - gap * 2);
+          const maxW = Math.min(800, viewportW - gap * 2);
+          
+          // Create image element
+          const img = document.createElement('img');
+          img.src = imageUrl;
+          img.alt = 'Event preview';
+          img.style.cssText = `
+            width: auto;
+            height: auto;
+            max-width: ${maxW}px;
+            max-height: ${maxH}px;
+            border-radius: 6px;
+            display: block;
+          `;
+          
+          popover.appendChild(img);
+          document.body.appendChild(popover);
+          
+          // Get popover dimensions and viewport info
+          const popoverRect = popover.getBoundingClientRect();
+          const viewportHeight = window.innerHeight;
+          const viewportWidth = window.innerWidth;
+          const minGapFromEdge = 10;
+          
+          // Calculate horizontal position - prefer to the right, fall back to left, otherwise center
+          let left = rect.right + gap;
+          const spaceRight = viewportWidth - rect.right - gap;
+          const spaceLeft = rect.left - gap;
+          
+          if (spaceRight >= popoverRect.width) {
+            left = rect.right + gap;
+          } else if (spaceLeft >= popoverRect.width) {
+            left = rect.left - gap - popoverRect.width;
+          } else {
+            // Center horizontally within viewport
+            left = Math.max(minGapFromEdge, Math.min(rect.left + rect.width / 2 - popoverRect.width / 2, viewportWidth - popoverRect.width - minGapFromEdge));
+          }
+          
+          // Calculate vertical position - prefer to align with thumbnail, but keep within viewport
+          let top = rect.top;
+          if (rect.top < 120) {
+            // near top – align tops
+            top = Math.max(minGapFromEdge, rect.top);
+          } else if (rect.bottom > viewportHeight - 120) {
+            // near bottom – align bottoms
+            top = Math.max(minGapFromEdge, rect.bottom - popoverRect.height);
+          } else {
+            // middle – center vertically relative to thumbnail
+            top = rect.top + rect.height / 2 - popoverRect.height / 2;
+          }
+          
+          // Clamp inside viewport
+          top = Math.max(minGapFromEdge, Math.min(top, viewportHeight - popoverRect.height - minGapFromEdge));
+          
+          popover.style.cssText = `
+            position: fixed;
+            left: ${left}px;
+            top: ${top}px;
+            z-index: 10002;
+            padding: 6px;
+            background: rgba(255,255,255,0.98);
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            box-shadow: 0 10px 30px rgba(0,0,0,.25);
+            display: block;
+          `;
+          
+          activeImagePopover = popover;
         });
+        
+        wrapper.addEventListener('mouseleave', function() {
+          if (imagePopoverTimeout) clearTimeout(imagePopoverTimeout);
+          imagePopoverTimeout = setTimeout(() => {
+            if (activeImagePopover) {
+              activeImagePopover.remove();
+              activeImagePopover = null;
+            }
+          }, 100);
+        });
+        
+        // Also handle mouseenter on popover itself to keep it open
+        document.addEventListener('mouseenter', function(e) {
+          const target = e.target.nodeType === Node.ELEMENT_NODE ? e.target : e.target.parentElement;
+          if (target && target.closest && target.closest('.ssa-image-popover')) {
+            if (imagePopoverTimeout) clearTimeout(imagePopoverTimeout);
+          }
+        }, true);
+        
+        // Handle mouseleave on popover
+        document.addEventListener('mouseleave', function(e) {
+          const target = e.target.nodeType === Node.ELEMENT_NODE ? e.target : e.target.parentElement;
+          if (target && target.closest && target.closest('.ssa-image-popover')) {
+            if (imagePopoverTimeout) clearTimeout(imagePopoverTimeout);
+            imagePopoverTimeout = setTimeout(() => {
+              if (activeImagePopover) {
+                activeImagePopover.remove();
+                activeImagePopover = null;
+              }
+            }, 100);
+          }
+        }, true);
       });
       
-      // Image icon button handlers for list view
+      // Image icon button handlers for list view (keep as click for mobile)
       mount.querySelectorAll('.ssa-image-icon-btn').forEach(btn => {
         const eventId = btn.dataset.eventId;
         const imageUrl = btn.dataset.imageUrl;

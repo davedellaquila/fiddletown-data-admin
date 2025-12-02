@@ -2434,7 +2434,8 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
                       setHoverThumbId(r.id)
                     }}
                     onMouseLeave={() => { setHoverThumbId(null); setHoverPreviewStyle(null) }}
-                    style={{ display: 'inline-block' }}
+                    onClick={(e) => e.stopPropagation()}
+                    style={{ display: 'inline-block', cursor: 'pointer' }}
                   >
                     {/* Thumbnail only (no link icon here) */}
                     {r.image_url ? (
