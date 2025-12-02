@@ -660,7 +660,6 @@
             const isSelected = selectedKeywords.includes(kw);
             return `<span class="ssa-tag-clickable ${isSelected ? 'ssa-tag-active' : ''}" data-keyword="${kw}">${kw}</span>`;
           }).join('')}</p>` : ''}
-          ${ev.website_url ? `<p class="ssa-actions"><a class="ssa-link" href="${ev.website_url}" target="_blank" rel="noopener">Details</a></p>` : ''}
         </div>
       </article>
     `;
@@ -795,9 +794,10 @@
           const startTime = event.start_time || '';
           const endTime = event.end_time || '';
           const websiteUrl = event.website_url ? event.website_url.replace(/"/g, '&quot;').replace(/'/g, '&#39;') : '';
+          const keywords = event.keywords && event.keywords.length > 0 ? event.keywords.join(',') : '';
           
           // Always show info icon in calendar view (even without description)
-          html += `<span class="ssa-calendar-info-icon ssa-info-icon" data-event-id="${eventId}" data-description="${description}" data-event-name="${name}" data-start-date="${startDate}" data-end-date="${endDate}" data-location="${location}" data-start-time="${startTime}" data-end-time="${endTime}" data-website-url="${websiteUrl}" data-calendar-view="true" title="Hover to view event details"></span>`;
+          html += `<span class="ssa-calendar-info-icon ssa-info-icon" data-event-id="${eventId}" data-description="${description}" data-event-name="${name}" data-start-date="${startDate}" data-end-date="${endDate}" data-location="${location}" data-start-time="${startTime}" data-end-time="${endTime}" data-website-url="${websiteUrl}" data-keywords="${keywords}" data-calendar-view="true" title="Hover to view event details"></span>`;
         });
         html += `</div>`;
       }
@@ -1435,12 +1435,12 @@
           this.style.background = 'rgba(0,0,0,0.6)';
         });
         
-        // Popover content
+        // Popover content - restructured for calendar view with fixed header/footer and scrollable middle
         const content = document.createElement('div');
-        content.style.cssText = 'padding-right: 8px;';
         
         if (isCalendarView) {
-          // Calendar view: show full event details
+          // Calendar view: show full event details with fixed layout
+          const isDarkMode = document.body.classList.contains('dark-mode');
           const eventName = element.dataset.eventName || '';
           const startDate = element.dataset.startDate || '';
           const endDate = element.dataset.endDate || '';
@@ -1448,6 +1448,14 @@
           const startTime = element.dataset.startTime || '';
           const endTime = element.dataset.endTime || '';
           const websiteUrl = element.dataset.websiteUrl || '';
+          const keywordsStr = element.dataset.keywords || '';
+          
+          // Set up flexbox layout for popover
+          content.style.cssText = 'display: flex; flex-direction: column; height: 100%; max-height: 400px; padding-right: 8px;';
+          
+          // Header section (fixed at top)
+          const headerDiv = document.createElement('div');
+          headerDiv.style.cssText = 'flex-shrink: 0; padding-bottom: 8px;';
           
           // Event name
           if (eventName) {
@@ -1471,17 +1479,17 @@
               nameDiv.appendChild(nameLink);
             } else {
               // Plain text if no URL
-              nameDiv.style.color = '#1f2937';
+              nameDiv.style.color = isDarkMode ? '#f9fafb' : '#1f2937';
               nameDiv.textContent = eventName;
             }
             
-            content.appendChild(nameDiv);
+            headerDiv.appendChild(nameDiv);
           }
           
           // Date range
           if (startDate || endDate) {
             const dateDiv = document.createElement('div');
-            dateDiv.style.cssText = 'margin-bottom: 6px; font-size: 0.875rem; color: #4b5563;';
+            dateDiv.style.cssText = `margin-bottom: 6px; font-size: 0.875rem; color: ${isDarkMode ? '#d1d5db' : '#4b5563'};`;
             let dateText = '';
             if (startDate) {
               dateText = formatEventDate(startDate);
@@ -1502,10 +1510,10 @@
             
             const dateLabel = document.createElement('strong');
             dateLabel.textContent = 'Date: ';
-            dateLabel.style.cssText = 'color: #374151; margin-right: 4px;';
+            dateLabel.style.cssText = `color: ${isDarkMode ? '#f9fafb' : '#374151'}; margin-right: 4px;`;
             dateDiv.appendChild(dateLabel);
             dateDiv.appendChild(document.createTextNode(dateText));
-            content.appendChild(dateDiv);
+            headerDiv.appendChild(dateDiv);
           }
           
           // Location
@@ -1514,7 +1522,7 @@
             locationDiv.style.cssText = 'margin-bottom: 6px; font-size: 0.875rem;';
             const locationLabel = document.createElement('strong');
             locationLabel.textContent = 'Location: ';
-            locationLabel.style.cssText = 'color: #374151; margin-right: 4px;';
+            locationLabel.style.cssText = `color: ${isDarkMode ? '#f9fafb' : '#374151'}; margin-right: 4px;`;
             locationDiv.appendChild(locationLabel);
             
             // Make location a clickable link for directions
@@ -1538,15 +1546,95 @@
             }, true);
             
             locationDiv.appendChild(locationLink);
-            content.appendChild(locationDiv);
+            headerDiv.appendChild(locationDiv);
           }
           
-          // Description
+          content.appendChild(headerDiv);
+          
+          // Scrollable middle section (description)
           if (decodedDescription) {
-            const descDiv = document.createElement('div');
-            descDiv.style.cssText = 'margin-top: 8px; padding-top: 8px; border-top: 1px solid #e5e7eb; font-size: 0.875rem; color: #4b5563; line-height: 1.5;';
-            descDiv.textContent = decodedDescription;
-            content.appendChild(descDiv);
+            const scrollableDiv = document.createElement('div');
+            scrollableDiv.style.cssText = `flex: 1; overflow-y: auto; min-height: 0; margin-top: 8px; padding-top: 8px; border-top: 1px solid ${isDarkMode ? '#4b5563' : '#e5e7eb'}; font-size: 0.875rem; color: ${isDarkMode ? '#d1d5db' : '#4b5563'}; line-height: 1.5;`;
+            scrollableDiv.textContent = decodedDescription;
+            content.appendChild(scrollableDiv);
+          } else {
+            // Empty scrollable area if no description
+            const scrollableDiv = document.createElement('div');
+            scrollableDiv.style.cssText = 'flex: 1; min-height: 0;';
+            content.appendChild(scrollableDiv);
+          }
+          
+          // Footer section (fixed at bottom - keywords)
+          if (keywordsStr) {
+            const keywords = keywordsStr.split(',').filter(k => k.trim());
+            if (keywords.length > 0) {
+              const footerDiv = document.createElement('div');
+              footerDiv.style.cssText = `flex-shrink: 0; margin-top: 12px; padding-top: 12px; border-top: 1px solid ${isDarkMode ? '#4b5563' : '#e5e7eb'}; display: flex; flex-wrap: wrap; gap: 6px;`;
+              
+              // Get current state from mount
+              const mount = element.closest('#events-list') || document.querySelector('#events-list');
+              const currentState = mount?._currentState || {};
+              const selectedKeywords = currentState.selectedKeywords || [];
+              
+              keywords.forEach(keyword => {
+                const keywordTag = document.createElement('span');
+                const isSelected = selectedKeywords.includes(keyword);
+                keywordTag.className = `ssa-keyword-tag-clickable ${isSelected ? 'ssa-keyword-tag-active' : ''}`;
+                keywordTag.setAttribute('data-keyword', keyword);
+                keywordTag.textContent = keyword;
+                
+                // Add hover styles (respect dark mode)
+                const isDarkMode = document.body.classList.contains('dark-mode');
+                keywordTag.addEventListener('mouseenter', function() {
+                  if (!this.classList.contains('ssa-keyword-tag-active')) {
+                    if (isDarkMode) {
+                      this.style.background = '#4b5563';
+                      this.style.borderColor = '#6b7280';
+                    } else {
+                      this.style.background = '#f9fafb';
+                      this.style.borderColor = '#9ca3af';
+                    }
+                  }
+                });
+                keywordTag.addEventListener('mouseleave', function() {
+                  if (!this.classList.contains('ssa-keyword-tag-active')) {
+                    this.style.background = '';
+                    this.style.borderColor = '';
+                  }
+                });
+                
+                // Click handler to toggle keyword filter
+                keywordTag.addEventListener('click', async function(e) {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  
+                  if (!mount || !mount._currentState) return;
+                  
+                  const state = mount._currentState;
+                  const rows = mount._allRows || [];
+                  const keyword = this.dataset.keyword;
+                  if (!keyword) return;
+                  
+                  // Toggle keyword in selected keywords
+                  const newSelected = state.selectedKeywords.includes(keyword)
+                    ? state.selectedKeywords.filter(k => k !== keyword)
+                    : [...state.selectedKeywords, keyword];
+                  
+                  // Close popover
+                  if (activePopover) {
+                    activePopover.remove();
+                    activePopover = null;
+                  }
+                  
+                  // Update filters and re-render
+                  await renderEvents(mount, rows, { ...state, selectedKeywords: newSelected });
+                });
+                
+                footerDiv.appendChild(keywordTag);
+              });
+              
+              content.appendChild(footerDiv);
+            }
           }
         } else {
           // List/Grid view: show description only
@@ -1985,12 +2073,15 @@
       .ssa-location-icon-btn{display:none;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:#f59e0b;color:#fff;cursor:pointer;transition:all 0.2s;flex-shrink:0;font-size:0.9rem;opacity:0.8;min-width:24px;min-height:24px}
       .ssa-location-icon-btn:hover{opacity:1;background:#d97706;transform:scale(1.1)}
       .ssa-location-icon-btn:active{opacity:0.7}
-      .ssa-info-popover{padding:12px;background:#fff;border:1px solid #d1d5db;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);min-width:200px;max-width:300px;max-height:400px;overflow-y:auto;font-size:0.875rem;line-height:1.5;color:#374151;white-space:normal;word-wrap:break-word;pointer-events:auto;position:relative}
+      .ssa-info-popover{padding:12px;background:#fff;border:1px solid #d1d5db;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);min-width:200px;max-width:300px;max-height:400px;font-size:0.875rem;line-height:1.5;color:#374151;white-space:normal;word-wrap:break-word;pointer-events:auto;position:relative}
+      body.dark-mode .ssa-info-popover{background:#374151!important;border-color:#4b5563!important;color:#f9fafb!important;box-shadow:0 4px 12px rgba(0,0,0,0.3)!important}
       .ssa-calendar-popover{min-width:280px;max-width:400px}
       .ssa-popover-close{position:absolute;top:4px;right:4px;width:24px;height:24px;border:none;background:rgba(0,0,0,0.6);color:white;border-radius:50%;font-size:18px;line-height:1;cursor:pointer;z-index:10003;display:flex;align-items:center;justify-content:center;transition:background 0.2s;padding:0}
       .ssa-popover-close:hover{background:rgba(0,0,0,0.8)}
       .ssa-info-popover::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border:6px solid transparent;border-top-color:#fff}
+      body.dark-mode .ssa-info-popover::after{border-top-color:#374151!important}
       .ssa-info-popover::before{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border:7px solid transparent;border-top-color:#d1d5db;margin-top:-1px}
+      body.dark-mode .ssa-info-popover::before{border-top-color:#4b5563!important}
       .ssa-link-icon{display:inline-flex;align-items:center;justify-content:center;font-size:0.875rem;opacity:0.7;transition:opacity 0.2s;margin-left:4px}
       .ssa-link-icon:hover{opacity:1}
       .ssa-location{cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:2px;color:#3b82f6;transition:color 0.2s}
@@ -2001,12 +2092,12 @@
       .ssa-keywords-inline{display:inline-flex;flex-wrap:wrap;gap:4px;margin-left:8px}
       .ssa-tag{display:inline-block;padding:2px 8px;background:#f3f4f6;border-radius:12px;font-size:0.75rem;color:#6b7280}
       .ssa-event-keywords{margin-top:8px;display:flex;flex-wrap:wrap;gap:6px}
-      .ssa-keyword-tag-clickable{display:inline-block;padding:3px 10px;background:#f3f4f6;border-radius:12px;font-size:0.7rem;color:#6b7280;cursor:pointer;transition:all 0.2s;border:1px solid transparent}
-      .ssa-keyword-tag-clickable:hover{background:#e5e7eb;border-color:#9ca3af;color:#374151}
+      .ssa-keyword-tag-clickable{display:inline-block;padding:8px 16px;border:2px solid #d1d5db;border-radius:20px;background:#fff;color:#374151;cursor:pointer;font-size:0.875rem;font-weight:500;transition:all 0.2s}
+      .ssa-keyword-tag-clickable:hover{background:#f9fafb;border-color:#9ca3af}
       .ssa-keyword-tag-clickable.ssa-keyword-tag-active{background:#374151;border-color:#374151;color:#fff}
       .ssa-keyword-tag-clickable.ssa-keyword-tag-active:hover{background:#1f2937;border-color:#1f2937}
-      body.dark-mode .ssa-keyword-tag-clickable{background:transparent!important;border-color:#4b5563!important;color:#9ca3af!important}
-      body.dark-mode .ssa-keyword-tag-clickable:hover{background:transparent!important;border-color:#6b7280!important;color:#d1d5db!important}
+      body.dark-mode .ssa-keyword-tag-clickable{background:var(--ssa-control-bg, #374151)!important;border-color:var(--ssa-control-border, #4b5563)!important;color:var(--ssa-text, #f9fafb)!important}
+      body.dark-mode .ssa-keyword-tag-clickable:hover{background:#4b5563!important;border-color:#6b7280!important}
       body.dark-mode .ssa-keyword-tag-clickable.ssa-keyword-tag-active{background:transparent!important;border-color:#3b82f6!important;color:#3b82f6!important}
       body.dark-mode .ssa-keyword-tag-clickable.ssa-keyword-tag-active:hover{background:transparent!important;border-color:#60a5fa!important;color:#60a5fa!important}
       .ssa-grid{display:grid;gap:16px}
@@ -2043,12 +2134,12 @@
       .ssa-title{margin:0;font-size:1.05rem;line-height:1.3;color:#1f2937;font-weight:600;flex:1;display:inline-flex;align-items:center;gap:4px}
       .ssa-meta{margin:.35rem 0;color:#374151;font-weight:500}
       .ssa-keywords{margin:.5rem 0;display:flex;flex-wrap:wrap;gap:4px}
-      .ssa-tag-clickable{display:inline-block;padding:2px 8px;background:#f3f4f6;border-radius:12px;font-size:0.75rem;color:#6b7280;cursor:pointer;transition:all 0.2s;border:1px solid transparent}
-      .ssa-tag-clickable:hover{background:#e5e7eb;border-color:#9ca3af;color:#374151}
+      .ssa-tag-clickable{display:inline-block;padding:8px 16px;border:2px solid #d1d5db;border-radius:20px;background:#fff;color:#374151;cursor:pointer;font-size:0.875rem;font-weight:500;transition:all 0.2s}
+      .ssa-tag-clickable:hover{background:#f9fafb;border-color:#9ca3af}
       .ssa-tag-clickable.ssa-tag-active{background:#374151;border-color:#374151;color:#fff}
       .ssa-tag-clickable.ssa-tag-active:hover{background:#1f2937;border-color:#1f2937}
-      body.dark-mode .ssa-tag-clickable{background:transparent!important;border-color:#4b5563!important;color:#9ca3af!important}
-      body.dark-mode .ssa-tag-clickable:hover{background:transparent!important;border-color:#6b7280!important;color:#d1d5db!important}
+      body.dark-mode .ssa-tag-clickable{background:var(--ssa-control-bg, #374151)!important;border-color:var(--ssa-control-border, #4b5563)!important;color:var(--ssa-text, #f9fafb)!important}
+      body.dark-mode .ssa-tag-clickable:hover{background:#4b5563!important;border-color:#6b7280!important}
       body.dark-mode .ssa-tag-clickable.ssa-tag-active{background:transparent!important;border-color:#3b82f6!important;color:#3b82f6!important}
       body.dark-mode .ssa-tag-clickable.ssa-tag-active:hover{background:transparent!important;border-color:#60a5fa!important;color:#60a5fa!important}
       .ssa-link{text-decoration:underline;color:#3b82f6;font-weight:500}
@@ -2086,7 +2177,7 @@
         .ssa-event-meta-item{font-size:0.95rem;line-height:1.6;overflow-wrap:break-word;word-wrap:break-word}
         .ssa-event-meta-item strong{display:inline}
         .ssa-event-keywords{margin-top:12px;padding-top:12px;border-top:1px solid #e5e7eb;display:flex;flex-wrap:wrap;gap:6px;max-width:100%}
-        .ssa-keyword-tag-clickable{padding:6px 12px;font-size:0.8rem;border-radius:16px;min-height:32px;display:inline-flex;align-items:center}
+        .ssa-keyword-tag-clickable{padding:10px 14px;font-size:0.9rem;min-height:44px;border-radius:22px}
         .ssa-info-popover{max-width:calc(100vw - 20px);width:calc(100vw - 20px);left:10px!important;right:10px;font-size:1rem;line-height:1.6;max-height:60vh;padding:16px}
         .ssa-popover-close{width:32px;height:32px;font-size:24px;top:8px;right:8px}
         .ssa-grid{gap:12px;max-width:100%}
@@ -2096,7 +2187,7 @@
         .ssa-title .ssa-info-icon{margin-bottom:4px}
         .ssa-meta{font-size:0.9rem;line-height:1.5;margin:8px 0}
         .ssa-keywords{margin:8px 0;gap:6px}
-        .ssa-tag-clickable{padding:6px 12px;font-size:0.8rem;min-height:32px;border-radius:16px}
+        .ssa-tag-clickable{padding:10px 14px;font-size:0.9rem;min-height:44px;border-radius:22px}
         .ssa-map-popover{width:calc(100vw - 20px)!important;height:250px;left:10px!important;right:10px}
       }
     `;
