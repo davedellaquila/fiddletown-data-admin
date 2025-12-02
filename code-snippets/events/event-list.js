@@ -444,7 +444,7 @@
   }
 
   function renderListLayout(events, state) {
-    const groupBy = state.groupBy || 'month';
+    const groupBy = state.groupBy || 'day';
     const { fromDate = null, toDate = null } = state;
     let grouped, groups, headerClass;
     
@@ -705,6 +705,19 @@
         const day = currentDate.getDate();
         const dateKey = currentDate.toISOString().slice(0, 10);
         
+        // Check if this day falls within the date range filter
+        if (fromDate || toDate) {
+          const dayDateStr = dateKey;
+          if (fromDate && dayDateStr < fromDate) {
+            currentDate.setDate(currentDate.getDate() + 1);
+            continue;
+          }
+          if (toDate && dayDateStr > toDate) {
+            currentDate.setDate(currentDate.getDate() + 1);
+            continue;
+          }
+        }
+        
         if (!eventsByDay[day]) {
           eventsByDay[day] = [];
         }
@@ -741,8 +754,18 @@
     
     // Days of the month
     for (let day = 1; day <= daysInMonth; day++) {
-      const dayEvents = eventsByDay[day] || [];
       const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      
+      // Filter dayEvents to only include events for days within the date range
+      let dayEvents = eventsByDay[day] || [];
+      if (fromDate || toDate) {
+        dayEvents = dayEvents.filter(event => {
+          const eventDateStr = event._dateKey || dateKey;
+          if (fromDate && eventDateStr < fromDate) return false;
+          if (toDate && eventDateStr > toDate) return false;
+          return true;
+        });
+      }
       
       html += `<div class="ssa-calendar-day" data-date="${dateKey}">`;
       html += `<div class="ssa-calendar-day-number">${day}</div>`;
@@ -752,13 +775,16 @@
         dayEvents.forEach(event => {
           const eventId = event.id ? `event-${event.id}` : `event-${btoa(event.name + (event.start_date || '')).replace(/[^a-zA-Z0-9]/g, '').substring(0, 10)}`;
           const description = event.description ? event.description.replace(/"/g, '&quot;').replace(/'/g, '&#39;') : '';
+          const name = event.name ? event.name.replace(/"/g, '&quot;').replace(/'/g, '&#39;') : '';
+          const startDate = event.start_date || '';
+          const endDate = event.end_date || '';
+          const location = event.location ? event.location.replace(/"/g, '&quot;').replace(/'/g, '&#39;') : '';
+          const startTime = event.start_time || '';
+          const endTime = event.end_time || '';
+          const websiteUrl = event.website_url ? event.website_url.replace(/"/g, '&quot;').replace(/'/g, '&#39;') : '';
           
-          if (description) {
-            html += `<span class="ssa-calendar-info-icon ssa-info-icon" data-event-id="${eventId}" data-description="${description}" title="Hover to view description"></span>`;
-          } else {
-            // If no description, show a simple dot to indicate event exists
-            html += `<span class="ssa-calendar-info-icon ssa-calendar-event-dot" title="${event.name}"></span>`;
-          }
+          // Always show info icon in calendar view (even without description)
+          html += `<span class="ssa-calendar-info-icon ssa-info-icon" data-event-id="${eventId}" data-description="${description}" data-event-name="${name}" data-start-date="${startDate}" data-end-date="${endDate}" data-location="${location}" data-start-time="${startTime}" data-end-time="${endTime}" data-website-url="${websiteUrl}" data-calendar-view="true" title="Hover to view event details"></span>`;
         });
         html += `</div>`;
       }
@@ -779,7 +805,7 @@
   }
 
   async function renderEvents(mount, rows, state) {
-    const { layout = LAYOUTS.LIST, selectedKeywords = [], fromDate = null, toDate = null, groupBy = 'month' } = state;
+    const { layout = LAYOUTS.LIST, selectedKeywords = [], fromDate = null, toDate = null, groupBy = 'day' } = state;
     
     // Store state on mount for handlers
     mount._currentState = state;
@@ -801,17 +827,23 @@
     let controlsHTML = '<div class="ssa-controls">';
     
     // Layout switcher
+    controlsHTML += '<div class="ssa-layout-switcher-wrapper">';
+    controlsHTML += '<label class="ssa-control-label">View Types:</label>';
     controlsHTML += '<div class="ssa-layout-switcher">';
     controlsHTML += `<button class="ssa-layout-btn ${layout === LAYOUTS.LIST ? 'ssa-active' : ''}" data-layout="${LAYOUTS.LIST}" title="List view">📋</button>`;
     controlsHTML += `<button class="ssa-layout-btn ${layout === LAYOUTS.GRID ? 'ssa-active' : ''}" data-layout="${LAYOUTS.GRID}" title="Grid view">⊞</button>`;
     controlsHTML += `<button class="ssa-layout-btn ${layout === LAYOUTS.CALENDAR ? 'ssa-active' : ''}" data-layout="${LAYOUTS.CALENDAR}" title="Calendar view">📅</button>`;
     controlsHTML += '</div>';
+    controlsHTML += '</div>';
     
     // Grouping switcher (only show for list layout)
     if (layout === LAYOUTS.LIST) {
+      controlsHTML += '<div class="ssa-group-switcher-wrapper">';
+      controlsHTML += '<label class="ssa-control-label">Group By:</label>';
       controlsHTML += '<div class="ssa-group-switcher">';
-      controlsHTML += `<button class="ssa-group-btn ${groupBy === 'month' ? 'ssa-active' : ''}" data-group="month" title="Group by month">📅 Month</button>`;
       controlsHTML += `<button class="ssa-group-btn ${groupBy === 'day' ? 'ssa-active' : ''}" data-group="day" title="Group by day">📆 Day</button>`;
+      controlsHTML += `<button class="ssa-group-btn ${groupBy === 'month' ? 'ssa-active' : ''}" data-group="month" title="Group by month">📅 Month</button>`;
+      controlsHTML += '</div>';
       controlsHTML += '</div>';
     }
     
@@ -819,7 +851,7 @@
     controlsHTML += '<div class="ssa-date-filters">';
     controlsHTML += `<label>From: <input type="date" class="ssa-date-input" id="ssa-from-date" value="${fromDate || ''}"></label>`;
     controlsHTML += `<label>To: <input type="date" class="ssa-date-input" id="ssa-to-date" value="${toDate || ''}"></label>`;
-    controlsHTML += `<button class="ssa-clear-dates" title="Clear date filters">Clear</button>`;
+    controlsHTML += `<button class="ssa-clear-dates" title="Clear all filters">Clear</button>`;
     controlsHTML += `<button class="ssa-weekend-btn" title="Set date range to upcoming weekend">📅 This Weekend</button>`;
     controlsHTML += `<button class="ssa-weekend-btn ssa-next-weekend-btn" title="Set date range to next weekend">📅 Next Weekend</button>`;
     controlsHTML += '</div>';
@@ -876,7 +908,16 @@
     mount.querySelectorAll('.ssa-keyword-btn').forEach(btn => {
       btn.addEventListener('click', async function() {
         const keyword = this.dataset.keyword;
-        const newSelected = state.selectedKeywords.includes(keyword)
+        const isCurrentlySelected = state.selectedKeywords.includes(keyword);
+        
+        // Immediately toggle the active class for instant visual feedback
+        if (isCurrentlySelected) {
+          this.classList.remove('ssa-keyword-active');
+        } else {
+          this.classList.add('ssa-keyword-active');
+        }
+        
+        const newSelected = isCurrentlySelected
           ? state.selectedKeywords.filter(k => k !== keyword)
           : [...state.selectedKeywords, keyword];
         await renderEvents(mount, rows, { ...state, selectedKeywords: newSelected });
@@ -918,7 +959,7 @@
     
     if (clearDatesBtn) {
       clearDatesBtn.addEventListener('click', async function() {
-        const newState = { ...state, fromDate: null, toDate: null };
+        const newState = { ...state, fromDate: null, toDate: null, selectedKeywords: [] };
         // Reload events to show all
         if (mount._widgetOpts) {
           reloadEvents(mount, newState, mount._widgetOpts);
@@ -1193,12 +1234,19 @@
     
     mount.querySelectorAll('.ssa-info-icon').forEach(element => {
       const description = element.dataset.description;
-      if (!description || !description.trim()) return;
+      const isCalendarView = element.dataset.calendarView === 'true';
+      
+      // For calendar view, always show popover even without description
+      // For other views, require description
+      if (!isCalendarView && (!description || !description.trim())) return;
       
       // Decode HTML entities
-      const tempDiv = document.createElement('div');
-      tempDiv.innerHTML = description;
-      const decodedDescription = tempDiv.textContent || tempDiv.innerText || description;
+      let decodedDescription = '';
+      if (description && description.trim()) {
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = description;
+        decodedDescription = tempDiv.textContent || tempDiv.innerText || description;
+      }
       
       element.addEventListener('mouseenter', function(e) {
         if (popoverTimeout) clearTimeout(popoverTimeout);
@@ -1215,6 +1263,9 @@
         // Create popover element
         const popover = document.createElement('div');
         popover.className = 'ssa-info-popover';
+        if (isCalendarView) {
+          popover.classList.add('ssa-calendar-popover');
+        }
         
         // Close button
         const closeBtn = document.createElement('button');
@@ -1254,13 +1305,126 @@
           this.style.background = 'rgba(0,0,0,0.6)';
         });
         
-        // Description text
-        const descriptionText = document.createElement('div');
-        descriptionText.textContent = decodedDescription;
-        descriptionText.style.cssText = 'padding-right: 8px;';
+        // Popover content
+        const content = document.createElement('div');
+        content.style.cssText = 'padding-right: 8px;';
+        
+        if (isCalendarView) {
+          // Calendar view: show full event details
+          const eventName = element.dataset.eventName || '';
+          const startDate = element.dataset.startDate || '';
+          const endDate = element.dataset.endDate || '';
+          const location = element.dataset.location || '';
+          const startTime = element.dataset.startTime || '';
+          const endTime = element.dataset.endTime || '';
+          const websiteUrl = element.dataset.websiteUrl || '';
+          
+          // Event name
+          if (eventName) {
+            const nameDiv = document.createElement('div');
+            nameDiv.style.cssText = 'font-weight: 600; font-size: 1rem; margin-bottom: 8px;';
+            
+            if (websiteUrl && websiteUrl.trim()) {
+              // Make it a clickable link
+              const nameLink = document.createElement('a');
+              nameLink.href = websiteUrl.trim();
+              nameLink.target = '_blank';
+              nameLink.rel = 'noopener noreferrer';
+              nameLink.textContent = eventName;
+              nameLink.style.cssText = 'color: #3b82f6; text-decoration: none; cursor: pointer;';
+              nameLink.addEventListener('mouseenter', function() {
+                this.style.textDecoration = 'underline';
+              });
+              nameLink.addEventListener('mouseleave', function() {
+                this.style.textDecoration = 'none';
+              });
+              nameDiv.appendChild(nameLink);
+            } else {
+              // Plain text if no URL
+              nameDiv.style.color = '#1f2937';
+              nameDiv.textContent = eventName;
+            }
+            
+            content.appendChild(nameDiv);
+          }
+          
+          // Date range
+          if (startDate || endDate) {
+            const dateDiv = document.createElement('div');
+            dateDiv.style.cssText = 'margin-bottom: 6px; font-size: 0.875rem; color: #4b5563;';
+            let dateText = '';
+            if (startDate) {
+              dateText = formatEventDate(startDate);
+              if (endDate && endDate !== startDate) {
+                dateText += ' - ' + formatEventDate(endDate);
+              }
+            } else if (endDate) {
+              dateText = formatEventDate(endDate);
+            }
+            
+            // Add times if available
+            if (startTime) {
+              dateText += ', ' + formatTime(startTime);
+              if (endTime) {
+                dateText += ' - ' + formatTime(endTime);
+              }
+            }
+            
+            const dateLabel = document.createElement('strong');
+            dateLabel.textContent = 'Date: ';
+            dateLabel.style.cssText = 'color: #374151; margin-right: 4px;';
+            dateDiv.appendChild(dateLabel);
+            dateDiv.appendChild(document.createTextNode(dateText));
+            content.appendChild(dateDiv);
+          }
+          
+          // Location
+          if (location) {
+            const locationDiv = document.createElement('div');
+            locationDiv.style.cssText = 'margin-bottom: 6px; font-size: 0.875rem;';
+            const locationLabel = document.createElement('strong');
+            locationLabel.textContent = 'Location: ';
+            locationLabel.style.cssText = 'color: #374151; margin-right: 4px;';
+            locationDiv.appendChild(locationLabel);
+            
+            // Make location a clickable link for directions
+            const locationLink = document.createElement('span');
+            locationLink.textContent = location;
+            locationLink.style.cssText = 'color: #3b82f6; text-decoration: none; cursor: pointer;';
+            locationLink.addEventListener('mouseenter', function() {
+              this.style.textDecoration = 'underline';
+            });
+            locationLink.addEventListener('mouseleave', function() {
+              this.style.textDecoration = 'none';
+            });
+            locationLink.addEventListener('click', function(e) {
+              e.preventDefault();
+              e.stopPropagation();
+              e.stopImmediatePropagation();
+              const encodedLocation = encodeURIComponent(location);
+              const mapUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodedLocation}`;
+              window.open(mapUrl, '_blank', 'noopener,noreferrer');
+              return false;
+            }, true);
+            
+            locationDiv.appendChild(locationLink);
+            content.appendChild(locationDiv);
+          }
+          
+          // Description
+          if (decodedDescription) {
+            const descDiv = document.createElement('div');
+            descDiv.style.cssText = 'margin-top: 8px; padding-top: 8px; border-top: 1px solid #e5e7eb; font-size: 0.875rem; color: #4b5563; line-height: 1.5;';
+            descDiv.textContent = decodedDescription;
+            content.appendChild(descDiv);
+          }
+        } else {
+          // List/Grid view: show description only
+          content.textContent = decodedDescription;
+        }
         
         popover.appendChild(closeBtn);
-        popover.appendChild(descriptionText);
+        popover.appendChild(content);
         document.body.appendChild(popover);
         
         // Get popover dimensions and viewport info
@@ -1628,14 +1792,22 @@
     css.id = 'ssa-styles-events';
     css.textContent = `
       .ssa-controls{display:flex;flex-direction:column;gap:16px;margin-bottom:24px;padding-bottom:20px;border-bottom:1px solid #e5e7eb}
+      .ssa-layout-switcher-wrapper{display:flex;align-items:center;gap:8px}
+      .ssa-group-switcher-wrapper{display:flex;align-items:center;gap:8px}
+      .ssa-control-label{font-size:0.875rem;font-weight:500;color:#374151;white-space:nowrap}
+      body.dark-mode .ssa-control-label{color:#f9fafb!important}
       .ssa-layout-switcher{display:flex;gap:4px}
       .ssa-layout-btn{padding:8px 12px;border:1px solid #d1d5db;border-radius:6px;background:#fff;color:#374151;cursor:pointer;font-size:1.2rem;transition:all 0.2s}
       .ssa-layout-btn:hover{background:#f9fafb;border-color:#9ca3af}
       .ssa-layout-btn.ssa-active{background:#3b82f6;border-color:#3b82f6;color:#fff}
+      body.dark-mode .ssa-layout-btn.ssa-active{background:transparent!important;border-color:#3b82f6!important;color:#3b82f6!important}
+      body.dark-mode .ssa-layout-btn.ssa-active:hover{background:transparent!important;border-color:#60a5fa!important;color:#60a5fa!important}
       .ssa-group-switcher{display:flex;gap:4px}
       .ssa-group-btn{padding:8px 12px;border:1px solid #d1d5db;border-radius:6px;background:#fff;color:#374151;cursor:pointer;font-size:0.875rem;font-weight:500;transition:all 0.2s}
       .ssa-group-btn:hover{background:#f9fafb;border-color:#9ca3af}
       .ssa-group-btn.ssa-active{background:#3b82f6;border-color:#3b82f6;color:#fff}
+      body.dark-mode .ssa-group-btn.ssa-active{background:transparent!important;border-color:#3b82f6!important;color:#3b82f6!important}
+      body.dark-mode .ssa-group-btn.ssa-active:hover{background:transparent!important;border-color:#60a5fa!important;color:#60a5fa!important}
       .ssa-date-filters{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
       .ssa-date-filters label{display:flex;align-items:center;gap:6px;font-size:0.875rem;color:#374151}
       .ssa-date-input{padding:6px 10px;border:1px solid #d1d5db;border-radius:4px;font-size:0.875rem}
@@ -1648,6 +1820,9 @@
       .ssa-keyword-btn:hover{background:#f9fafb;border-color:#9ca3af}
       .ssa-keyword-active{background:#374151;border-color:#374151;color:#fff}
       .ssa-keyword-active:hover{background:#1f2937;border-color:#1f2937}
+      body.dark-mode .ssa-keyword-filters{background:transparent!important}
+      body.dark-mode .ssa-keyword-active{background:transparent!important;border-color:#3b82f6!important;color:#3b82f6!important}
+      body.dark-mode .ssa-keyword-active:hover{background:transparent!important;border-color:#60a5fa!important;color:#60a5fa!important}
       .ssa-empty{color:#6b7280;padding:20px;text-align:center}
       .ssa-skel{height:110px;border-radius:14px;background:linear-gradient(90deg,#f4f4f5,#f9fafb,#f4f4f5);background-size:200% 100%;animation:ssaShimmer 1.1s linear infinite}
       @keyframes ssaShimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
@@ -1681,6 +1856,7 @@
       .ssa-location-icon-btn:hover{opacity:1;background:#d97706;transform:scale(1.1)}
       .ssa-location-icon-btn:active{opacity:0.7}
       .ssa-info-popover{padding:12px;background:#fff;border:1px solid #d1d5db;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);min-width:200px;max-width:300px;max-height:400px;overflow-y:auto;font-size:0.875rem;line-height:1.5;color:#374151;white-space:normal;word-wrap:break-word;pointer-events:auto;position:relative}
+      .ssa-calendar-popover{min-width:280px;max-width:400px}
       .ssa-popover-close{position:absolute;top:4px;right:4px;width:24px;height:24px;border:none;background:rgba(0,0,0,0.6);color:white;border-radius:50%;font-size:18px;line-height:1;cursor:pointer;z-index:10003;display:flex;align-items:center;justify-content:center;transition:background 0.2s;padding:0}
       .ssa-popover-close:hover{background:rgba(0,0,0,0.8)}
       .ssa-info-popover::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border:6px solid transparent;border-top-color:#fff}
@@ -1699,6 +1875,10 @@
       .ssa-keyword-tag-clickable:hover{background:#e5e7eb;border-color:#9ca3af;color:#374151}
       .ssa-keyword-tag-clickable.ssa-keyword-tag-active{background:#374151;border-color:#374151;color:#fff}
       .ssa-keyword-tag-clickable.ssa-keyword-tag-active:hover{background:#1f2937;border-color:#1f2937}
+      body.dark-mode .ssa-keyword-tag-clickable{background:transparent!important;border-color:#4b5563!important;color:#9ca3af!important}
+      body.dark-mode .ssa-keyword-tag-clickable:hover{background:transparent!important;border-color:#6b7280!important;color:#d1d5db!important}
+      body.dark-mode .ssa-keyword-tag-clickable.ssa-keyword-tag-active{background:transparent!important;border-color:#3b82f6!important;color:#3b82f6!important}
+      body.dark-mode .ssa-keyword-tag-clickable.ssa-keyword-tag-active:hover{background:transparent!important;border-color:#60a5fa!important;color:#60a5fa!important}
       .ssa-grid{display:grid;gap:16px}
       @media(min-width:720px){.ssa-grid{grid-template-columns:repeat(2,1fr)}}
       @media(min-width:1024px){.ssa-grid{grid-template-columns:repeat(3,1fr)}}
@@ -1737,11 +1917,18 @@
       .ssa-tag-clickable:hover{background:#e5e7eb;border-color:#9ca3af;color:#374151}
       .ssa-tag-clickable.ssa-tag-active{background:#374151;border-color:#374151;color:#fff}
       .ssa-tag-clickable.ssa-tag-active:hover{background:#1f2937;border-color:#1f2937}
+      body.dark-mode .ssa-tag-clickable{background:transparent!important;border-color:#4b5563!important;color:#9ca3af!important}
+      body.dark-mode .ssa-tag-clickable:hover{background:transparent!important;border-color:#6b7280!important;color:#d1d5db!important}
+      body.dark-mode .ssa-tag-clickable.ssa-tag-active{background:transparent!important;border-color:#3b82f6!important;color:#3b82f6!important}
+      body.dark-mode .ssa-tag-clickable.ssa-tag-active:hover{background:transparent!important;border-color:#60a5fa!important;color:#60a5fa!important}
       .ssa-link{text-decoration:underline;color:#3b82f6;font-weight:500}
       @media(max-width:768px){
         #events-list{padding:0 12px;box-sizing:border-box;max-width:100%;overflow-x:hidden}
         *{box-sizing:border-box}
         .ssa-controls{padding-bottom:16px;gap:12px;padding-left:0;padding-right:0}
+        .ssa-layout-switcher-wrapper{flex-direction:column;align-items:flex-start;gap:6px}
+        .ssa-group-switcher-wrapper{flex-direction:column;align-items:flex-start;gap:6px}
+        .ssa-control-label{font-size:0.9rem}
         .ssa-layout-btn{padding:10px 14px;font-size:1.1rem;min-height:44px}
         .ssa-group-switcher{gap:6px}
         .ssa-group-btn{padding:10px 14px;font-size:0.9rem;min-height:44px}
