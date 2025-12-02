@@ -69,6 +69,10 @@ export default function KeywordSelector({
     if (e.key === 'Enter' && inputValue.trim()) {
       e.preventDefault()
       addKeyword(inputValue)
+      // Refocus the input field after adding keyword
+      setTimeout(() => {
+        inputRef.current?.focus()
+      }, 0)
     } else if (e.key === 'Tab' && inputValue.trim()) {
       e.preventDefault()
       addKeyword(inputValue)
