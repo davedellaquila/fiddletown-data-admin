@@ -7,7 +7,8 @@
   // Layout types
   const LAYOUTS = {
     LIST: 'list',
-    GRID: 'grid'
+    GRID: 'grid',
+    CALENDAR: 'calendar'
   };
 
   async function fetchEvents({ url, key, from = null, to = null, limit = 200 }) {
@@ -655,6 +656,128 @@
     return `<div class="ssa-grid">${cards}</div>`;
   }
 
+  function renderCalendarLayout(events, state) {
+    const { fromDate = null, toDate = null } = state;
+    
+    // Determine which month to display
+    let displayDate;
+    if (fromDate) {
+      displayDate = new Date(fromDate + 'T00:00:00');
+    } else if (toDate) {
+      displayDate = new Date(toDate + 'T00:00:00');
+    } else {
+      displayDate = new Date();
+    }
+    
+    // Get first day of month and number of days
+    const year = displayDate.getFullYear();
+    const month = displayDate.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const daysInMonth = lastDay.getDate();
+    const startingDayOfWeek = firstDay.getDay(); // 0 = Sunday, 6 = Saturday
+    
+    // Group events by day
+    const eventsByDay = {};
+    events.forEach(event => {
+      if (!event.start_date) {
+        // Skip undated events for calendar view
+        return;
+      }
+      
+      const startDate = new Date(event.start_date + 'T00:00:00');
+      const endDate = event.end_date ? new Date(event.end_date + 'T00:00:00') : startDate;
+      
+      // Only include events that fall within the displayed month
+      const monthStart = new Date(year, month, 1);
+      const monthEnd = new Date(year, month + 1, 0);
+      
+      // Check if event overlaps with this month
+      if (endDate < monthStart || startDate > monthEnd) {
+        return;
+      }
+      
+      // Iterate through each day the event is active within this month
+      const currentDate = new Date(Math.max(startDate, monthStart));
+      const maxDate = new Date(Math.min(endDate, monthEnd));
+      
+      while (currentDate <= maxDate) {
+        const day = currentDate.getDate();
+        const dateKey = currentDate.toISOString().slice(0, 10);
+        
+        if (!eventsByDay[day]) {
+          eventsByDay[day] = [];
+        }
+        
+        // Only add the event once per day
+        if (!eventsByDay[day].some(e => e.id === event.id)) {
+          eventsByDay[day].push({
+            ...event,
+            _dateKey: dateKey
+          });
+        }
+        
+        // Move to next day
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+    });
+    
+    // Build calendar HTML
+    const monthName = displayDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    let html = `<div class="ssa-calendar-container">`;
+    html += `<h3 class="ssa-calendar-month-header">${monthName}</h3>`;
+    html += `<div class="ssa-calendar-grid">`;
+    
+    // Day headers
+    const dayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    dayHeaders.forEach(day => {
+      html += `<div class="ssa-calendar-day-header">${day}</div>`;
+    });
+    
+    // Empty cells for days before month starts
+    for (let i = 0; i < startingDayOfWeek; i++) {
+      html += `<div class="ssa-calendar-day ssa-calendar-day-empty"></div>`;
+    }
+    
+    // Days of the month
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dayEvents = eventsByDay[day] || [];
+      const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      
+      html += `<div class="ssa-calendar-day" data-date="${dateKey}">`;
+      html += `<div class="ssa-calendar-day-number">${day}</div>`;
+      
+      if (dayEvents.length > 0) {
+        html += `<div class="ssa-calendar-day-events">`;
+        dayEvents.forEach(event => {
+          const eventId = event.id ? `event-${event.id}` : `event-${btoa(event.name + (event.start_date || '')).replace(/[^a-zA-Z0-9]/g, '').substring(0, 10)}`;
+          const description = event.description ? event.description.replace(/"/g, '&quot;').replace(/'/g, '&#39;') : '';
+          
+          if (description) {
+            html += `<span class="ssa-calendar-info-icon ssa-info-icon" data-event-id="${eventId}" data-description="${description}" title="Hover to view description"></span>`;
+          } else {
+            // If no description, show a simple dot to indicate event exists
+            html += `<span class="ssa-calendar-info-icon ssa-calendar-event-dot" title="${event.name}"></span>`;
+          }
+        });
+        html += `</div>`;
+      }
+      
+      html += `</div>`;
+    }
+    
+    // Empty cells for days after month ends
+    const totalCells = startingDayOfWeek + daysInMonth;
+    const remainingCells = 42 - totalCells; // 6 rows * 7 days = 42 cells
+    for (let i = 0; i < remainingCells && totalCells + i < 42; i++) {
+      html += `<div class="ssa-calendar-day ssa-calendar-day-empty"></div>`;
+    }
+    
+    html += `</div></div>`;
+    
+    return html;
+  }
+
   async function renderEvents(mount, rows, state) {
     const { layout = LAYOUTS.LIST, selectedKeywords = [], fromDate = null, toDate = null, groupBy = 'month' } = state;
     
@@ -681,6 +804,7 @@
     controlsHTML += '<div class="ssa-layout-switcher">';
     controlsHTML += `<button class="ssa-layout-btn ${layout === LAYOUTS.LIST ? 'ssa-active' : ''}" data-layout="${LAYOUTS.LIST}" title="List view">📋</button>`;
     controlsHTML += `<button class="ssa-layout-btn ${layout === LAYOUTS.GRID ? 'ssa-active' : ''}" data-layout="${LAYOUTS.GRID}" title="Grid view">⊞</button>`;
+    controlsHTML += `<button class="ssa-layout-btn ${layout === LAYOUTS.CALENDAR ? 'ssa-active' : ''}" data-layout="${LAYOUTS.CALENDAR}" title="Calendar view">📅</button>`;
     controlsHTML += '</div>';
     
     // Grouping switcher (only show for list layout)
@@ -718,6 +842,8 @@
       eventsHTML = renderListLayout(filteredRows, state);
     } else if (layout === LAYOUTS.GRID) {
       eventsHTML = renderGridLayout(filteredRows, state);
+    } else if (layout === LAYOUTS.CALENDAR) {
+      eventsHTML = renderCalendarLayout(filteredRows, state);
     }
     
     mount.innerHTML = controlsHTML + eventsHTML;
@@ -1576,6 +1702,22 @@
       .ssa-grid{display:grid;gap:16px}
       @media(min-width:720px){.ssa-grid{grid-template-columns:repeat(2,1fr)}}
       @media(min-width:1024px){.ssa-grid{grid-template-columns:repeat(3,1fr)}}
+      .ssa-calendar-container{margin:24px 0}
+      .ssa-calendar-month-header{margin:0 0 16px;font-size:1.5rem;font-weight:600;color:#1f2937;text-align:center}
+      .ssa-calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:#e5e7eb;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden}
+      .ssa-calendar-day-header{background:#f8f9fa;padding:8px 4px;text-align:center;font-size:0.75rem;font-weight:600;color:#6b7280;text-transform:uppercase}
+      .ssa-calendar-day{background:#fff;min-height:80px;padding:4px;display:flex;flex-direction:column;position:relative}
+      .ssa-calendar-day-empty{background:#f9fafb;opacity:0.5}
+      .ssa-calendar-day-number{font-size:0.875rem;font-weight:600;color:#374151;margin-bottom:4px}
+      .ssa-calendar-day-events{display:flex;flex-wrap:wrap;gap:2px;align-items:flex-start}
+      .ssa-calendar-info-icon{width:16px;height:16px;min-width:16px;min-height:16px;font-size:0.6rem;margin:0}
+      .ssa-calendar-event-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#3b82f6;opacity:0.7}
+      @media(max-width:768px){
+        .ssa-calendar-day{min-height:60px;padding:2px}
+        .ssa-calendar-day-number{font-size:0.75rem}
+        .ssa-calendar-info-icon{width:14px;height:14px;min-width:14px;min-height:14px;font-size:0.55rem}
+        .ssa-calendar-event-dot{width:6px;height:6px}
+      }
       .ssa-card{border:1px solid #e5e7eb;border-radius:14px;padding:0;background:#fff;position:relative;overflow:hidden}
       .ssa-card[data-has-image="true"]{background-color:#fff}
       .ssa-card[data-has-image="true"]::after{content:'';position:absolute;top:0;left:0;right:0;bottom:0;background-image:var(--card-bg-image);background-size:cover;background-position:center;background-repeat:no-repeat;opacity:0.2;z-index:0}
