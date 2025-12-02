@@ -457,6 +457,7 @@
 
   function renderListLayout(events, state) {
     const groupBy = state.groupBy || 'month';
+    const { fromDate = null, toDate = null } = state;
     let grouped, groups, headerClass;
     
     if (groupBy === 'day') {
@@ -466,6 +467,22 @@
         if (b === 'TBA') return -1;
         return a.localeCompare(b);
       });
+      
+      // Filter day groups to only include days within the date range
+      if (fromDate || toDate) {
+        groups = groups.filter(dayKey => {
+          if (dayKey === 'TBA') {
+            // Include TBA only if no fromDate is set (or if explicitly allowed)
+            return !fromDate;
+          }
+          
+          // Check if the day falls within the date range
+          if (fromDate && dayKey < fromDate) return false;
+          if (toDate && dayKey > toDate) return false;
+          return true;
+        });
+      }
+      
       headerClass = 'ssa-day-header';
     } else {
       grouped = groupEventsByMonth(events);
