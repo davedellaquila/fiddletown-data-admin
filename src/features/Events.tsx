@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabaseClient'
 import FormField from '../shared/components/FormField'
 import AutoSaveEditDialog from '../shared/components/AutoSaveEditDialog'
 import KeywordSelector from '../shared/components/KeywordSelector'
+import ActionMenu, { ActionMenuItem } from '../shared/components/ActionMenu'
 import { parseEventText as parseEventTextImproved } from '../shared/utils/ocrParser'
 
 type EventRow = {
@@ -407,6 +408,7 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
     borderRadius: '6px'
   })
   const [importErrors, setImportErrors] = useState<string[]>([])
+  const importFileInputRef = useRef<HTMLInputElement>(null)
   const [imageHover, setImageHover] = useState(false)
   const [editing, setEditing] = useState<EventRow | null>(null)
   const [q, setQ] = useState('')
@@ -1607,7 +1609,7 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
           marginBottom: 12,
           position: 'sticky',
           top: 0,
-          zIndex: 100,
+          zIndex: 120,
           background: darkMode ? '#1f2937' : '#f8f9fa',
           padding: '12px',
           borderBottom: `1px solid ${darkMode ? '#374151' : '#dee2e6'}`,
@@ -1637,209 +1639,130 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
         <div
           style={{ 
             display: 'flex',
-            flexWrap: 'wrap',
+            flexWrap: 'nowrap',
             gap: 8,
             alignItems: 'center',
+            width: '100%',
             marginBottom: 12
           }}
         >
-          <h2 style={{ 
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+            <h2 style={{ 
               color: darkMode ? '#f9fafb' : '#1f2937',
-            margin: 0,
-            fontSize: '24px',
-            fontWeight: '600',
-            marginRight: '16px'
-          }}>📅 Events</h2>
-        <button 
-          className="btn" 
-          onClick={startNew} 
+              margin: 0,
+              fontSize: '24px',
+              fontWeight: '600',
+              marginRight: '16px'
+            }}>📅 Events</h2>
+            <button 
+              className="btn" 
+              onClick={startNew} 
+              disabled={importing}
+              style={getButtonStyle({ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '6px',
+                padding: '8px 12px'
+              })}
+              title="Create new event"
+            >
+              <span style={{ 
+                fontSize: '16px',
+                filter: darkMode ? 'brightness(1.2) contrast(1.1)' : 'none',
+                textShadow: darkMode ? '0 0 2px rgba(255,255,255,0.3)' : 'none'
+              }}>✨</span>
+              <span>New</span>
+            </button>
+          </div>
+          
+          <div style={{ marginLeft: 'auto', flexShrink: 0 }}>
+            <ActionMenu
+          items={[
+            {
+              id: 'ocr',
+              label: 'OCR',
+              icon: '🔍',
+              onClick: () => setOcrOpen(true),
+              disabled: importing
+            },
+            {
+              id: 'refresh',
+              label: loading ? 'Loading…' : 'Refresh',
+              icon: loading ? '⏳' : '🔄',
+              onClick: load,
+              disabled: loading || importing
+            },
+            {
+              id: 'template',
+              label: 'Template',
+              icon: '📋',
+              onClick: downloadTemplateCSV,
+              disabled: importing
+            },
+            {
+              id: 'export',
+              label: 'Export',
+              icon: '📤',
+              onClick: exportCSV,
+              disabled: importing
+            },
+            {
+              id: 'import',
+              label: 'Import',
+              icon: '📥',
+              onClick: () => importFileInputRef.current?.click(),
+              disabled: importing
+            },
+            {
+              id: 'auto-status',
+              label: 'Auto Status',
+              icon: '🤖',
+              onClick: bulkSetStatusFromDates
+            },
+            {
+              id: 'fill-dates',
+              label: 'Fill Dates',
+              icon: '📅',
+              onClick: bulkFillEndDates
+            },
+            {
+              id: 'gen-slugs',
+              label: 'Gen Slugs',
+              icon: '🔗',
+              onClick: bulkGenerateSlugs
+            },
+            {
+              id: 'publish',
+              label: 'Publish',
+              icon: '🚀',
+              onClick: bulkPublish,
+              requiresSelection: true,
+              variant: 'success'
+            },
+            {
+              id: 'archive',
+              label: 'Archive',
+              icon: '📦',
+              onClick: bulkArchive,
+              requiresSelection: true,
+              variant: 'warning'
+            },
+            {
+              id: 'delete',
+              label: 'Delete',
+              icon: '🗑️',
+              onClick: bulkDelete,
+              requiresSelection: true,
+              variant: 'danger'
+            }
+          ]}
+          selectedCount={selectedIds.size}
+          darkMode={darkMode}
           disabled={importing}
-          style={getButtonStyle({ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: '6px',
-            padding: '8px 12px'
-          })}
-          title="Create new event"
-        >
-          <span style={{ 
-            fontSize: '16px',
-            filter: darkMode ? 'brightness(1.2) contrast(1.1)' : 'none',
-            textShadow: darkMode ? '0 0 2px rgba(255,255,255,0.3)' : 'none'
-          }}>✨</span>
-          <span>New</span>
-        </button>
+        />
+          </div>
         
-        <button 
-          className="btn" 
-          onClick={() => setOcrOpen(true)} 
-          disabled={importing}
-          style={getButtonStyle({
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '8px 12px'
-          })}
-          title="Add event from image using OCR"
-        >
-          <span>🔍</span>
-          <span>OCR</span>
-        </button>
-        
-        <button 
-          className="btn" 
-          onClick={load} 
-          disabled={loading || importing}
-          style={getButtonStyle({ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: '6px',
-            padding: '8px 12px'
-          })}
-          title="Refresh events list"
-        >
-          <span>{loading ? '⏳' : '🔄'}</span>
-          <span>{loading ? 'Loading…' : 'Refresh'}</span>
-        </button>
-        
-        <button 
-          className="btn" 
-          onClick={downloadTemplateCSV} 
-          disabled={importing}
-          style={getButtonStyle({ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: '6px',
-            padding: '8px 12px'
-          })}
-          title="Download CSV template"
-        >
-          <span>📋</span>
-          <span>Template</span>
-        </button>
-        
-        <button 
-          className="btn" 
-          onClick={exportCSV} 
-          disabled={importing}
-          style={getButtonStyle({ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: '6px',
-            padding: '8px 12px'
-          })}
-          title="Export all events to CSV"
-        >
-          <span>📤</span>
-          <span>Export</span>
-        </button>
-          
-        <label 
-          className="btn" 
-          style={getButtonStyle({ 
-            cursor: 'pointer', 
-            opacity: importing ? 0.6 : 1,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '8px 12px'
-          })}
-          title="Import events from CSV file"
-        >
-          <span>📥</span>
-          <span>Import</span>
-          <input type="file" accept=".csv,.tsv,text/csv,text/tab-separated-values" onChange={handleImportFile} style={{ display: 'none' }} disabled={importing} />
-        </label>
-          
-          <button 
-            className="btn" 
-            onClick={bulkSetStatusFromDates} 
-            title="Set status to upcoming/ongoing/past based on dates"
-            style={getButtonStyle({ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '6px',
-              padding: '8px 12px'
-            })}
-          >
-            <span>🤖</span>
-            <span>Auto Status</span>
-          </button>
-          
-          <button 
-            className="btn" 
-            onClick={bulkFillEndDates} 
-            title="Fill missing end_date = start_date"
-            style={getButtonStyle({ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '6px',
-              padding: '8px 12px'
-            })}
-          >
-            <span>📅</span>
-            <span>Fill Dates</span>
-          </button>
-          
-          <button 
-            className="btn" 
-            onClick={bulkGenerateSlugs} 
-            title="Create slugs for rows missing them"
-            style={getButtonStyle({ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '6px',
-              padding: '8px 12px'
-            })}
-          >
-            <span>🔗</span>
-            <span>Gen Slugs</span>
-          </button>
-          
-          <button 
-            className="btn success" 
-            onClick={bulkPublish} 
-            title="Publish selected"
-            style={getSuccessButtonStyle({ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '6px',
-              padding: '8px 12px'
-            })}
-          >
-            <span>🚀</span>
-            <span>Publish</span>
-          </button>
-          
-          <button 
-            className="btn warning" 
-            onClick={bulkArchive} 
-            title="Archive selected"
-            style={getWarningButtonStyle({ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '6px',
-              padding: '8px 12px'
-            })}
-          >
-            <span>📦</span>
-            <span>Archive</span>
-          </button>
-          
-          <button 
-            className="btn danger" 
-            onClick={bulkDelete} 
-            title="Soft delete selected"
-            style={getDangerButtonStyle({ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '6px',
-              padding: '8px 12px'
-            })}
-          >
-            <span>🗑️</span>
-            <span>Delete</span>
-          </button>
+        <input ref={importFileInputRef} type="file" accept=".csv,.tsv,text/csv,text/tab-separated-values" onChange={handleImportFile} style={{ display: 'none' }} disabled={importing} />
         </div>
 
         {/* Bottom row: Search and filter controls */}
@@ -1953,6 +1876,39 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
             title="Set date range to next weekend"
           >
             📅 Next Weekend
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setQ('')
+              setFrom(new Date().toISOString().slice(0, 10))
+              setTo('')
+              setSelectedKeywordFilters([])
+            }}
+            title="Clear all filters"
+            style={{
+              padding: '6px 12px',
+              background: darkMode ? '#374151' : '#ffffff',
+              border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`,
+              borderRadius: '6px',
+              color: darkMode ? '#f9fafb' : '#374151',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: '500',
+              whiteSpace: 'nowrap',
+              transition: 'all 0.2s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = darkMode ? '#4b5563' : '#f3f4f6'
+              e.currentTarget.style.borderColor = darkMode ? '#6b7280' : '#9ca3af'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = darkMode ? '#374151' : '#ffffff'
+              e.currentTarget.style.borderColor = darkMode ? '#4b5563' : '#d1d5db'
+            }}
+          >
+            Clear
           </button>
 
           {/* Keyword Filter */}

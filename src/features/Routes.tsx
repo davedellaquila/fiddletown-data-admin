@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabaseClient'
 import FormField from '../shared/components/FormField'
 import ModalDialog from '../shared/components/ModalDialog'
 import AutoSaveEditDialog from '../shared/components/AutoSaveEditDialog'
+import ActionMenu, { ActionMenuItem } from '../shared/components/ActionMenu'
 
 type Difficulty = 'easy' | 'moderate' | 'challenging'
 type Status = 'draft' | 'published' | 'archived'
@@ -116,6 +117,8 @@ export default function Routes({ darkMode = false, sidebarCollapsed = false }: R
   const [importing, setImporting] = useState(false)
   const [importPreview, setImportPreview] = useState<any[] | null>(null)
   const [importErrors, setImportErrors] = useState<string[]>([])
+  const importFileInputRef = useRef<HTMLInputElement>(null)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
 
   function pushToast(msg: string, type: 'ok' | 'err' | 'info' = 'info') {
     setToast({ type, msg })
@@ -380,6 +383,42 @@ export default function Routes({ darkMode = false, sidebarCollapsed = false }: R
     if (error) alert(error.message); else load()
   }
 
+  const bulkPublish = async () => {
+    if (!selectedIds.size) { alert('Select at least one route.'); return }
+    const { error } = await supabase.from('routes').update({ status: 'published' }).in('id', Array.from(selectedIds))
+    if (error) alert(error.message); else { await load(); setSelectedIds(new Set()) }
+  }
+
+  const bulkArchive = async () => {
+    if (!selectedIds.size) { alert('Select at least one route.'); return }
+    const { error } = await supabase.from('routes').update({ status: 'archived' }).in('id', Array.from(selectedIds))
+    if (error) alert(error.message); else { await load(); setSelectedIds(new Set()) }
+  }
+
+  const bulkDelete = async () => {
+    if (!selectedIds.size) { alert('Select at least one route.'); return }
+    if (!confirm('Soft delete selected routes?')) return
+    const { error } = await supabase.from('routes').update({ deleted_at: new Date().toISOString() }).in('id', Array.from(selectedIds))
+    if (error) alert(error.message); else { await load(); setSelectedIds(new Set()) }
+  }
+
+  const toggleSelect = (id: string, checked: boolean) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (checked) next.add(id); else next.delete(id)
+      return next
+    })
+  }
+
+  const toggleSelectAllVisible = (checked: boolean) => {
+    setSelectedIds(prev => {
+      if (!checked) return new Set()
+      const next = new Set(prev)
+      rows.forEach(r => next.add(r.id))
+      return next
+    })
+  }
+
   return (
     <div>
       {toast && (
@@ -411,7 +450,7 @@ export default function Routes({ darkMode = false, sidebarCollapsed = false }: R
           marginBottom: 12,
           position: 'sticky',
           top: 0,
-          zIndex: 100,
+          zIndex: 120,
           background: darkMode ? '#1f2937' : '#f8f9fa',
           padding: '12px',
           borderBottom: `1px solid ${darkMode ? '#374151' : '#dee2e6'}`,
@@ -422,108 +461,110 @@ export default function Routes({ darkMode = false, sidebarCollapsed = false }: R
         <div
           style={{
             display: 'flex',
-            flexWrap: 'wrap',
+            flexWrap: 'nowrap',
             gap: 8,
             alignItems: 'center',
+            width: '100%',
             marginBottom: 12
           }}
         >
-          <h2 style={{ 
-            color: darkMode ? '#f9fafb' : '#1f2937',
-            margin: 0,
-            fontSize: '24px',
-            fontWeight: '600',
-            marginRight: '16px'
-          }}>🗺️ Routes</h2>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+            <h2 style={{ 
+              color: darkMode ? '#f9fafb' : '#1f2937',
+              margin: 0,
+              fontSize: '24px',
+              fontWeight: '600',
+              marginRight: '16px'
+            }}>🗺️ Routes</h2>
+            
+            <button 
+              className="btn" 
+              onClick={startNew} 
+              disabled={busy || importing}
+              style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '6px',
+                padding: '8px 12px',
+                background: darkMode ? '#374151' : '#ffffff',
+                border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`,
+                color: darkMode ? '#f9fafb' : '#374151',
+                borderRadius: '6px'
+              }}
+              title="Create new route"
+            >
+              <span style={{ 
+                fontSize: '16px',
+                filter: darkMode ? 'brightness(1.2) contrast(1.1)' : 'none',
+                textShadow: darkMode ? '0 0 2px rgba(255,255,255,0.3)' : 'none'
+              }}>✨</span>
+              <span>New</span>
+            </button>
+          </div>
           
-          <button 
-            className="btn" 
-            onClick={startNew} 
+          <div style={{ marginLeft: 'auto', flexShrink: 0 }}>
+            <ActionMenu
+            items={[
+              {
+                id: 'refresh',
+                label: loading ? 'Loading…' : 'Refresh',
+                icon: loading ? '⏳' : '🔄',
+                onClick: load,
+                disabled: loading || busy || importing
+              },
+              {
+                id: 'template',
+                label: 'Template',
+                icon: '📋',
+                onClick: downloadTemplateCSV,
+                disabled: busy || importing
+              },
+              {
+                id: 'export',
+                label: 'Export',
+                icon: '📤',
+                onClick: exportCSV,
+                disabled: busy || importing
+              },
+              {
+                id: 'import',
+                label: 'Import',
+                icon: '📥',
+                onClick: () => importFileInputRef.current?.click(),
+                disabled: busy || importing
+              },
+              {
+                id: 'publish',
+                label: 'Publish',
+                icon: '🚀',
+                onClick: bulkPublish,
+                requiresSelection: true,
+                variant: 'success'
+              },
+              {
+                id: 'archive',
+                label: 'Archive',
+                icon: '📦',
+                onClick: bulkArchive,
+                requiresSelection: true,
+                variant: 'warning'
+              },
+              {
+                id: 'delete',
+                label: 'Delete',
+                icon: '🗑️',
+                onClick: bulkDelete,
+                requiresSelection: true,
+                variant: 'danger'
+              }
+            ]}
+            selectedCount={selectedIds.size}
+            darkMode={darkMode}
             disabled={busy || importing}
-            style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '6px',
-              padding: '8px 12px',
-              background: darkMode ? '#374151' : '#ffffff',
-              border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`,
-              color: darkMode ? '#f9fafb' : '#374151',
-              borderRadius: '6px'
-            }}
-            title="Create new route"
-          >
-            <span style={{ 
-              fontSize: '16px',
-              filter: darkMode ? 'brightness(1.2) contrast(1.1)' : 'none',
-              textShadow: darkMode ? '0 0 2px rgba(255,255,255,0.3)' : 'none'
-            }}>✨</span>
-            <span>New</span>
-          </button>
+          />
+          </div>
           
-          <button 
-            className="btn" 
-            onClick={load} 
-            disabled={loading || busy || importing}
-            style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '6px',
-              padding: '8px 12px'
-            }}
-            title="Refresh routes list"
-          >
-            <span>{loading ? '⏳' : '🔄'}</span>
-            <span>{loading ? 'Loading…' : 'Refresh'}</span>
-          </button>
-          
-          <button 
-            className="btn" 
-            onClick={downloadTemplateCSV} 
-            disabled={busy || importing}
-            style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '6px',
-              padding: '8px 12px'
-            }}
-            title="Download CSV template"
-          >
-            <span>📋</span>
-            <span>Template</span>
-          </button>
-          
-          <button 
-            className="btn" 
-            onClick={exportCSV} 
-            disabled={busy || importing}
-            style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '6px',
-              padding: '8px 12px'
-            }}
-            title="Export all routes to CSV"
-          >
-            <span>📤</span>
-            <span>Export</span>
-          </button>
-          
-          <label 
-            className="btn" 
-            style={{ 
-              display: 'inline-flex', 
-              cursor: 'pointer', 
-              opacity: importing ? 0.6 : 1,
-              alignItems: 'center',
-              gap: '6px',
-              padding: '8px 12px'
-            }}
-            title="Import routes from CSV/TSV file"
-          >
-            <span>📥</span>
-            <span>Import</span>
-            <input type="file" accept=".csv,.tsv,text/csv,text/tab-separated-values" onChange={handleImportFile} style={{ display: 'none' }} disabled={busy || importing} />
-          </label>
+          <input ref={importFileInputRef} type="file" accept=".csv,.tsv,text/csv,text/tab-separated-values" onChange={handleImportFile} style={{ display: 'none' }} disabled={busy || importing} />
         </div>
 
         {/* Bottom row: Search controls */}
@@ -628,6 +669,15 @@ export default function Routes({ darkMode = false, sidebarCollapsed = false }: R
       <table>
           <thead>
             <tr>
+              <th style={{ width: 28, padding: '8px 6px' }}>
+                <input 
+                  type="checkbox" 
+                  onChange={e=>toggleSelectAllVisible(e.target.checked)} 
+                  checked={rows.length > 0 && selectedIds.size === rows.length}
+                  style={{ cursor: 'pointer' }}
+                  title="Select all"
+                />
+              </th>
               <th>Name</th>
               <th>Duration</th>
               <th>Difficulty</th>
@@ -652,6 +702,15 @@ export default function Routes({ darkMode = false, sidebarCollapsed = false }: R
                   e.currentTarget.style.backgroundColor = darkMode ? '#1f2937' : '#ffffff'
                 }}
               >
+                <td style={{ background: 'transparent', width: 28, padding: '0 6px', textAlign: 'center' }}>
+                  <input 
+                    type="checkbox" 
+                    checked={selectedIds.has(r.id)} 
+                    onChange={e=>toggleSelect(r.id, e.target.checked)}
+                    onClick={(e) => e.stopPropagation()}
+                    style={{ cursor: 'pointer' }}
+                  />
+                </td>
                 <td style={{ background: 'transparent' }}>{r.name}</td>
                 <td style={{ background: 'transparent' }}>{r.duration_minutes ? `${r.duration_minutes} min` : '—'}</td>
                 <td style={{ background: 'transparent' }}>{r.difficulty ?? '—'}</td>
@@ -784,7 +843,7 @@ export default function Routes({ darkMode = false, sidebarCollapsed = false }: R
               </tr>
             ))}
             {rows.length === 0 && !loading && (
-              <tr><td colSpan={6}>No records.</td></tr>
+              <tr><td colSpan={7}>No records.</td></tr>
             )}
           </tbody>
         </table>
