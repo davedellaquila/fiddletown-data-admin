@@ -391,24 +391,103 @@
     return grouped;
   }
 
-  function renderListLayout(events, state) {
-    const grouped = groupEventsByMonth(events);
-    const months = Object.keys(grouped).sort((a, b) => {
-      const dateA = new Date(grouped[a][0].start_date);
-      const dateB = new Date(grouped[b][0].start_date);
-      return dateA - dateB;
-    });
+  function formatDayHeader(dateString) {
+    if (!dateString) return 'TBA';
+    const date = new Date(dateString);
+    
+    // Get full day name
+    const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
+    
+    // Get full month name
+    const monthName = date.toLocaleDateString('en-US', { month: 'long' });
+    
+    // Get day number and add ordinal suffix
+    const day = date.getDate();
+    const ordinalSuffix = (day) => {
+      if (day > 3 && day < 21) return 'th';
+      switch (day % 10) {
+        case 1: return 'st';
+        case 2: return 'nd';
+        case 3: return 'rd';
+        default: return 'th';
+      }
+    };
+    
+    return `${dayName}, ${monthName} ${day}${ordinalSuffix(day)}`;
+  }
 
-    if (months.length === 0) {
+  function groupEventsByDay(events) {
+    const grouped = {};
+    
+    events.forEach(event => {
+      if (!event.start_date) {
+        // Undated events go in a special group
+        const key = 'TBA';
+        if (!grouped[key]) {
+          grouped[key] = [];
+        }
+        grouped[key].push(event);
+        return;
+      }
+      
+      const startDate = new Date(event.start_date + 'T00:00:00');
+      const endDate = event.end_date ? new Date(event.end_date + 'T00:00:00') : startDate;
+      
+      // Iterate through each day the event is active
+      const currentDate = new Date(startDate);
+      while (currentDate <= endDate) {
+        const dateKey = currentDate.toISOString().slice(0, 10);
+        
+        if (!grouped[dateKey]) {
+          grouped[dateKey] = [];
+        }
+        
+        // Only add the event once per day (avoid duplicates if event already in this day)
+        if (!grouped[dateKey].some(e => e.id === event.id)) {
+          grouped[dateKey].push(event);
+        }
+        
+        // Move to next day
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+    });
+    
+    return grouped;
+  }
+
+  function renderListLayout(events, state) {
+    const groupBy = state.groupBy || 'month';
+    let grouped, groups, headerClass;
+    
+    if (groupBy === 'day') {
+      grouped = groupEventsByDay(events);
+      groups = Object.keys(grouped).sort((a, b) => {
+        if (a === 'TBA') return 1;
+        if (b === 'TBA') return -1;
+        return a.localeCompare(b);
+      });
+      headerClass = 'ssa-day-header';
+    } else {
+      grouped = groupEventsByMonth(events);
+      groups = Object.keys(grouped).sort((a, b) => {
+        const dateA = new Date(grouped[a][0].start_date);
+        const dateB = new Date(grouped[b][0].start_date);
+        return dateA - dateB;
+      });
+      headerClass = 'ssa-month-header';
+    }
+
+    if (groups.length === 0) {
       return '<div class="ssa-empty">No events found.</div>';
     }
 
     let html = '';
-    months.forEach(month => {
-      html += `<h3 class="ssa-month-header">${month}</h3>`;
+    groups.forEach(groupKey => {
+      const headerText = groupBy === 'day' ? formatDayHeader(groupKey) : groupKey;
+      html += `<h3 class="${headerClass}">${headerText}</h3>`;
       html += `<ul class="ssa-events-list">`;
       
-      grouped[month].forEach((event, idx) => {
+      grouped[groupKey].forEach((event, idx) => {
         const startDate = formatEventDate(event.start_date);
         const endDate = event.end_date ? formatEventDate(event.end_date) : '';
         const dateRange = endDate && startDate !== endDate ? `${startDate} - ${endDate}` : startDate;
@@ -573,7 +652,7 @@
   }
 
   async function renderEvents(mount, rows, state) {
-    const { layout = LAYOUTS.LIST, selectedKeywords = [], fromDate = null, toDate = null } = state;
+    const { layout = LAYOUTS.LIST, selectedKeywords = [], fromDate = null, toDate = null, groupBy = 'month' } = state;
     
     // Store state on mount for handlers
     mount._currentState = state;
@@ -594,6 +673,14 @@
     controlsHTML += `<button class="ssa-layout-btn ${layout === LAYOUTS.LIST ? 'ssa-active' : ''}" data-layout="${LAYOUTS.LIST}" title="List view">📋</button>`;
     controlsHTML += `<button class="ssa-layout-btn ${layout === LAYOUTS.GRID ? 'ssa-active' : ''}" data-layout="${LAYOUTS.GRID}" title="Grid view">⊞</button>`;
     controlsHTML += '</div>';
+    
+    // Grouping switcher (only show for list layout)
+    if (layout === LAYOUTS.LIST) {
+      controlsHTML += '<div class="ssa-group-switcher">';
+      controlsHTML += `<button class="ssa-group-btn ${groupBy === 'month' ? 'ssa-active' : ''}" data-group="month" title="Group by month">📅 Month</button>`;
+      controlsHTML += `<button class="ssa-group-btn ${groupBy === 'day' ? 'ssa-active' : ''}" data-group="day" title="Group by day">📆 Day</button>`;
+      controlsHTML += '</div>';
+    }
     
     // Date range filters
     controlsHTML += '<div class="ssa-date-filters">';
@@ -639,6 +726,14 @@
       btn.addEventListener('click', async function() {
         const newLayout = this.dataset.layout;
         await renderEvents(mount, rows, { ...state, layout: newLayout });
+      });
+    });
+    
+    // Group switcher
+    mount.querySelectorAll('.ssa-group-btn').forEach(btn => {
+      btn.addEventListener('click', async function() {
+        const newGroupBy = this.dataset.group;
+        await renderEvents(mount, rows, { ...state, groupBy: newGroupBy });
       });
     });
     
@@ -1524,6 +1619,10 @@
       .ssa-layout-btn{padding:8px 12px;border:1px solid #d1d5db;border-radius:6px;background:#fff;color:#374151;cursor:pointer;font-size:1.2rem;transition:all 0.2s}
       .ssa-layout-btn:hover{background:#f9fafb;border-color:#9ca3af}
       .ssa-layout-btn.ssa-active{background:#3b82f6;border-color:#3b82f6;color:#fff}
+      .ssa-group-switcher{display:flex;gap:4px}
+      .ssa-group-btn{padding:8px 12px;border:1px solid #d1d5db;border-radius:6px;background:#fff;color:#374151;cursor:pointer;font-size:0.875rem;font-weight:500;transition:all 0.2s}
+      .ssa-group-btn:hover{background:#f9fafb;border-color:#9ca3af}
+      .ssa-group-btn.ssa-active{background:#3b82f6;border-color:#3b82f6;color:#fff}
       .ssa-date-filters{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
       .ssa-date-filters label{display:flex;align-items:center;gap:6px;font-size:0.875rem;color:#374151}
       .ssa-date-input{padding:6px 10px;border:1px solid #d1d5db;border-radius:4px;font-size:0.875rem}
@@ -1540,6 +1639,7 @@
       .ssa-skel{height:110px;border-radius:14px;background:linear-gradient(90deg,#f4f4f5,#f9fafb,#f4f4f5);background-size:200% 100%;animation:ssaShimmer 1.1s linear infinite}
       @keyframes ssaShimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
       .ssa-month-header{margin:24px 0 12px;font-size:1.25rem;font-weight:600;color:#1f2937}
+      .ssa-day-header{margin:24px 0 12px;font-size:1.25rem;font-weight:600;color:#1f2937;padding-bottom:8px;border-bottom:2px solid #e5e7eb}
       .ssa-events-list{list-style:none;padding:0;margin:0 0 32px}
       .ssa-event-item{margin-bottom:12px;padding:12px 0;border-bottom:1px solid #f3f4f6}
       .ssa-event-item:last-child{border-bottom:none}
@@ -1614,6 +1714,8 @@
         *{box-sizing:border-box}
         .ssa-controls{padding-bottom:16px;gap:12px;padding-left:0;padding-right:0}
         .ssa-layout-btn{padding:10px 14px;font-size:1.1rem;min-height:44px}
+        .ssa-group-switcher{gap:6px}
+        .ssa-group-btn{padding:10px 14px;font-size:0.9rem;min-height:44px}
         .ssa-date-filters{flex-direction:column;align-items:stretch;gap:8px}
         .ssa-date-filters label{flex-direction:column;align-items:flex-start;gap:4px;font-size:0.9rem}
         .ssa-date-input{width:100%;padding:10px;font-size:1rem;min-height:44px}
