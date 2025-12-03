@@ -4,9 +4,10 @@ import Events from './features/Events'
 import Locations from './features/Locations'
 import Routes from './features/Routes'
 import OCRTest from './features/OCRTest'
+import Ads from './features/Ads'
 
 
-type View = 'locations' | 'events' | 'routes' | 'ocr-test'
+type View = 'locations' | 'events' | 'routes' | 'ocr-test' | 'ads'
 
 export default function App() {
   console.log('App component rendering...')
@@ -52,6 +53,7 @@ export default function App() {
       if (e.key === '2') { e.preventDefault(); setView('events') }
       if (e.key === '3') { e.preventDefault(); setView('routes') }
       if (e.key === '4') { e.preventDefault(); setView('ocr-test') }
+      if (e.key === '5') { e.preventDefault(); setView('ads') }
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
@@ -386,6 +388,28 @@ export default function App() {
             <span>🔍</span>
             {!sidebarCollapsed && <span>OCR Test</span>}
           </button>
+          <button 
+            className="btn" 
+            onClick={() => setView('ads')}
+            title="Ads Management (⌘5 / Ctrl5)"
+            style={{
+              background: view === 'ads' ? (darkMode ? '#3b82f6' : '#3b82f6') : (darkMode ? '#374151' : '#ffffff'),
+              border: `1px solid ${view === 'ads' ? '#3b82f6' : (darkMode ? '#4b5563' : '#d1d5db')}`,
+              color: view === 'ads' ? 'white' : (darkMode ? '#f9fafb' : '#374151'),
+              textAlign: sidebarCollapsed ? 'center' : 'left',
+              padding: sidebarCollapsed ? '12px' : '12px 16px',
+              borderRadius: '8px',
+              marginBottom: '8px',
+              width: sidebarCollapsed ? '44px' : '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
+              gap: sidebarCollapsed ? '0' : '8px'
+            }}
+          >
+            <span>📢</span>
+            {!sidebarCollapsed && <span>Ads</span>}
+          </button>
         </nav>
       </aside>
       <main className="main" style={{ 
@@ -409,6 +433,7 @@ export default function App() {
         {view === 'events' && <Events darkMode={darkMode} sidebarCollapsed={sidebarCollapsed} />}
         {view === 'routes' && <Routes darkMode={darkMode} sidebarCollapsed={sidebarCollapsed} />}
         {view === 'ocr-test' && <OCRTest darkMode={darkMode} />}
+        {view === 'ads' && <Ads darkMode={darkMode} sidebarCollapsed={sidebarCollapsed} />}
       </main>
     </div>
   )

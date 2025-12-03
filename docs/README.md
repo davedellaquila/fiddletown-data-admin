@@ -19,3 +19,10 @@ Minimal local admin for managing `wineries` in your Supabase DB.
 ## Notes
 - RLS policies must be created in your Supabase project as provided earlier.
 - This MVP only includes the Wineries screen; Events/Routes can be added similarly.
+
+## Documentation
+
+### Banner Ads System
+
+- **[Banner Ads User Guide](BANNER_ADS_USER_GUIDE.md)** - Guide for end users viewing ads on the events page
+- **[Banner Ads Admin Guide](BANNER_ADS_ADMIN_GUIDE.md)** - Complete guide for managing banner ads, vendors, and tracking

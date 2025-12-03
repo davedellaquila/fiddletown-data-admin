@@ -445,7 +445,7 @@
 
   function renderListLayout(events, state) {
     const groupBy = state.groupBy || 'day';
-    const { fromDate = null, toDate = null } = state;
+    const { fromDate = null, toDate = null, showImages = false } = state;
     let grouped, groups, headerClass;
     
     if (groupBy === 'day') {
@@ -508,13 +508,13 @@
         html += `<li class="ssa-event-item" data-event-id="${eventId}" data-event-image="${hasImage ? event.image_url : ''}">`;
         html += `<div class="ssa-event-content">`;
         
-        // Event image on the left
-        if (hasImage) {
+        // Event image on the left (only if showImages is true)
+        if (showImages && hasImage) {
           html += `<div class="ssa-event-image-wrapper" data-event-id="${eventId}" data-image-url="${event.image_url}">`;
           html += `<img src="${event.image_url}" alt="${event.name}" class="ssa-event-image" />`;
           html += `</div>`;
-        } else {
-          // Placeholder space if no image
+        } else if (showImages && !hasImage) {
+          // Placeholder space if no image but showImages is enabled
           html += `<div class="ssa-event-image-wrapper ssa-event-image-placeholder"></div>`;
         }
         
@@ -585,7 +585,7 @@
           html += `<div class="ssa-event-keywords">`;
           html += event.keywords.map(kw => {
             const isSelected = state.selectedKeywords.includes(kw);
-            return `<span class="ssa-keyword-tag-clickable ${isSelected ? 'ssa-keyword-tag-active' : ''}" data-keyword="${kw}">${kw}</span>`;
+            return `<button class="ssa-keyword-btn ${isSelected ? 'ssa-keyword-active' : ''}" data-keyword="${kw}">${kw}</button>`;
           }).join('');
           html += `</div>`;
         }
@@ -645,7 +645,7 @@
           ${ev.recurrence ? `<p class="ssa-meta">${ev.recurrence}</p>` : ''}
           ${ev.keywords && ev.keywords.length > 0 ? `<p class="ssa-keywords">${ev.keywords.map(kw => {
             const isSelected = selectedKeywords.includes(kw);
-            return `<span class="ssa-tag-clickable ${isSelected ? 'ssa-tag-active' : ''}" data-keyword="${kw}">${kw}</span>`;
+            return `<button class="ssa-keyword-btn ${isSelected ? 'ssa-keyword-active' : ''}" data-keyword="${kw}">${kw}</button>`;
           }).join('')}</p>` : ''}
         </div>
       </article>
@@ -805,7 +805,7 @@
   }
 
   async function renderEvents(mount, rows, state) {
-    const { layout = LAYOUTS.LIST, selectedKeywords = [], fromDate = null, toDate = null, groupBy = 'day' } = state;
+    const { layout = LAYOUTS.LIST, selectedKeywords = [], fromDate = null, toDate = null, groupBy = 'day', showImages = false } = state;
     
     // Store state on mount for handlers
     mount._currentState = state;
@@ -844,16 +844,24 @@
       controlsHTML += `<button class="ssa-group-btn ${groupBy === 'day' ? 'ssa-active' : ''}" data-group="day" title="Group by day">📆 Day</button>`;
       controlsHTML += `<button class="ssa-group-btn ${groupBy === 'month' ? 'ssa-active' : ''}" data-group="month" title="Group by month">📅 Month</button>`;
       controlsHTML += '</div>';
+      controlsHTML += '<label class="ssa-show-images-checkbox">';
+      controlsHTML += `<input type="checkbox" class="ssa-show-images-input" ${showImages ? 'checked' : ''} title="Show event images">`;
+      controlsHTML += '<span class="ssa-show-images-label">Show Images</span>';
+      controlsHTML += '</label>';
       controlsHTML += '</div>';
     }
     
     // Date range filters
     controlsHTML += '<div class="ssa-date-filters">';
+    controlsHTML += '<div class="ssa-weekend-buttons">';
+    controlsHTML += `<button class="ssa-weekend-btn" title="Set date range to upcoming weekend">📅 This Weekend</button>`;
+    controlsHTML += `<button class="ssa-weekend-btn ssa-next-weekend-btn" title="Set date range to next weekend">📅 Next Weekend</button>`;
+    controlsHTML += '</div>';
+    controlsHTML += '<div class="ssa-date-inputs-row">';
     controlsHTML += `<label>From: <input type="date" class="ssa-date-input" id="ssa-from-date" value="${fromDate || ''}"></label>`;
     controlsHTML += `<label>To: <input type="date" class="ssa-date-input" id="ssa-to-date" value="${toDate || ''}"></label>`;
     controlsHTML += `<button class="ssa-clear-dates" title="Clear all filters">Clear</button>`;
-    controlsHTML += `<button class="ssa-weekend-btn" title="Set date range to upcoming weekend">📅 This Weekend</button>`;
-    controlsHTML += `<button class="ssa-weekend-btn ssa-next-weekend-btn" title="Set date range to next weekend">📅 Next Weekend</button>`;
+    controlsHTML += '</div>';
     controlsHTML += '</div>';
     
     // Keyword filters - display all keywords from the system
@@ -904,8 +912,17 @@
       });
     });
     
-    // Keyword filter buttons
-    mount.querySelectorAll('.ssa-keyword-btn').forEach(btn => {
+    // Show images checkbox
+    const showImagesCheckbox = mount.querySelector('.ssa-show-images-input');
+    if (showImagesCheckbox) {
+      showImagesCheckbox.addEventListener('change', async function() {
+        const showImages = this.checked;
+        await renderEvents(mount, rows, { ...state, showImages });
+      });
+    }
+    
+    // Keyword filter buttons (scoped to filter section only)
+    mount.querySelectorAll('.ssa-keyword-filters .ssa-keyword-btn').forEach(btn => {
       btn.addEventListener('click', async function() {
         const keyword = this.dataset.keyword;
         const isCurrentlySelected = state.selectedKeywords.includes(keyword);
@@ -1163,7 +1180,7 @@
     
     // Keyword tag clicks in list view
     if (state.layout === LAYOUTS.LIST) {
-      mount.querySelectorAll('.ssa-keyword-tag-clickable').forEach(tag => {
+      mount.querySelectorAll('.ssa-event-keywords .ssa-keyword-btn').forEach(tag => {
         tag.addEventListener('click', async function() {
           const keyword = this.dataset.keyword;
           if (!keyword) return;
@@ -1180,7 +1197,7 @@
     
     // Keyword tag clicks in grid view
     if (state.layout === LAYOUTS.GRID) {
-      mount.querySelectorAll('.ssa-tag-clickable').forEach(tag => {
+      mount.querySelectorAll('.ssa-keywords .ssa-keyword-btn').forEach(tag => {
         tag.addEventListener('click', async function() {
           const keyword = this.dataset.keyword;
           if (!keyword) return;
@@ -1447,16 +1464,16 @@
               const selectedKeywords = currentState.selectedKeywords || [];
               
               keywords.forEach(keyword => {
-                const keywordTag = document.createElement('span');
+                const keywordTag = document.createElement('button');
                 const isSelected = selectedKeywords.includes(keyword);
-                keywordTag.className = `ssa-keyword-tag-clickable ${isSelected ? 'ssa-keyword-tag-active' : ''}`;
+                keywordTag.className = `ssa-keyword-btn ${isSelected ? 'ssa-keyword-active' : ''}`;
                 keywordTag.setAttribute('data-keyword', keyword);
                 keywordTag.textContent = keyword;
                 
                 // Add hover styles (respect dark mode)
                 const isDarkMode = document.body.classList.contains('dark-mode');
                 keywordTag.addEventListener('mouseenter', function() {
-                  if (!this.classList.contains('ssa-keyword-tag-active')) {
+                  if (!this.classList.contains('ssa-keyword-active')) {
                     if (isDarkMode) {
                       this.style.background = '#4b5563';
                       this.style.borderColor = '#6b7280';
@@ -1467,7 +1484,7 @@
                   }
                 });
                 keywordTag.addEventListener('mouseleave', function() {
-                  if (!this.classList.contains('ssa-keyword-tag-active')) {
+                  if (!this.classList.contains('ssa-keyword-active')) {
                     this.style.background = '';
                     this.style.borderColor = '';
                   }
@@ -1881,7 +1898,7 @@
     css.textContent = `
       .ssa-controls{display:flex;flex-direction:column;gap:16px;margin-bottom:24px;padding-bottom:20px;border-bottom:1px solid #e5e7eb}
       .ssa-layout-switcher-wrapper{display:flex;align-items:center;gap:8px}
-      .ssa-group-switcher-wrapper{display:flex;align-items:center;gap:8px}
+      .ssa-group-switcher-wrapper{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
       .ssa-control-label{font-size:0.875rem;font-weight:500;color:#374151;white-space:nowrap}
       body.dark-mode .ssa-control-label{color:#f9fafb!important}
       .ssa-layout-switcher{display:flex;gap:4px}
@@ -1896,7 +1913,13 @@
       .ssa-group-btn.ssa-active{background:#3b82f6;border-color:#3b82f6;color:#fff}
       body.dark-mode .ssa-group-btn.ssa-active{background:transparent!important;border-color:#3b82f6!important;color:#3b82f6!important}
       body.dark-mode .ssa-group-btn.ssa-active:hover{background:transparent!important;border-color:#60a5fa!important;color:#60a5fa!important}
-      .ssa-date-filters{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+      .ssa-show-images-checkbox{display:flex;align-items:center;gap:6px;margin-left:12px;cursor:pointer}
+      .ssa-show-images-input{width:18px;height:18px;cursor:pointer;accent-color:#3b82f6}
+      .ssa-show-images-label{font-size:0.875rem;font-weight:500;color:#374151;cursor:pointer;user-select:none}
+      body.dark-mode .ssa-show-images-label{color:#f9fafb!important}
+      .ssa-date-filters{display:flex;flex-direction:column;gap:12px}
+      .ssa-weekend-buttons{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+      .ssa-date-inputs-row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
       .ssa-date-filters label{display:flex;align-items:center;gap:6px;font-size:0.875rem;color:#374151}
       .ssa-date-input{padding:6px 10px;border:1px solid #d1d5db;border-radius:4px;font-size:0.875rem}
       .ssa-clear-dates{padding:6px 12px;border:1px solid #d1d5db;border-radius:4px;background:#fff;color:#374151;cursor:pointer;font-size:0.875rem}
@@ -1961,7 +1984,7 @@
       .ssa-map-popover::before{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border:7px solid transparent;border-top-color:#d1d5db;margin-top:-1px;z-index:0}
       .ssa-keywords-inline{display:inline-flex;flex-wrap:wrap;gap:4px;margin-left:8px}
       .ssa-tag{display:inline-block;padding:2px 8px;background:#f3f4f6;border-radius:12px;font-size:0.75rem;color:#6b7280}
-      .ssa-event-keywords{margin-top:8px;display:flex;flex-wrap:wrap;gap:6px}
+      .ssa-event-keywords{margin-top:8px;display:flex;flex-wrap:wrap;gap:8px}
       .ssa-keyword-tag-clickable{display:inline-block;padding:8px 16px;border:2px solid #d1d5db;border-radius:20px;background:#fff;color:#374151;cursor:pointer;font-size:0.875rem;font-weight:500;transition:all 0.2s}
       .ssa-keyword-tag-clickable:hover{background:#f9fafb;border-color:#9ca3af}
       .ssa-keyword-tag-clickable.ssa-keyword-tag-active{background:#374151;border-color:#374151;color:#fff}
@@ -2003,7 +2026,7 @@
       .ssa-card-icon-thumb{width:100%;height:100%;object-fit:cover;display:block}
       .ssa-title{margin:0;font-size:1.05rem;line-height:1.3;color:#1f2937;font-weight:600;flex:1;display:inline-flex;align-items:center;gap:4px}
       .ssa-meta{margin:.35rem 0;color:#374151;font-weight:500}
-      .ssa-keywords{margin:.5rem 0;display:flex;flex-wrap:wrap;gap:4px}
+      .ssa-keywords{margin:.5rem 0;display:flex;flex-wrap:wrap;gap:8px}
       .ssa-tag-clickable{display:inline-block;padding:8px 16px;border:2px solid #d1d5db;border-radius:20px;background:#fff;color:#374151;cursor:pointer;font-size:0.875rem;font-weight:500;transition:all 0.2s}
       .ssa-tag-clickable:hover{background:#f9fafb;border-color:#9ca3af}
       .ssa-tag-clickable.ssa-tag-active{background:#374151;border-color:#374151;color:#fff}
@@ -2023,11 +2046,17 @@
         .ssa-layout-btn{padding:10px 14px;font-size:1.1rem;min-height:44px}
         .ssa-group-switcher{gap:6px}
         .ssa-group-btn{padding:10px 14px;font-size:0.9rem;min-height:44px}
+        .ssa-show-images-checkbox{margin-left:0;margin-top:8px;gap:8px}
+        .ssa-show-images-input{width:20px;height:20px;min-width:20px;min-height:20px}
+        .ssa-show-images-label{font-size:0.9rem}
         .ssa-date-filters{flex-direction:column;align-items:stretch;gap:8px}
-        .ssa-date-filters label{flex-direction:column;align-items:flex-start;gap:4px;font-size:0.9rem}
+        .ssa-weekend-buttons{display:flex;flex-direction:row;align-items:center;gap:8px;width:100%}
+        .ssa-date-inputs-row{display:flex;flex-direction:row;flex-wrap:wrap;gap:8px;align-items:center;width:100%}
+        .ssa-date-filters label{flex-direction:row;align-items:center;gap:6px;font-size:0.9rem}
+        .ssa-date-inputs-row label{flex:1;min-width:150px}
         .ssa-date-input{width:100%;padding:10px;font-size:1rem;min-height:44px}
         .ssa-clear-dates{width:100%;padding:10px;font-size:0.9rem;min-height:44px}
-        .ssa-weekend-btn{width:100%;padding:10px;font-size:0.9rem;min-height:44px}
+        .ssa-weekend-btn{flex:1;padding:10px;font-size:0.9rem;min-height:44px}
         .ssa-keyword-filters{gap:6px}
         .ssa-keyword-btn{padding:10px 14px;font-size:0.9rem;min-height:44px;border-radius:22px}
         .ssa-month-header{font-size:1.1rem;margin:20px 0 10px}
@@ -2108,7 +2137,8 @@
       layout: opts.layout || LAYOUTS.LIST,
       selectedKeywords: opts.selectedKeywords || [],
       fromDate: opts.fromDate !== undefined ? opts.fromDate : todayISO(),
-      toDate: opts.toDate || null
+      toDate: opts.toDate || null,
+      showImages: false
     };
     
     // Store opts for reloadEvents
