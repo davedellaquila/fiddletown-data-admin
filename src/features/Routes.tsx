@@ -3,30 +3,8 @@ import { supabase } from '../lib/supabaseClient'
 import FormField from '../shared/components/FormField'
 import ModalDialog from '../shared/components/ModalDialog'
 import AutoSaveEditDialog from '../shared/components/AutoSaveEditDialog'
-
-type Difficulty = 'easy' | 'moderate' | 'challenging'
-type Status = 'draft' | 'published' | 'archived'
-
-type RouteRow = {
-  id: string
-  name: string
-  slug: string | null
-  gpx_url: string | null
-  duration_minutes: number | null
-  start_point: string | null
-  end_point: string | null
-  difficulty: Difficulty | null
-  notes: string | null
-  status: Status
-  sort_order: number | null
-  created_by: string | null
-  created_at: string
-  updated_at: string
-  deleted_at: string | null
-}
-
-const slugify = (s: string) =>
-  s.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
+import { slugify } from '../../shared/utils/slugify'
+import type { RouteRow, Difficulty, Status } from '../../shared/types/models'
 
 // --- CSV helpers (CSV/TSV, quoted fields supported) ---
 function parseCSV(text: string): string[][] {

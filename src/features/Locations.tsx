@@ -2,24 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import FormField from '../shared/components/FormField'
 import AutoSaveEditDialog from '../shared/components/AutoSaveEditDialog'
-
-const slugify = (s: string) =>
-  s.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
-
-type Location = {
-  id: string
-  name: string
-  slug: string | null
-  region: string | null
-  short_description: string | null
-  website_url: string | null
-  status: 'draft' | 'published' | 'archived'
-  sort_order: number | null
-  created_by: string | null
-  created_at: string
-  updated_at: string
-  deleted_at: string | null
-}
+import { slugify } from '../../shared/utils/slugify'
+import type { Location } from '../../shared/types/models'
 
 interface LocationsProps {
   darkMode?: boolean
@@ -271,7 +255,7 @@ export default function Locations({ darkMode = false, sidebarCollapsed = false }
     const payload = { ...editing }
   
     if (!payload.slug && payload.name) {
-      payload.slug = payload.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
+      payload.slug = slugify(payload.name)
     }
   
     if (payload.id) {

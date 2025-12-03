@@ -1,0 +1,799 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		111999972EDD57150099BCD8 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 111999832EDD57150099BCD8 /* LoginView.swift */; };
+		111999982EDD57150099BCD8 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 111999802EDD57150099BCD8 /* ContentView.swift */; };
+		111999992EDD57150099BCD8 /* OCRTestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 111999892EDD57150099BCD8 /* OCRTestView.swift */; };
+		1119999A2EDD57150099BCD8 /* DataModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1119998F2EDD57150099BCD8 /* DataModels.swift */; };
+		1119999B2EDD57150099BCD8 /* DateUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 111999932EDD57150099BCD8 /* DateUtils.swift */; };
+		1119999C2EDD57150099BCD8 /* LocationsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 111999872EDD57150099BCD8 /* LocationsView.swift */; };
+		1119999D2EDD57150099BCD8 /* EventsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 111999852EDD57150099BCD8 /* EventsView.swift */; };
+		1119999E2EDD57150099BCD8 /* SupabaseService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 111999912EDD57150099BCD8 /* SupabaseService.swift */; };
+		1119999F2EDD57150099BCD8 /* RoutesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1119998B2EDD57150099BCD8 /* RoutesView.swift */; };
+		111999A02EDD57150099BCD8 /* SSAAdminiPadApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 111999812EDD57150099BCD8 /* SSAAdminiPadApp.swift */; };
+		111999A12EDD57150099BCD8 /* StringUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 111999942EDD57150099BCD8 /* StringUtils.swift */; };
+		111999B22EDD5EFC0099BCD8 /* Auth in Frameworks */ = {isa = PBXBuildFile; productRef = 111999B12EDD5EFC0099BCD8 /* Auth */; };
+		111999B42EDD5EFC0099BCD8 /* Functions in Frameworks */ = {isa = PBXBuildFile; productRef = 111999B32EDD5EFC0099BCD8 /* Functions */; };
+		111999B62EDD5EFC0099BCD8 /* PostgREST in Frameworks */ = {isa = PBXBuildFile; productRef = 111999B52EDD5EFC0099BCD8 /* PostgREST */; };
+		111999B82EDD5EFC0099BCD8 /* Realtime in Frameworks */ = {isa = PBXBuildFile; productRef = 111999B72EDD5EFC0099BCD8 /* Realtime */; };
+		111999BA2EDD5EFC0099BCD8 /* Storage in Frameworks */ = {isa = PBXBuildFile; productRef = 111999B92EDD5EFC0099BCD8 /* Storage */; };
+		111999BC2EDD5EFC0099BCD8 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 111999BB2EDD5EFC0099BCD8 /* Supabase */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		111999642EDD56030099BCD8 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 1119994E2EDD56000099BCD8 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 111999552EDD56000099BCD8;
+			remoteInfo = "SSA-Admin";
+		};
+		1119996E2EDD56030099BCD8 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 1119994E2EDD56000099BCD8 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 111999552EDD56000099BCD8;
+			remoteInfo = "SSA-Admin";
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		111999562EDD56000099BCD8 /* SSA-Admin.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "SSA-Admin.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		111999632EDD56030099BCD8 /* SSA-AdminTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "SSA-AdminTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		1119996D2EDD56030099BCD8 /* SSA-AdminUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "SSA-AdminUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		111999802EDD57150099BCD8 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		111999812EDD57150099BCD8 /* SSAAdminiPadApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SSAAdminiPadApp.swift; sourceTree = "<group>"; };
+		111999832EDD57150099BCD8 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
+		111999852EDD57150099BCD8 /* EventsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventsView.swift; sourceTree = "<group>"; };
+		111999872EDD57150099BCD8 /* LocationsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationsView.swift; sourceTree = "<group>"; };
+		111999892EDD57150099BCD8 /* OCRTestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OCRTestView.swift; sourceTree = "<group>"; };
+		1119998B2EDD57150099BCD8 /* RoutesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutesView.swift; sourceTree = "<group>"; };
+		1119998F2EDD57150099BCD8 /* DataModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataModels.swift; sourceTree = "<group>"; };
+		111999912EDD57150099BCD8 /* SupabaseService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseService.swift; sourceTree = "<group>"; };
+		111999932EDD57150099BCD8 /* DateUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DateUtils.swift; sourceTree = "<group>"; };
+		111999942EDD57150099BCD8 /* StringUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StringUtils.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		111999582EDD56000099BCD8 /* SSA-Admin */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "SSA-Admin";
+			sourceTree = "<group>";
+		};
+		111999662EDD56030099BCD8 /* SSA-AdminTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "SSA-AdminTests";
+			sourceTree = "<group>";
+		};
+		111999702EDD56030099BCD8 /* SSA-AdminUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "SSA-AdminUITests";
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		111999532EDD56000099BCD8 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				111999B62EDD5EFC0099BCD8 /* PostgREST in Frameworks */,
+				111999B42EDD5EFC0099BCD8 /* Functions in Frameworks */,
+				111999BC2EDD5EFC0099BCD8 /* Supabase in Frameworks */,
+				111999B22EDD5EFC0099BCD8 /* Auth in Frameworks */,
+				111999BA2EDD5EFC0099BCD8 /* Storage in Frameworks */,
+				111999B82EDD5EFC0099BCD8 /* Realtime in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		111999602EDD56030099BCD8 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		1119996A2EDD56030099BCD8 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		1119994D2EDD56000099BCD8 = {
+			isa = PBXGroup;
+			children = (
+				111999822EDD57150099BCD8 /* App */,
+				111999842EDD57150099BCD8 /* Auth */,
+				1119998D2EDD57150099BCD8 /* Features */,
+				111999962EDD57150099BCD8 /* Shared */,
+				111999582EDD56000099BCD8 /* SSA-Admin */,
+				111999662EDD56030099BCD8 /* SSA-AdminTests */,
+				111999702EDD56030099BCD8 /* SSA-AdminUITests */,
+				111999A32EDD58F80099BCD8 /* Frameworks */,
+				111999572EDD56000099BCD8 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		111999572EDD56000099BCD8 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				111999562EDD56000099BCD8 /* SSA-Admin.app */,
+				111999632EDD56030099BCD8 /* SSA-AdminTests.xctest */,
+				1119996D2EDD56030099BCD8 /* SSA-AdminUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		111999822EDD57150099BCD8 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				111999802EDD57150099BCD8 /* ContentView.swift */,
+				111999812EDD57150099BCD8 /* SSAAdminiPadApp.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		111999842EDD57150099BCD8 /* Auth */ = {
+			isa = PBXGroup;
+			children = (
+				111999832EDD57150099BCD8 /* LoginView.swift */,
+			);
+			path = Auth;
+			sourceTree = "<group>";
+		};
+		111999862EDD57150099BCD8 /* Events */ = {
+			isa = PBXGroup;
+			children = (
+				111999852EDD57150099BCD8 /* EventsView.swift */,
+			);
+			path = Events;
+			sourceTree = "<group>";
+		};
+		111999882EDD57150099BCD8 /* Locations */ = {
+			isa = PBXGroup;
+			children = (
+				111999872EDD57150099BCD8 /* LocationsView.swift */,
+			);
+			path = Locations;
+			sourceTree = "<group>";
+		};
+		1119998A2EDD57150099BCD8 /* OCRTest */ = {
+			isa = PBXGroup;
+			children = (
+				111999892EDD57150099BCD8 /* OCRTestView.swift */,
+			);
+			path = OCRTest;
+			sourceTree = "<group>";
+		};
+		1119998C2EDD57150099BCD8 /* Routes */ = {
+			isa = PBXGroup;
+			children = (
+				1119998B2EDD57150099BCD8 /* RoutesView.swift */,
+			);
+			path = Routes;
+			sourceTree = "<group>";
+		};
+		1119998D2EDD57150099BCD8 /* Features */ = {
+			isa = PBXGroup;
+			children = (
+				111999862EDD57150099BCD8 /* Events */,
+				111999882EDD57150099BCD8 /* Locations */,
+				1119998A2EDD57150099BCD8 /* OCRTest */,
+				1119998C2EDD57150099BCD8 /* Routes */,
+			);
+			path = Features;
+			sourceTree = "<group>";
+		};
+		1119998E2EDD57150099BCD8 /* Components */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Components;
+			sourceTree = "<group>";
+		};
+		111999902EDD57150099BCD8 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				1119998F2EDD57150099BCD8 /* DataModels.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		111999922EDD57150099BCD8 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				111999912EDD57150099BCD8 /* SupabaseService.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		111999952EDD57150099BCD8 /* Utils */ = {
+			isa = PBXGroup;
+			children = (
+				111999932EDD57150099BCD8 /* DateUtils.swift */,
+				111999942EDD57150099BCD8 /* StringUtils.swift */,
+			);
+			path = Utils;
+			sourceTree = "<group>";
+		};
+		111999962EDD57150099BCD8 /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				1119998E2EDD57150099BCD8 /* Components */,
+				111999902EDD57150099BCD8 /* Models */,
+				111999922EDD57150099BCD8 /* Services */,
+				111999952EDD57150099BCD8 /* Utils */,
+			);
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		111999A32EDD58F80099BCD8 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		111999552EDD56000099BCD8 /* SSA-Admin */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 111999772EDD56030099BCD8 /* Build configuration list for PBXNativeTarget "SSA-Admin" */;
+			buildPhases = (
+				111999522EDD56000099BCD8 /* Sources */,
+				111999532EDD56000099BCD8 /* Frameworks */,
+				111999542EDD56000099BCD8 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				111999582EDD56000099BCD8 /* SSA-Admin */,
+			);
+			name = "SSA-Admin";
+			packageProductDependencies = (
+				111999B12EDD5EFC0099BCD8 /* Auth */,
+				111999B32EDD5EFC0099BCD8 /* Functions */,
+				111999B52EDD5EFC0099BCD8 /* PostgREST */,
+				111999B72EDD5EFC0099BCD8 /* Realtime */,
+				111999B92EDD5EFC0099BCD8 /* Storage */,
+				111999BB2EDD5EFC0099BCD8 /* Supabase */,
+			);
+			productName = "SSA-Admin";
+			productReference = 111999562EDD56000099BCD8 /* SSA-Admin.app */;
+			productType = "com.apple.product-type.application";
+		};
+		111999622EDD56030099BCD8 /* SSA-AdminTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1119997A2EDD56030099BCD8 /* Build configuration list for PBXNativeTarget "SSA-AdminTests" */;
+			buildPhases = (
+				1119995F2EDD56030099BCD8 /* Sources */,
+				111999602EDD56030099BCD8 /* Frameworks */,
+				111999612EDD56030099BCD8 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				111999652EDD56030099BCD8 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				111999662EDD56030099BCD8 /* SSA-AdminTests */,
+			);
+			name = "SSA-AdminTests";
+			packageProductDependencies = (
+			);
+			productName = "SSA-AdminTests";
+			productReference = 111999632EDD56030099BCD8 /* SSA-AdminTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		1119996C2EDD56030099BCD8 /* SSA-AdminUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1119997D2EDD56030099BCD8 /* Build configuration list for PBXNativeTarget "SSA-AdminUITests" */;
+			buildPhases = (
+				111999692EDD56030099BCD8 /* Sources */,
+				1119996A2EDD56030099BCD8 /* Frameworks */,
+				1119996B2EDD56030099BCD8 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				1119996F2EDD56030099BCD8 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				111999702EDD56030099BCD8 /* SSA-AdminUITests */,
+			);
+			name = "SSA-AdminUITests";
+			packageProductDependencies = (
+			);
+			productName = "SSA-AdminUITests";
+			productReference = 1119996D2EDD56030099BCD8 /* SSA-AdminUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		1119994E2EDD56000099BCD8 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2610;
+				LastUpgradeCheck = 2610;
+				TargetAttributes = {
+					111999552EDD56000099BCD8 = {
+						CreatedOnToolsVersion = 26.1.1;
+					};
+					111999622EDD56030099BCD8 = {
+						CreatedOnToolsVersion = 26.1.1;
+						TestTargetID = 111999552EDD56000099BCD8;
+					};
+					1119996C2EDD56030099BCD8 = {
+						CreatedOnToolsVersion = 26.1.1;
+						TestTargetID = 111999552EDD56000099BCD8;
+					};
+				};
+			};
+			buildConfigurationList = 111999512EDD56000099BCD8 /* Build configuration list for PBXProject "SSA-Admin" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 1119994D2EDD56000099BCD8;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				111999B02EDD5E170099BCD8 /* XCRemoteSwiftPackageReference "supabase-swift" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 111999572EDD56000099BCD8 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				111999552EDD56000099BCD8 /* SSA-Admin */,
+				111999622EDD56030099BCD8 /* SSA-AdminTests */,
+				1119996C2EDD56030099BCD8 /* SSA-AdminUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		111999542EDD56000099BCD8 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		111999612EDD56030099BCD8 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		1119996B2EDD56030099BCD8 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		111999522EDD56000099BCD8 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				111999972EDD57150099BCD8 /* LoginView.swift in Sources */,
+				111999982EDD57150099BCD8 /* ContentView.swift in Sources */,
+				111999992EDD57150099BCD8 /* OCRTestView.swift in Sources */,
+				1119999A2EDD57150099BCD8 /* DataModels.swift in Sources */,
+				1119999B2EDD57150099BCD8 /* DateUtils.swift in Sources */,
+				1119999C2EDD57150099BCD8 /* LocationsView.swift in Sources */,
+				1119999D2EDD57150099BCD8 /* EventsView.swift in Sources */,
+				1119999E2EDD57150099BCD8 /* SupabaseService.swift in Sources */,
+				1119999F2EDD57150099BCD8 /* RoutesView.swift in Sources */,
+				111999A02EDD57150099BCD8 /* SSAAdminiPadApp.swift in Sources */,
+				111999A12EDD57150099BCD8 /* StringUtils.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		1119995F2EDD56030099BCD8 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		111999692EDD56030099BCD8 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		111999652EDD56030099BCD8 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 111999552EDD56000099BCD8 /* SSA-Admin */;
+			targetProxy = 111999642EDD56030099BCD8 /* PBXContainerItemProxy */;
+		};
+		1119996F2EDD56030099BCD8 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 111999552EDD56000099BCD8 /* SSA-Admin */;
+			targetProxy = 1119996E2EDD56030099BCD8 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		111999752EDD56030099BCD8 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = XY4AU78N59;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.1;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		111999762EDD56030099BCD8 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = XY4AU78N59;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.1;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		111999782EDD56030099BCD8 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = XY4AU78N59;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.dellaquila.SSA-Admin";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		111999792EDD56030099BCD8 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = XY4AU78N59;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.dellaquila.SSA-Admin";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		1119997B2EDD56030099BCD8 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = XY4AU78N59;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.1;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.dellaquila.SSA-AdminTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/SSA-Admin.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/SSA-Admin";
+			};
+			name = Debug;
+		};
+		1119997C2EDD56030099BCD8 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = XY4AU78N59;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.1;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.dellaquila.SSA-AdminTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/SSA-Admin.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/SSA-Admin";
+			};
+			name = Release;
+		};
+		1119997E2EDD56030099BCD8 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = XY4AU78N59;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.dellaquila.SSA-AdminUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = "SSA-Admin";
+			};
+			name = Debug;
+		};
+		1119997F2EDD56030099BCD8 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = XY4AU78N59;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.dellaquila.SSA-AdminUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = "SSA-Admin";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		111999512EDD56000099BCD8 /* Build configuration list for PBXProject "SSA-Admin" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				111999752EDD56030099BCD8 /* Debug */,
+				111999762EDD56030099BCD8 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		111999772EDD56030099BCD8 /* Build configuration list for PBXNativeTarget "SSA-Admin" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				111999782EDD56030099BCD8 /* Debug */,
+				111999792EDD56030099BCD8 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		1119997A2EDD56030099BCD8 /* Build configuration list for PBXNativeTarget "SSA-AdminTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1119997B2EDD56030099BCD8 /* Debug */,
+				1119997C2EDD56030099BCD8 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		1119997D2EDD56030099BCD8 /* Build configuration list for PBXNativeTarget "SSA-AdminUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1119997E2EDD56030099BCD8 /* Debug */,
+				1119997F2EDD56030099BCD8 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		111999B02EDD5E170099BCD8 /* XCRemoteSwiftPackageReference "supabase-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/supabase/supabase-swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.5.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		111999B12EDD5EFC0099BCD8 /* Auth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 111999B02EDD5E170099BCD8 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Auth;
+		};
+		111999B32EDD5EFC0099BCD8 /* Functions */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 111999B02EDD5E170099BCD8 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Functions;
+		};
+		111999B52EDD5EFC0099BCD8 /* PostgREST */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 111999B02EDD5E170099BCD8 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = PostgREST;
+		};
+		111999B72EDD5EFC0099BCD8 /* Realtime */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 111999B02EDD5E170099BCD8 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Realtime;
+		};
+		111999B92EDD5EFC0099BCD8 /* Storage */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 111999B02EDD5E170099BCD8 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Storage;
+		};
+		111999BB2EDD5EFC0099BCD8 /* Supabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 111999B02EDD5E170099BCD8 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Supabase;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 1119994E2EDD56000099BCD8 /* Project object */;
+}
