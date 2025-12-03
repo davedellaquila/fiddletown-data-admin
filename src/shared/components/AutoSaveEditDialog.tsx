@@ -194,6 +194,7 @@ export default function AutoSaveEditDialog<T extends Record<string, any>>({
           maxHeight: '90vh', 
           overflow: 'hidden',
           boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+          border: darkMode ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid rgba(0, 0, 0, 0.1)',
           display: 'flex',
           flexDirection: 'column'
         }}

@@ -2393,112 +2393,6 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
                   Event Image
                 </label>
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-                  <label
-                    className="btn"
-                    style={{
-                      display: 'inline-flex',
-                      cursor: 'pointer',
-                      alignItems: 'center',
-                      gap: '6px',
-                      padding: '8px 12px',
-                      background: darkMode ? '#374151' : '#ffffff',
-                      border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`,
-                      color: darkMode ? '#f9fafb' : '#374151',
-                      borderRadius: '6px'
-                    }}
-                    title="Upload event image"
-                  >
-                    <span>📁</span>
-                    <span>Upload</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={async (e) => {
-                        const file = e.target.files?.[0]
-                        if (!file || !editing) return
-                        try {
-                          const base = (editing.slug || slugify(editing.name)) || crypto.randomUUID()
-                          const path = `${base}/${Date.now()}-${file.name.replace(/\s+/g, '_')}`
-                          const { error } = await supabase.storage.from('event-images').upload(path, file, {
-                            cacheControl: '3600',
-                            upsert: false,
-                            contentType: file.type || 'image/*'
-                          })
-                          if (error) { alert(`Upload failed: ${error.message}`); return }
-                          const { data } = supabase.storage.from('event-images').getPublicUrl(path)
-                          
-                          // Run OCR on the image to extract text
-                          console.log('Starting OCR on uploaded image...')
-                          try {
-                            console.log('Running optimized OCR...')
-                            const text = await runOptimizedOCR(file)
-                            console.log('OCR completed. Extracted text:', text)
-                            
-                            if (!text) {
-                              console.warn('No text extracted from image')
-                              setEditing({ ...editing, image_url: data.publicUrl })
-                              return
-                            }
-                            
-                            const parsed = parseEventText(text)
-                            console.log('Parsed event data:', parsed)
-                            
-                            const updates: Partial<EventRow> = {
-                              image_url: data.publicUrl,
-                              ocr_text: text,
-                            }
-                            
-                            if (parsed.name && parsed.name.trim()) {
-                              const shouldUpdateName = !editing.name || editing.name === 'Untitled Event' || (editing.name && editing.name.trim() === '')
-                              if (shouldUpdateName) {
-                                updates.name = parsed.name
-                                updates.slug = slugify(parsed.name)
-                                console.log('Updating name to:', parsed.name)
-                              }
-                            }
-                            // Always apply parsed dates/times when they exist
-                            console.log('Parsed data:', parsed)
-                            if (parsed.start_date) {
-                              updates.start_date = parsed.start_date
-                              console.log('Setting start_date to:', parsed.start_date)
-                            }
-                            if (parsed.end_date) {
-                              updates.end_date = parsed.end_date
-                              console.log('Setting end_date to:', parsed.end_date)
-                            }
-                            if (parsed.start_time) {
-                              updates.start_time = parsed.start_time
-                              console.log('Setting start_time to:', parsed.start_time)
-                            }
-                            if (parsed.end_time) {
-                              updates.end_time = parsed.end_time
-                              console.log('Setting end_time to:', parsed.end_time)
-                            }
-                            if (parsed.location) {
-                              updates.location = parsed.location
-                            }
-                            if (parsed.host_org) {
-                              updates.host_org = parsed.host_org
-                            }
-                            if (parsed.website_url) {
-                              updates.website_url = parsed.website_url
-                            }
-                            
-                            console.log('Final updates to apply:', updates)
-                            setEditing({ ...editing, ...updates })
-                            console.log('State updated successfully')
-                          } catch (ocrError: any) {
-                            console.error('OCR failed:', ocrError)
-                            alert(`OCR failed: ${ocrError?.message || 'Unknown error'}`)
-                            setEditing({ ...editing, image_url: data.publicUrl })
-                          }
-                        } finally {
-                          e.currentTarget.value = ''
-                        }
-                      }}
-                      style={{ display: 'none' }}
-                    />
-                  </label>
                   <div
                     ref={imagePasteRef}
                     onClick={() => {
@@ -2627,6 +2521,112 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
                   >
                     {imagePasteStatus}
                   </div>
+                  <label
+                    className="btn"
+                    style={{
+                      display: 'inline-flex',
+                      cursor: 'pointer',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '8px 12px',
+                      background: darkMode ? '#374151' : '#ffffff',
+                      border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`,
+                      color: darkMode ? '#f9fafb' : '#374151',
+                      borderRadius: '6px'
+                    }}
+                    title="Upload event image"
+                  >
+                    <span>📁</span>
+                    <span>Upload</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0]
+                        if (!file || !editing) return
+                        try {
+                          const base = (editing.slug || slugify(editing.name)) || crypto.randomUUID()
+                          const path = `${base}/${Date.now()}-${file.name.replace(/\s+/g, '_')}`
+                          const { error } = await supabase.storage.from('event-images').upload(path, file, {
+                            cacheControl: '3600',
+                            upsert: false,
+                            contentType: file.type || 'image/*'
+                          })
+                          if (error) { alert(`Upload failed: ${error.message}`); return }
+                          const { data } = supabase.storage.from('event-images').getPublicUrl(path)
+                          
+                          // Run OCR on the image to extract text
+                          console.log('Starting OCR on uploaded image...')
+                          try {
+                            console.log('Running optimized OCR...')
+                            const text = await runOptimizedOCR(file)
+                            console.log('OCR completed. Extracted text:', text)
+                            
+                            if (!text) {
+                              console.warn('No text extracted from image')
+                              setEditing({ ...editing, image_url: data.publicUrl })
+                              return
+                            }
+                            
+                            const parsed = parseEventText(text)
+                            console.log('Parsed event data:', parsed)
+                            
+                            const updates: Partial<EventRow> = {
+                              image_url: data.publicUrl,
+                              ocr_text: text,
+                            }
+                            
+                            if (parsed.name && parsed.name.trim()) {
+                              const shouldUpdateName = !editing.name || editing.name === 'Untitled Event' || (editing.name && editing.name.trim() === '')
+                              if (shouldUpdateName) {
+                                updates.name = parsed.name
+                                updates.slug = slugify(parsed.name)
+                                console.log('Updating name to:', parsed.name)
+                              }
+                            }
+                            // Always apply parsed dates/times when they exist
+                            console.log('Parsed data:', parsed)
+                            if (parsed.start_date) {
+                              updates.start_date = parsed.start_date
+                              console.log('Setting start_date to:', parsed.start_date)
+                            }
+                            if (parsed.end_date) {
+                              updates.end_date = parsed.end_date
+                              console.log('Setting end_date to:', parsed.end_date)
+                            }
+                            if (parsed.start_time) {
+                              updates.start_time = parsed.start_time
+                              console.log('Setting start_time to:', parsed.start_time)
+                            }
+                            if (parsed.end_time) {
+                              updates.end_time = parsed.end_time
+                              console.log('Setting end_time to:', parsed.end_time)
+                            }
+                            if (parsed.location) {
+                              updates.location = parsed.location
+                            }
+                            if (parsed.host_org) {
+                              updates.host_org = parsed.host_org
+                            }
+                            if (parsed.website_url) {
+                              updates.website_url = parsed.website_url
+                            }
+                            
+                            console.log('Final updates to apply:', updates)
+                            setEditing({ ...editing, ...updates })
+                            console.log('State updated successfully')
+                          } catch (ocrError: any) {
+                            console.error('OCR failed:', ocrError)
+                            alert(`OCR failed: ${ocrError?.message || 'Unknown error'}`)
+                            setEditing({ ...editing, image_url: data.publicUrl })
+                          }
+                        } finally {
+                          e.currentTarget.value = ''
+                        }
+                      }}
+                      style={{ display: 'none' }}
+                    />
+                  </label>
                   {editing?.image_url && (
                     <div
                       style={{ display: 'inline-block' }}
