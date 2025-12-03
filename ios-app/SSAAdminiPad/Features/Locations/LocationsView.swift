@@ -323,3 +323,4 @@ struct LocationEditView: View {
     LocationsView(darkMode: false, sidebarCollapsed: false)
 }
 
+
