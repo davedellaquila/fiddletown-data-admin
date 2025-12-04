@@ -8,9 +8,13 @@ import OCRTest from './features/OCRTest'
 
 type View = 'locations' | 'events' | 'routes' | 'ocr-test'
 
+// Development mode: Set to true to bypass authentication
+// Set to false for production
+const IS_DEVELOPMENT_MODE = import.meta.env.DEV || import.meta.env.MODE === 'development'
+
 export default function App() {
   console.log('App component rendering...')
-  const [session, setSession] = useState<any>(null)
+  const [session, setSession] = useState<any>(IS_DEVELOPMENT_MODE ? { user: { email: 'dev@localhost' } } : null)
   const [email, setEmail] = useState('')
   const [sending, setSending] = useState(false)
   const [sent, setSent] = useState<null | { to: string }>(null)
@@ -28,6 +32,12 @@ export default function App() {
   })
 
   useEffect(() => {
+    // In development mode, skip authentication setup
+    if (IS_DEVELOPMENT_MODE) {
+      console.log('Development mode: Authentication bypassed')
+      return
+    }
+    
     console.log('Setting up auth...')
     try {
       supabase.auth.getSession().then(({ data }) => {
@@ -110,7 +120,8 @@ export default function App() {
 
   
 
-  if (!session) {
+  // In development mode, always show the app content
+  if (!session && !IS_DEVELOPMENT_MODE) {
     return (
       <div style={{ position: 'relative', minHeight: '100vh', overflow: 'hidden', background: darkMode ? '#0b1020' : '#0b1020' }}>
         {/* Modern layered gradient background */}
@@ -284,7 +295,14 @@ export default function App() {
           {!sidebarCollapsed && (
             <button 
               className="btn" 
-              onClick={() => supabase.auth.signOut()} 
+              onClick={() => {
+                if (IS_DEVELOPMENT_MODE) {
+                  // In development mode, just reload the page
+                  window.location.reload()
+                } else {
+                  supabase.auth.signOut()
+                }
+              }} 
               style={{ 
                 marginTop: 8,
                 width: '100%',
@@ -293,7 +311,7 @@ export default function App() {
                 color: darkMode ? '#f9fafb' : '#374151'
               }}
             >
-              Sign out
+              {IS_DEVELOPMENT_MODE ? 'Reload (Dev)' : 'Sign out'}
             </button>
           )}
         </div>

@@ -14,6 +14,14 @@ class SupabaseService: ObservableObject {
     
     let client: SupabaseClient
     
+    // Development mode: Set to true to bypass authentication
+    // Set to false for production
+    #if DEBUG
+    private let isDevelopmentMode = true
+    #else
+    private let isDevelopmentMode = false
+    #endif
+    
     private init() {
         #if DEBUG
         if ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] == "1" {
@@ -43,6 +51,11 @@ class SupabaseService: ObservableObject {
     }
     
     func getCurrentSession() async throws -> Session? {
+        // In development mode, return nil but allow app to proceed
+        // The app will show ContentView even without a session
+        if isDevelopmentMode {
+            return nil
+        }
         let session = try await client.auth.session
         return session
     }

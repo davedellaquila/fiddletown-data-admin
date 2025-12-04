@@ -100,7 +100,13 @@ struct SidebarView: View {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button("Sign Out") {
                     Task {
+                        // In development mode, sign out is disabled
+                        // Set isDevelopmentMode to false in SSA_AdminApp.swift for production
+                        #if DEBUG
+                        // Development mode: do nothing or show alert
+                        #else
                         try? await supabaseService.signOut()
+                        #endif
                     }
                 }
             }

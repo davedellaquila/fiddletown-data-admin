@@ -1,9 +1,28 @@
 /**
  * Shared date utility functions
+ * 
+ * These functions must behave identically in both TypeScript and Swift implementations.
+ * See docs/SHARED_LOGIC.md for business logic contracts.
+ * 
+ * @see docs/SHARED_LOGIC.md - Business logic contracts
+ * @see web/shared/utils/README.md - Detailed documentation and test cases
  */
 
 /**
  * Format a Date object to ISO date string (YYYY-MM-DD)
+ * 
+ * Uses ISO 8601 date format with UTC timezone for consistency.
+ * 
+ * @param date - JavaScript Date object to format
+ * @returns ISO date string in format YYYY-MM-DD
+ * 
+ * @example
+ * ```typescript
+ * formatISO(new Date(2024, 0, 15)) // "2024-01-15"
+ * formatISO(new Date(2024, 11, 31)) // "2024-12-31"
+ * ```
+ * 
+ * @see docs/SHARED_LOGIC.md#date-formatting
  */
 export function formatISO(date: Date): string {
   return date.toISOString().slice(0, 10)
@@ -11,6 +30,21 @@ export function formatISO(date: Date): string {
 
 /**
  * Format time string to 12-hour AM/PM format
+ * 
+ * Converts 24-hour time format (HH:MM or HH:MM:SS) to 12-hour format with AM/PM.
+ * 
+ * @param timeStr - Time string in 24-hour format (HH:MM or HH:MM:SS), or null
+ * @returns 12-hour format string (e.g., "2:30 PM") or "—" for null input
+ * 
+ * @example
+ * ```typescript
+ * formatTimeToAMPM("00:30") // "12:30 AM"
+ * formatTimeToAMPM("09:15") // "9:15 AM"
+ * formatTimeToAMPM("14:30") // "2:30 PM"
+ * formatTimeToAMPM(null) // "—"
+ * ```
+ * 
+ * @see docs/SHARED_LOGIC.md#time-formatting
  */
 export function formatTimeToAMPM(timeStr: string | null): string {
   if (!timeStr) return '—'
@@ -35,6 +69,33 @@ export function formatTimeToAMPM(timeStr: string | null): string {
 
 /**
  * Convert time string to 24-hour format (HH:MM)
+ * 
+ * Supports multiple input formats and converts them to 24-hour format.
+ * Handles abbreviated formats, 12-hour format, 24-hour format, and single numbers.
+ * 
+ * @param timeStr - Time string in various formats (see examples)
+ * @param isEndTime - Whether this is an end time (affects AM/PM inference for ambiguous cases)
+ * @param startTime - Start time for context when inferring AM/PM for end times
+ * @returns 24-hour format string (HH:MM) or null if invalid
+ * 
+ * @example
+ * ```typescript
+ * convertTo24Hour("2:30 PM") // "14:30"
+ * convertTo24Hour("9:15 AM") // "09:15"
+ * convertTo24Hour("2p") // "14:00"
+ * convertTo24Hour("7", false) // "07:00" (start time)
+ * convertTo24Hour("7", true) // "19:00" (end time)
+ * convertTo24Hour("invalid") // null
+ * ```
+ * 
+ * Supported formats:
+ * - Abbreviated: "2p", "9a", "2:30p", "12a"
+ * - 12-hour: "2:30 PM", "9:15 AM", "12:00 PM"
+ * - 24-hour: "14:30", "09:15"
+ * - Single number with suffix: "1P", "9A", "12P"
+ * - Single number: "7", "9", "10", "11", "12"
+ * 
+ * @see docs/SHARED_LOGIC.md#time-formatting
  */
 export function convertTo24Hour(
   timeStr: string | null, 
@@ -152,6 +213,24 @@ export function convertTo24Hour(
 
 /**
  * Normalize URL string (add https:// if missing)
+ * 
+ * Ensures URLs have a protocol prefix. If the URL already has http:// or https://,
+ * it is returned as-is. Otherwise, https:// is prepended.
+ * 
+ * @param u - URL string to normalize, or null/undefined
+ * @returns Normalized URL string with protocol, or empty string for null/empty input
+ * 
+ * @example
+ * ```typescript
+ * normalizeUrl("example.com") // "https://example.com"
+ * normalizeUrl("https://example.com") // "https://example.com"
+ * normalizeUrl("http://example.com") // "http://example.com"
+ * normalizeUrl("  example.com  ") // "https://example.com"
+ * normalizeUrl(null) // ""
+ * ```
+ * 
+ * @see docs/SHARED_LOGIC.md#url-normalization
+ * @deprecated This function will be moved to urlUtils.ts in a future update
  */
 export function normalizeUrl(u?: string | null): string {
   if (!u) return ''
