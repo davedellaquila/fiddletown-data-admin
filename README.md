@@ -1,21 +1,29 @@
-# SSA Admin (Supabase + React + Vite)
+# SSA Admin
 
-Minimal local admin for managing `wineries` in your Supabase DB.
+Admin application for managing SSA (Sierra Sacramento Valley) data, available as both a web application and iOS applications.
 
-## Quick Start
-1) Download and unzip this folder.
-2) Create `.env.local` in the project root with:
-   ```
-   VITE_SUPABASE_URL=https://YOUR-PROJECT.supabase.co
-   VITE_SUPABASE_ANON_KEY=YOUR-ANON-KEY
-   ```
-3) Install + run:
-   ```bash
-   npm install
-   npm run dev
-   ```
-4) Open http://localhost:5173 and sign in via magic link.
+## Project Structure
 
-## Notes
-- RLS policies must be created in your Supabase project as provided earlier.
-- This MVP only includes the Wineries screen; Events/Routes can be added similarly.
+```
+/
+├── web/              # Web application (React + Vite)
+├── ios/              # iOS applications (Swift)
+├── migrations/       # Database migrations
+└── docs/             # Documentation
+```
+
+## Web Application
+
+See [web/README.md](web/README.md) for web app setup and usage.
+
+## iOS Applications
+
+See [ios/README.md](ios/README.md) for iOS app information.
+
+## Database Migrations
+
+Database migrations are located in the `migrations/` directory and should be run against your Supabase project.
+
+## Documentation
+
+Additional documentation can be found in the `docs/` directory.

@@ -1,1 +1,0 @@
-[  ] make repeat events smarter. if an event is set to weekly, it should appear every week until the end date.
