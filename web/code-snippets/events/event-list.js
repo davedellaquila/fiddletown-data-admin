@@ -48,9 +48,6 @@
 	  //  - start_date >= from (events starting on or after the selected date)
 	  //  - OR (both dates are null) (undated events)
 	  // Note: We exclude events that start before 'from' even if they span across it
-	  // Handle date filters - PostgREST DATE column comparison appears to have an off-by-one issue
-	  // When comparing date strings, it seems to interpret them as one day earlier
-	  // Solution: Use the exact date the user selected, but adjust the comparison to account for this
 	  
 	  console.log('Checking date filters - from:', from, 'to:', to, 'from truthy:', !!from, 'to truthy:', !!to);
 	  
@@ -58,45 +55,49 @@
 	    // Normalize date string to ensure YYYY-MM-DD format
 	    const fromDateStr = normalizeDateString(from);
 	    
-	    // The issue: When we send "2024-12-04", PostgREST seems to compare it as "2024-12-03"
-	    // To fix: Use 'gt' (greater than) with the day BEFORE the selected date
-	    // This way: gt.2024-12-03 will include 2024-12-04 and later (which is what we want)
+	    // PostgREST appears to interpret date strings as one day earlier (likely timezone issue)
+	    // To compensate: Add one day to the FROM date so that when PostgREST interprets it,
+	    // it will match the date the user actually selected
+	    // Example: User selects Dec 4 -> we send Dec 5 -> PostgREST interprets as Dec 4 -> correct!
 	    const [year, month, day] = fromDateStr.split('-').map(Number);
 	    const fromDate = new Date(year, month - 1, day);
-	    fromDate.setDate(fromDate.getDate() - 1); // Subtract one day
-	    const dayBefore = `${fromDate.getFullYear()}-${String(fromDate.getMonth() + 1).padStart(2, '0')}-${String(fromDate.getDate()).padStart(2, '0')}`;
+	    fromDate.setDate(fromDate.getDate() + 1); // Add one day to compensate
+	    const adjustedFrom = `${fromDate.getFullYear()}-${String(fromDate.getMonth() + 1).padStart(2, '0')}-${String(fromDate.getDate()).padStart(2, '0')}`;
 	    
-	    // Use gt (greater than) with the day before to get events on/after the selected date
+	    // Use gte (greater than or equal) with the adjusted date
+	    // This will include events starting on or after the selected date
 	    // Only include events that START on or after the from date, or undated events
 	    const orFilter =
-	      `(start_date.gt.${dayBefore},and(start_date.is.null,end_date.is.null))`;
-	    console.log('Setting OR filter with dayBefore:', dayBefore, 'orFilter:', orFilter);
+	      `(start_date.gte.${adjustedFrom},and(start_date.is.null,end_date.is.null))`;
+	    console.log('Setting OR filter - user selected:', fromDateStr, 'adjusted to:', adjustedFrom, 'orFilter:', orFilter);
 	    api.searchParams.set('or', orFilter);
 	  } else {
 	    console.log('FROM date is falsy, skipping from date filter');
 	  }
 	  
 	  if (to) {
-	    // Normalize date string
+	    // Normalize date string to ensure YYYY-MM-DD format
 	    const toDateStr = normalizeDateString(to);
 	    
-	    // The issue: When we send "2024-12-07", PostgREST seems to compare it as "2024-12-06"
-	    // To fix: Use 'lt' (less than) with the day AFTER the selected date
-	    // This way: lt.2024-12-08 will include up to 2024-12-07 (which is what we want)
+	    // PostgREST appears to interpret date strings as one day earlier (likely timezone issue)
+	    // To compensate: Add one day to the TO date so that when PostgREST interprets it,
+	    // it will match the date the user actually selected
+	    // Example: User selects Dec 7 -> we send Dec 8 -> PostgREST interprets as Dec 7 -> correct!
 	    const [year, month, day] = toDateStr.split('-').map(Number);
-	    const endDate = new Date(year, month - 1, day);
-	    endDate.setDate(endDate.getDate() + 1); // Add one day
-	    const dayAfter = `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}`;
+	    const toDate = new Date(year, month - 1, day);
+	    toDate.setDate(toDate.getDate() + 1); // Add one day to compensate
+	    const adjustedTo = `${toDate.getFullYear()}-${String(toDate.getMonth() + 1).padStart(2, '0')}-${String(toDate.getDate()).padStart(2, '0')}`;
 	    
-	    // Use lt (less than) with the day after to include events up to the selected end date
+	    // Use lte (less than or equal) with the adjusted date
+	    // This will include events starting on or before the selected end date
 	    // Combine with existing 'or' filter if 'from' is also set
 	    const existingOr = api.searchParams.get('or');
-	    console.log('Setting TO filter with dayAfter:', dayAfter, 'existingOr:', existingOr);
+	    console.log('Setting TO filter - user selected:', toDateStr, 'adjusted to:', adjustedTo, 'existingOr:', existingOr);
 	    if (existingOr) {
-	      // Combine: (or filter) AND (start_date < dayAfter)
-	      api.searchParams.set('start_date', `lt.${dayAfter}`);
+	      // Combine: (or filter) AND (start_date <= adjustedTo)
+	      api.searchParams.set('start_date', `lte.${adjustedTo}`);
 	    } else {
-	      api.searchParams.set('start_date', `lt.${dayAfter}`);
+	      api.searchParams.set('start_date', `lte.${adjustedTo}`);
 	    }
 	  } else {
 	    console.log('TO date is falsy, skipping to date filter');
@@ -575,20 +576,19 @@
         
         // Create unique event ID - use database ID if available, otherwise create hash
         const eventId = event.id ? `event-${event.id}` : `event-${btoa(event.name + (event.start_date || '')).replace(/[^a-zA-Z0-9]/g, '').substring(0, 10)}`;
-        const hasImage = event.image_url && event.image_url.trim();
+        const hasImageUrl = event.image_url && event.image_url.trim();
+        const showImage = hasImageUrl && state.showImages;
         
-        html += `<li class="ssa-event-item" data-event-id="${eventId}" data-event-image="${hasImage ? event.image_url : ''}">`;
+        html += `<li class="ssa-event-item" data-event-id="${eventId}" data-event-image="${hasImageUrl ? event.image_url : ''}">`;
         html += `<div class="ssa-event-content">`;
         
-        // Event image on the left
-        if (hasImage) {
+        // Event image on the left (only if showImages is enabled)
+        if (showImage) {
           html += `<div class="ssa-event-image-wrapper" data-event-id="${eventId}" data-image-url="${event.image_url}">`;
           html += `<img src="${event.image_url}" alt="${event.name}" class="ssa-event-image" />`;
           html += `</div>`;
-        } else {
-          // Placeholder space if no image
-          html += `<div class="ssa-event-image-wrapper ssa-event-image-placeholder"></div>`;
         }
+        // No placeholder when showImages is off - this reduces page height
         
         // Event details on the right
         html += `<div class="ssa-event-details">`;
@@ -601,8 +601,8 @@
           html += `<span class="ssa-info-icon" data-event-id="${eventId}" data-description="${event.description.replace(/"/g, '&quot;').replace(/'/g, '&#39;')}" title="Hover to view description"></span>`;
         }
         
-        // Image icon button for mobile (only if image exists)
-        if (hasImage) {
+        // Image icon button - always show if image exists (regardless of showImages checkbox)
+        if (hasImageUrl) {
           html += `<span class="ssa-image-icon-btn" data-event-id="${eventId}" data-image-url="${event.image_url}" title="Tap to view image">🖼️</span>`;
         }
         
@@ -678,20 +678,22 @@
     }
 
     const selectedKeywords = state?.selectedKeywords || [];
+    const showImages = state?.showImages || false;
     const cards = events.map(ev => {
-      const hasImage = ev.image_url && ev.image_url.trim();
-      const imageUrl = hasImage ? ev.image_url.trim() : '';
-      const imageStyle = hasImage ? `style="--card-bg-image: url('${imageUrl.replace(/'/g, "\\'")}');"` : '';
+      const hasImageUrl = ev.image_url && ev.image_url.trim();
+      const showImage = hasImageUrl && showImages;
+      const imageUrl = hasImageUrl ? ev.image_url.trim() : '';
+      const imageStyle = showImage ? `style="--card-bg-image: url('${imageUrl.replace(/'/g, "\\'")}');"` : '';
       const eventId = ev.id ? `event-${ev.id}` : `event-${btoa(ev.name + (ev.start_date || '')).replace(/[^a-zA-Z0-9]/g, '').substring(0, 10)}`;
       return `
-      <article class="ssa-card" ${hasImage ? `data-has-image="true"` : ''} ${imageStyle}>
+      <article class="ssa-card" ${showImage ? `data-has-image="true"` : ''} ${imageStyle}>
         <div class="ssa-card-content">
           <header class="ssa-card-head">
-            ${hasImage ? `<div class="ssa-card-image-icon" data-event-id="${eventId}" data-image-url="${imageUrl}" title="Click to preview image"><img src="${imageUrl}" alt="${ev.name}" class="ssa-card-icon-thumb" /></div>` : ''}
+            ${showImage ? `<div class="ssa-card-image-icon" data-event-id="${eventId}" data-image-url="${imageUrl}" title="Click to preview image"><img src="${imageUrl}" alt="${ev.name}" class="ssa-card-icon-thumb" /></div>` : ''}
             <h3 class="ssa-title">
               <span class="ssa-icon-group">
                 ${ev.description && ev.description.trim() ? `<span class="ssa-info-icon" data-event-id="${eventId}" data-description="${ev.description.replace(/"/g, '&quot;').replace(/'/g, '&#39;')}" title="Hover to view description"></span>` : ''}
-                ${hasImage ? `<span class="ssa-image-icon-btn" data-event-id="${eventId}" data-image-url="${imageUrl}" title="Tap to view image">🖼️</span>` : ''}
+                ${hasImageUrl ? `<span class="ssa-image-icon-btn" data-event-id="${eventId}" data-image-url="${imageUrl}" title="Tap to view image">🖼️</span>` : ''}
                 ${ev.location ? `<span class="ssa-location-icon-btn" data-location="${ev.location.replace(/"/g, '&quot;').replace(/'/g, '&#39;')}" title="Tap to view map">📍</span>` : ''}
               </span>
               ${ev.website_url ? `<a href="${ev.website_url}" class="ssa-event-link" target="_blank" rel="noopener">${ev.name}</a>` : `<span class="ssa-event-name">${ev.name}</span>`}
@@ -877,7 +879,7 @@
   }
 
   async function renderEvents(mount, rows, state) {
-    const { layout = LAYOUTS.LIST, selectedKeywords = [], fromDate = null, toDate = null, groupBy = 'day' } = state;
+    const { layout = LAYOUTS.LIST, selectedKeywords = [], fromDate = null, toDate = null, groupBy = 'day', showImages = false } = state;
     
     // DEBUG: Show date filters being used
     console.log('=== EVENT LIST DEBUG ===');
@@ -931,13 +933,25 @@
       controlsHTML += '</div>';
     }
     
+    // Image display toggle
+    controlsHTML += '<div class="ssa-image-toggle">';
+    controlsHTML += `<label>`;
+    controlsHTML += `<input type="checkbox" id="ssa-show-images" ${showImages ? 'checked' : ''}>`;
+    controlsHTML += `<span>Show Images</span>`;
+    controlsHTML += `</label>`;
+    controlsHTML += '</div>';
+    
     // Date range filters
     controlsHTML += '<div class="ssa-date-filters">';
-    controlsHTML += `<label>From: <input type="date" class="ssa-date-input" id="ssa-from-date" value="${fromDate || ''}"></label>`;
-    controlsHTML += `<label>To: <input type="date" class="ssa-date-input" id="ssa-to-date" value="${toDate || ''}"></label>`;
-    controlsHTML += `<button class="ssa-clear-dates" title="Clear all filters">Clear</button>`;
+    controlsHTML += '<div class="ssa-weekend-buttons-row">';
     controlsHTML += `<button class="ssa-weekend-btn" title="Set date range to upcoming weekend">📅 This Weekend</button>`;
     controlsHTML += `<button class="ssa-weekend-btn ssa-next-weekend-btn" title="Set date range to next weekend">📅 Next Weekend</button>`;
+    controlsHTML += '</div>';
+    controlsHTML += '<div class="ssa-date-inputs-row">';
+    controlsHTML += `<label>From: <input type="date" class="ssa-date-input" id="ssa-from-date" value="${fromDate || ''}"></label>`;
+    controlsHTML += `<label>To: <input type="date" class="ssa-date-input" id="ssa-to-date" value="${toDate || ''}"></label>`;
+    controlsHTML += '</div>';
+    controlsHTML += `<button class="ssa-clear-dates" title="Clear all filters">Clear</button>`;
     controlsHTML += '</div>';
     
     // Keyword filters - display all keywords from the system
@@ -1038,6 +1052,16 @@
           // Fallback: filter client-side if opts not available
           await renderEvents(mount, rows, newState);
         }
+      });
+    }
+    
+    // Image display toggle checkbox
+    const showImagesCheckbox = mount.querySelector('#ssa-show-images');
+    if (showImagesCheckbox) {
+      showImagesCheckbox.addEventListener('change', async function() {
+        const newState = { ...state, showImages: this.checked };
+        // Re-render events with updated image display setting (no need to reload from server)
+        await renderEvents(mount, rows, newState);
       });
     }
     
@@ -1968,6 +1992,11 @@
       .ssa-group-switcher-wrapper{display:flex;align-items:center;gap:8px}
       .ssa-control-label{font-size:0.875rem;font-weight:500;color:#374151;white-space:nowrap}
       body.dark-mode .ssa-control-label{color:#f9fafb!important}
+      .ssa-image-toggle{display:flex;align-items:center;gap:8px}
+      .ssa-image-toggle label{display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none}
+      .ssa-image-toggle input[type="checkbox"]{width:18px;height:18px;cursor:pointer;accent-color:#10b981}
+      .ssa-image-toggle span{font-size:0.875rem;color:#374151}
+      body.dark-mode .ssa-image-toggle span{color:#f9fafb}
       .ssa-layout-switcher{display:flex;gap:4px}
       .ssa-layout-btn{padding:8px 12px;border:1px solid #d1d5db;border-radius:6px;background:#fff;color:#374151;cursor:pointer;font-size:1.2rem;transition:all 0.2s}
       .ssa-layout-btn:hover{background:#f9fafb;border-color:#9ca3af}
@@ -1981,6 +2010,8 @@
       body.dark-mode .ssa-group-btn.ssa-active{background:transparent!important;border-color:#3b82f6!important;color:#3b82f6!important}
       body.dark-mode .ssa-group-btn.ssa-active:hover{background:transparent!important;border-color:#60a5fa!important;color:#60a5fa!important}
       .ssa-date-filters{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+      .ssa-weekend-buttons-row{display:flex;flex-wrap:nowrap;gap:12px;align-items:center}
+      .ssa-date-inputs-row{display:flex;flex-wrap:nowrap;gap:12px;align-items:center}
       .ssa-date-filters label{display:flex;align-items:center;gap:6px;font-size:0.875rem;color:#374151}
       .ssa-date-input{padding:6px 10px;border:1px solid #d1d5db;border-radius:4px;font-size:0.875rem}
       .ssa-clear-dates{padding:6px 12px;border:1px solid #d1d5db;border-radius:4px;background:#fff;color:#374151;cursor:pointer;font-size:0.875rem}
@@ -2108,10 +2139,12 @@
         .ssa-group-switcher{gap:6px}
         .ssa-group-btn{padding:10px 14px;font-size:0.9rem;min-height:44px}
         .ssa-date-filters{flex-direction:column;align-items:stretch;gap:8px}
-        .ssa-date-filters label{flex-direction:column;align-items:flex-start;gap:4px;font-size:0.9rem}
-        .ssa-date-input{width:100%;padding:10px;font-size:1rem;min-height:44px}
+        .ssa-weekend-buttons-row{display:flex;flex-wrap:nowrap;gap:8px;align-items:center}
+        .ssa-date-inputs-row{display:flex;flex-wrap:nowrap;gap:8px;align-items:center}
+        .ssa-date-filters label{flex-direction:row;align-items:center;gap:6px;font-size:0.9rem;flex:1}
+        .ssa-date-input{flex:1;padding:10px;font-size:1rem;min-height:44px}
         .ssa-clear-dates{width:100%;padding:10px;font-size:0.9rem;min-height:44px}
-        .ssa-weekend-btn{width:100%;padding:10px;font-size:0.9rem;min-height:44px}
+        .ssa-weekend-btn{flex:1;padding:10px;font-size:0.9rem;min-height:44px}
         .ssa-keyword-filters{gap:6px}
         .ssa-keyword-btn{padding:10px 14px;font-size:0.9rem;min-height:44px;border-radius:22px}
         .ssa-month-header{font-size:1.1rem;margin:20px 0 10px}
@@ -2200,7 +2233,9 @@
       layout: opts.layout || LAYOUTS.LIST,
       selectedKeywords: opts.selectedKeywords || [],
       fromDate: opts.fromDate !== undefined ? opts.fromDate : todayISO(),
-      toDate: opts.toDate || null
+      toDate: opts.toDate || null,
+      showImages: opts.showImages !== undefined ? opts.showImages : false,
+      groupBy: opts.groupBy || 'day'
     };
     
     // Store opts for reloadEvents
