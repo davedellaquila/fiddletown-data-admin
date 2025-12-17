@@ -58,6 +58,7 @@
 		111999912EDD57150099BCD8 /* SupabaseService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseService.swift; sourceTree = "<group>"; };
 		111999932EDD57150099BCD8 /* DateUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DateUtils.swift; sourceTree = "<group>"; };
 		111999942EDD57150099BCD8 /* StringUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StringUtils.swift; sourceTree = "<group>"; };
+		11CAE6E72EE2571600EF12A0 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -112,6 +113,7 @@
 		1119994D2EDD56000099BCD8 = {
 			isa = PBXGroup;
 			children = (
+				11CAE6E72EE2571600EF12A0 /* Info.plist */,
 				111999822EDD57150099BCD8 /* App */,
 				111999842EDD57150099BCD8 /* Auth */,
 				1119998D2EDD57150099BCD8 /* Features */,
@@ -571,7 +573,8 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = XY4AU78N59;
 				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -603,7 +606,8 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = XY4AU78N59;
 				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

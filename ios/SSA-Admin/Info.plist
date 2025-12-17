@@ -1,2 +1,10 @@
-VITE_SUPABASE_URL=https://ydftcebaftngcdjvxrgl.supabase.co
-VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlkZnRjZWJhZnRuZ2NkanZ4cmdsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA1NDA5NDcsImV4cCI6MjA3NjExNjk0N30.8AlcsUMJSxBlua-ehaGLAn69bbORoMBdjM--MSxxXF0
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>SUPABASE_URL</key>
+	<string>https://ydftcebaftngcdjvxrgl.supabase.co</string>
+	<key>SUPABASE_ANON_KEY</key>
+	<string>eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlkZnRjZWJhZnRuZ2NkanZ4cmdsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA1NDA5NDcsImV4cCI6MjA3NjExNjk0N30.8AlcsUMJSxBlua-ehaGLAn69bbORoMBdjM--MSxxXF0</string>
+</dict>
+</plist>

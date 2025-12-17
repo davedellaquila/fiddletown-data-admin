@@ -51,56 +51,54 @@
 	  
 	  console.log('Checking date filters - from:', from, 'to:', to, 'from truthy:', !!from, 'to truthy:', !!to);
 	  
+	  // Build filters with proper PostgREST syntax
+	  // Try using gt (greater than) with the day before for FROM
+	  // This avoids timezone interpretation issues with gte
+	  
+	  let adjustedFrom = null;
+	  let adjustedTo = null;
+	  let fromOperator = 'gte';
+	  
 	  if (from) {
-	    // Normalize date string to ensure YYYY-MM-DD format
 	    const fromDateStr = normalizeDateString(from);
-	    
-	    // PostgREST appears to interpret date strings as one day earlier (likely timezone issue)
-	    // To compensate: Add one day to the FROM date so that when PostgREST interprets it,
-	    // it will match the date the user actually selected
-	    // Example: User selects Dec 4 -> we send Dec 5 -> PostgREST interprets as Dec 4 -> correct!
 	    const [year, month, day] = fromDateStr.split('-').map(Number);
 	    const fromDate = new Date(year, month - 1, day);
-	    fromDate.setDate(fromDate.getDate() + 1); // Add one day to compensate
-	    const adjustedFrom = `${fromDate.getFullYear()}-${String(fromDate.getMonth() + 1).padStart(2, '0')}-${String(fromDate.getDate()).padStart(2, '0')}`;
-	    
-	    // Use gte (greater than or equal) with the adjusted date
-	    // This will include events starting on or after the selected date
-	    // Only include events that START on or after the from date, or undated events
-	    const orFilter =
-	      `(start_date.gte.${adjustedFrom},and(start_date.is.null,end_date.is.null))`;
-	    console.log('Setting OR filter - user selected:', fromDateStr, 'adjusted to:', adjustedFrom, 'orFilter:', orFilter);
-	    api.searchParams.set('or', orFilter);
-	  } else {
-	    console.log('FROM date is falsy, skipping from date filter');
+	    // Use gt (greater than) with the day before: User selects Dec 5 -> use gt.2025-12-04
+	    // This includes events starting Dec 5 and later, avoiding timezone issues
+	    fromDate.setDate(fromDate.getDate() - 1); // Subtract 1 day: Dec 5 -> Dec 4
+	    adjustedFrom = `${fromDate.getFullYear()}-${String(fromDate.getMonth() + 1).padStart(2, '0')}-${String(fromDate.getDate()).padStart(2, '0')}`;
+	    fromOperator = 'gt'; // Use gt instead of gte
+	    console.log('FROM date - user selected:', fromDateStr, 'using gt with:', adjustedFrom);
 	  }
 	  
 	  if (to) {
-	    // Normalize date string to ensure YYYY-MM-DD format
 	    const toDateStr = normalizeDateString(to);
-	    
-	    // PostgREST appears to interpret date strings as one day earlier (likely timezone issue)
-	    // To compensate: Add one day to the TO date so that when PostgREST interprets it,
-	    // it will match the date the user actually selected
-	    // Example: User selects Dec 7 -> we send Dec 8 -> PostgREST interprets as Dec 7 -> correct!
 	    const [year, month, day] = toDateStr.split('-').map(Number);
 	    const toDate = new Date(year, month - 1, day);
-	    toDate.setDate(toDate.getDate() + 1); // Add one day to compensate
-	    const adjustedTo = `${toDate.getFullYear()}-${String(toDate.getMonth() + 1).padStart(2, '0')}-${String(toDate.getDate()).padStart(2, '0')}`;
-	    
-	    // Use lte (less than or equal) with the adjusted date
-	    // This will include events starting on or before the selected end date
-	    // Combine with existing 'or' filter if 'from' is also set
-	    const existingOr = api.searchParams.get('or');
-	    console.log('Setting TO filter - user selected:', toDateStr, 'adjusted to:', adjustedTo, 'existingOr:', existingOr);
-	    if (existingOr) {
-	      // Combine: (or filter) AND (start_date <= adjustedTo)
-	      api.searchParams.set('start_date', `lte.${adjustedTo}`);
-	    } else {
-	      api.searchParams.set('start_date', `lte.${adjustedTo}`);
-	    }
-	  } else {
-	    console.log('TO date is falsy, skipping to date filter');
+	    // Add 1 day and use lte: User selects Dec 7 -> use lte.2025-12-08
+	    // This includes events ending Dec 7 and earlier
+	    toDate.setDate(toDate.getDate() + 1); // Add 1 day: Dec 7 -> Dec 8
+	    adjustedTo = `${toDate.getFullYear()}-${String(toDate.getMonth() + 1).padStart(2, '0')}-${String(toDate.getDate()).padStart(2, '0')}`;
+	    console.log('TO date - user selected:', toDateStr, 'using lte with:', adjustedTo);
+	  }
+	  
+	  // Build the combined filter with proper column names
+	  // Flatten the or() filter to avoid deep nesting which PostgREST may not support
+	  if (adjustedFrom && adjustedTo) {
+	    // Both filters: Use gt for FROM, lte for TO
+	    const orFilter = `or(and(start_date.${fromOperator}.${adjustedFrom},end_date.lte.${adjustedTo}),and(start_date.${fromOperator}.${adjustedFrom},end_date.is.null,start_date.lte.${adjustedTo}),and(start_date.is.null,end_date.is.null))`;
+	    console.log('Setting combined OR filter:', orFilter);
+	    api.searchParams.set('or', orFilter);
+	  } else if (adjustedFrom) {
+	    // Only from filter: events that start > from OR undated events
+	    const orFilter = `(start_date.${fromOperator}.${adjustedFrom},and(start_date.is.null,end_date.is.null))`;
+	    console.log('Setting FROM OR filter:', orFilter);
+	    api.searchParams.set('or', orFilter);
+	  } else if (adjustedTo) {
+	    // Only to filter: events that end <= to OR (end_date IS NULL AND start_date <= to) OR undated events
+	    const orFilter = `or(end_date.lte.${adjustedTo},and(end_date.is.null,start_date.lte.${adjustedTo}),and(start_date.is.null,end_date.is.null))`;
+	    console.log('Setting TO OR filter:', orFilter);
+	    api.searchParams.set('or', orFilter);
 	  }
 	  
 	  console.debug('Events API URL:', api.toString());
@@ -177,7 +175,32 @@
 
   function formatEventDate(dateString) {
     if (!dateString) return '';
-    const date = new Date(dateString);
+    // Parse date string as local date to avoid timezone issues
+    // Date strings like "2025-12-05" are interpreted as UTC, which can shift the day
+    // Parse manually to ensure we use the exact date specified
+    const parts = dateString.split('-');
+    if (parts.length !== 3) {
+      // Fallback to Date constructor if format is unexpected
+      const date = new Date(dateString);
+      const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+      const monthName = date.toLocaleDateString('en-US', { month: 'short' });
+      const day = date.getDate();
+      const ordinalSuffix = (day) => {
+        if (day > 3 && day < 21) return 'th';
+        switch (day % 10) {
+          case 1: return 'st';
+          case 2: return 'nd';
+          case 3: return 'rd';
+          default: return 'th';
+        }
+      };
+      return `${dayName}, ${monthName} ${day}${ordinalSuffix(day)}`;
+    }
+    
+    const year = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1; // Month is 0-indexed
+    const day = parseInt(parts[2], 10);
+    const date = new Date(year, month, day); // Create date in local timezone
     
     // Get abbreviated day name
     const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
@@ -186,7 +209,6 @@
     const monthName = date.toLocaleDateString('en-US', { month: 'short' });
     
     // Get day number and add ordinal suffix
-    const day = date.getDate();
     const ordinalSuffix = (day) => {
       if (day > 3 && day < 21) return 'th';
       switch (day % 10) {
@@ -202,6 +224,16 @@
 
   function getMonthName(dateString) {
     if (!dateString) return 'TBA';
+    // Parse date string as local date to avoid timezone issues
+    const parts = dateString.split('-');
+    if (parts.length === 3) {
+      const year = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10) - 1; // Month is 0-indexed
+      const day = parseInt(parts[2], 10);
+      const date = new Date(year, month, day); // Create date in local timezone
+      return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    }
+    // Fallback to Date constructor if format is unexpected
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
   }
@@ -1415,6 +1447,7 @@
         
         // Popover content - restructured for calendar view with fixed header/footer and scrollable middle
         const content = document.createElement('div');
+        content.className = 'ssa-popover-content';
         
         if (isCalendarView) {
           // Calendar view: show full event details with fixed layout
@@ -1429,7 +1462,8 @@
           const keywordsStr = element.dataset.keywords || '';
           
           // Set up flexbox layout for popover
-          content.style.cssText = 'display: flex; flex-direction: column; height: 100%; max-height: 400px; padding-right: 8px;';
+          // The ssa-popover-content class already provides flex and overflow styles
+          content.style.cssText = 'display: flex; flex-direction: column; padding-right: 8px;';
           
           // Header section (fixed at top)
           const headerDiv = document.createElement('div');
@@ -1615,7 +1649,8 @@
             }
           }
         } else {
-          // List/Grid view: show description only
+          // List/Grid view: show description only in scrollable container
+          // Content already has the ssa-popover-content class which provides scrolling
           content.textContent = decodedDescription;
         }
         
@@ -2058,7 +2093,8 @@
       .ssa-location-icon-btn{display:none;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:#f59e0b;color:#fff;cursor:pointer;transition:all 0.2s;flex-shrink:0;font-size:0.9rem;opacity:0.8;min-width:24px;min-height:24px}
       .ssa-location-icon-btn:hover{opacity:1;background:#d97706;transform:scale(1.1)}
       .ssa-location-icon-btn:active{opacity:0.7}
-      .ssa-info-popover{padding:12px;background:#fff;border:1px solid #d1d5db;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);min-width:200px;max-width:300px;max-height:400px;font-size:0.875rem;line-height:1.5;color:#374151;white-space:normal;word-wrap:break-word;pointer-events:auto;position:relative}
+      .ssa-info-popover{padding:12px;background:#fff;border:1px solid #d1d5db;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);min-width:200px;max-width:300px;max-height:400px;font-size:0.875rem;line-height:1.5;color:#374151;white-space:normal;word-wrap:break-word;pointer-events:auto;position:relative;display:flex;flex-direction:column;overflow:hidden}
+      .ssa-info-popover .ssa-popover-content{overflow-y:auto;overflow-x:hidden;flex:1;min-height:0;max-height:100%;-webkit-overflow-scrolling:touch;position:relative}
       body.dark-mode .ssa-info-popover{background:#374151!important;border-color:#4b5563!important;color:#f9fafb!important;box-shadow:0 4px 12px rgba(0,0,0,0.3)!important}
       .ssa-calendar-popover{min-width:280px;max-width:400px}
       .ssa-popover-close{position:absolute;top:4px;right:4px;width:24px;height:24px;border:none;background:rgba(0,0,0,0.6);color:white;border-radius:50%;font-size:18px;line-height:1;cursor:pointer;z-index:10003;display:flex;align-items:center;justify-content:center;transition:background 0.2s;padding:0}
@@ -2165,7 +2201,8 @@
         .ssa-event-meta-item strong{display:inline}
         .ssa-event-keywords{margin-top:12px;padding-top:12px;border-top:1px solid #e5e7eb;display:flex;flex-wrap:wrap;gap:6px;max-width:100%}
         .ssa-keyword-tag-clickable{padding:10px 14px;font-size:0.9rem;min-height:44px;border-radius:22px}
-        .ssa-info-popover{max-width:calc(100vw - 20px);width:calc(100vw - 20px);left:10px!important;right:10px;font-size:1rem;line-height:1.6;max-height:60vh;padding:16px}
+        .ssa-info-popover{max-width:calc(100vw - 20px);width:calc(100vw - 20px);left:10px!important;right:10px;font-size:1rem;line-height:1.6;max-height:60vh;padding:16px;display:flex!important;flex-direction:column!important;overflow:hidden!important}
+        .ssa-info-popover .ssa-popover-content{overflow-y:auto!important;overflow-x:hidden!important;flex:1!important;min-height:0!important;max-height:calc(60vh - 32px)!important;-webkit-overflow-scrolling:touch!important}
         .ssa-popover-close{width:32px;height:32px;font-size:24px;top:8px;right:8px}
         .ssa-grid{gap:12px;max-width:100%}
         .ssa-card{max-width:100%;overflow:hidden}
