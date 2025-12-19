@@ -514,6 +514,33 @@ export default function App() {
             <span>🔍</span>
             {!sidebarCollapsed && <span>OCR Test</span>}
           </button>
+          <button 
+            className="btn" 
+            onClick={() => {
+              // Open the HTML file in a new browser tab
+              const htmlPath = '/code-snippets/events/event-list-dev.html'
+              window.open(htmlPath, '_blank')
+            }}
+            title="Open Events List Dev (new tab)"
+            style={{
+              background: darkMode ? '#374151' : '#ffffff',
+              border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`,
+              color: darkMode ? '#f9fafb' : '#374151',
+              textAlign: sidebarCollapsed ? 'center' : 'left',
+              padding: sidebarCollapsed ? '12px' : '12px 16px',
+              borderRadius: '8px',
+              marginBottom: '8px',
+              marginTop: '8px',
+              width: sidebarCollapsed ? '44px' : '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
+              gap: sidebarCollapsed ? '0' : '8px'
+            }}
+          >
+            <span>🌐</span>
+            {!sidebarCollapsed && <span>Events List Dev</span>}
+          </button>
         </nav>
       </aside>
       <main className="main" style={{ 
