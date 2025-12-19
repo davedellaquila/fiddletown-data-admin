@@ -1,9 +1,39 @@
+/**
+ * Wineries Feature Component
+ * 
+ * NOTE: This appears to be a legacy/duplicate component.
+ * The Locations component provides the same functionality with more features.
+ * Consider using Locations.tsx instead, or remove this if it's no longer needed.
+ * 
+ * Admin interface for managing winery data.
+ * Provides basic CRUD operations for winery locations.
+ * 
+ * Features:
+ * - CRUD operations (Create, Read, Update, Delete)
+ * - CSV import/export
+ * - Search and filtering
+ * - Soft delete support
+ * 
+ * @deprecated Consider using Locations.tsx instead
+ * @module Wineries
+ */
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 
+/**
+ * Convert string to URL-friendly slug
+ * 
+ * Simple slugify implementation (consider using shared slugify utility instead)
+ */
 const slugify = (s: string) =>
   s.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
 
+/**
+ * Winery data model
+ * 
+ * Matches the Location model structure.
+ * Consider using the shared Location type instead.
+ */
 type Winery = {
   id: string
   name: string
@@ -19,6 +49,12 @@ type Winery = {
   deleted_at: string | null
 }
 
+/**
+ * Wineries component
+ * 
+ * Legacy component for managing winery data.
+ * Consider migrating to Locations.tsx for better feature parity.
+ */
 export default function Wineries() {
   const [rows, setRows] = useState<Winery[]>([])
   const [loading, setLoading] = useState(false)

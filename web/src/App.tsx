@@ -1,3 +1,18 @@
+/**
+ * Main application component - Root of the SSA Admin application
+ * 
+ * This component manages:
+ * - Authentication state and magic link login flow
+ * - Global UI state (dark mode, sidebar collapse)
+ * - View navigation between different admin modules
+ * - Keyboard shortcuts for quick navigation
+ * 
+ * The app supports two modes:
+ * - Development mode: Bypasses authentication for local development
+ * - Production mode: Requires Supabase authentication via magic link
+ * 
+ * @module App
+ */
 import { useEffect, useState } from 'react'
 import { supabase } from './lib/supabaseClient'
 import Events from './features/Events'
@@ -5,32 +20,72 @@ import Locations from './features/Locations'
 import Routes from './features/Routes'
 import OCRTest from './features/OCRTest'
 
-
+/**
+ * Available view types for navigation
+ * Each view corresponds to a different admin module
+ */
 type View = 'locations' | 'events' | 'routes' | 'ocr-test'
 
-// Development mode: Set to true to bypass authentication
-// Set to false for production
+/**
+ * Development mode flag - determines if authentication is bypassed
+ * 
+ * In development mode:
+ * - Authentication is bypassed with a mock session
+ * - Sign out button becomes a reload button
+ * - Useful for rapid development without auth setup
+ * 
+ * Set via environment variables: VITE_DEV or NODE_ENV=development
+ */
 const IS_DEVELOPMENT_MODE = import.meta.env.DEV || import.meta.env.MODE === 'development'
 
+/**
+ * Main App component
+ * 
+ * Manages application-wide state and renders either:
+ * - Login screen (if not authenticated and not in dev mode)
+ * - Main admin interface (if authenticated or in dev mode)
+ */
 export default function App() {
   console.log('App component rendering...')
+  
+  // Authentication state
+  // In dev mode, use a mock session to bypass auth
   const [session, setSession] = useState<any>(IS_DEVELOPMENT_MODE ? { user: { email: 'dev@localhost' } } : null)
+  
+  // Magic link email form state
   const [email, setEmail] = useState('')
   const [sending, setSending] = useState(false)
   const [sent, setSent] = useState<null | { to: string }>(null)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
+  const [justSent, setJustSent] = useState<boolean>(false) // Visual feedback for sent state
   
-  const [justSent, setJustSent] = useState<boolean>(false)
+  // View navigation - which admin module is currently active
   const [view, setView] = useState<View>('locations')
+  
+  // UI preferences - persisted to localStorage for user convenience
+  // Dark mode preference
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem('darkMode')
     return saved ? JSON.parse(saved) : false
   })
+  // Sidebar collapsed state
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     const saved = localStorage.getItem('sidebarCollapsed')
     return saved ? JSON.parse(saved) : false
   })
 
+  /**
+   * Authentication setup effect
+   * 
+   * In production mode:
+   * - Checks for existing session on mount
+   * - Subscribes to auth state changes (login/logout)
+   * - Updates session state when auth state changes
+   * 
+   * In development mode:
+   * - Skips all auth setup
+   * - Uses mock session from initial state
+   */
   useEffect(() => {
     // In development mode, skip authentication setup
     if (IS_DEVELOPMENT_MODE) {
@@ -40,23 +95,37 @@ export default function App() {
     
     console.log('Setting up auth...')
     try {
+      // Check for existing session on mount
       supabase.auth.getSession().then(({ data }) => {
         console.log('Session data:', data)
         setSession(data.session)
       })
+      // Subscribe to auth state changes (login, logout, token refresh)
       const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
         console.log('Auth state changed:', s)
         setSession(s)
       })
+      // Cleanup: unsubscribe when component unmounts
       return () => sub.subscription.unsubscribe()
     } catch (error) {
       console.error('Auth setup error:', error)
     }
   }, [])
 
-  // Global keyboard shortcuts for module navigation
+  /**
+   * Global keyboard shortcuts for quick module navigation
+   * 
+   * Shortcuts (Cmd/Ctrl + number):
+   * - ⌘/Ctrl + 1: Navigate to Locations
+   * - ⌘/Ctrl + 2: Navigate to Events
+   * - ⌘/Ctrl + 3: Navigate to Routes
+   * - ⌘/Ctrl + 4: Navigate to OCR Test
+   * 
+   * These shortcuts work globally when the app is focused
+   */
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
+      // Only handle shortcuts with Cmd (Mac) or Ctrl (Windows/Linux)
       if (!(e.metaKey || e.ctrlKey)) return
       if (e.key === '1') { e.preventDefault(); setView('locations') }
       if (e.key === '2') { e.preventDefault(); setView('events') }
@@ -67,41 +136,80 @@ export default function App() {
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [])
 
-  // Restore last email
+  /**
+   * Restore last used email from localStorage
+   * 
+   * Improves UX by remembering the user's email between sessions
+   * Only restores if a saved email exists
+   */
   useEffect(() => {
     const last = localStorage.getItem('lastEmail')
     if (last) setEmail(last)
   }, [])
 
-  // Persist dark mode changes
+  /**
+   * Persist dark mode preference to localStorage
+   * 
+   * Also updates the document's data-theme attribute for CSS theming
+   * This allows CSS to respond to theme changes without JavaScript
+   */
   useEffect(() => {
     localStorage.setItem('darkMode', JSON.stringify(darkMode))
     document.documentElement.setAttribute('data-theme', darkMode ? 'dark' : 'light')
   }, [darkMode])
 
-  // Persist sidebar collapsed state
+  /**
+   * Persist sidebar collapsed state to localStorage
+   * 
+   * Remembers user's sidebar preference between sessions
+   */
   useEffect(() => {
     localStorage.setItem('sidebarCollapsed', JSON.stringify(sidebarCollapsed))
   }, [sidebarCollapsed])
 
+  /**
+   * Toggle dark mode on/off
+   * 
+   * The preference is automatically persisted to localStorage via useEffect
+   */
   const toggleDarkMode = () => {
     setDarkMode(!darkMode)
   }
 
+  /**
+   * Send magic link email for passwordless authentication
+   * 
+   * Flow:
+   * 1. Validates email format
+   * 2. Sends OTP email via Supabase
+   * 3. Handles errors gracefully (suppresses rate limit messages)
+   * 4. Saves email to localStorage for next time
+   * 5. Shows success feedback
+   * 
+   * Note: Rate limit and security messages are suppressed as they're
+   * often false positives and don't indicate actual failures
+   * 
+   * @param e - Form submit event
+   */
   const sendMagicLink = async (e: React.FormEvent) => {
     e.preventDefault()
     setErrorMsg(null)
     const trimmed = email.trim()
+    
+    // Basic email validation
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
       setErrorMsg('Please enter a valid email address')
       return
     }
+    
     try {
       setSending(true)
+      // Request magic link via Supabase
       const { error } = await supabase.auth.signInWithOtp({ email: trimmed })
       if (error) {
         const msg = error.message || ''
         // Suppress Supabase security/rate limit messaging – treat as soft success
+        // These messages are often false positives and don't indicate actual failures
         if (/security|rate|seconds|wait/i.test(msg)) {
           setErrorMsg(null)
         } else {
@@ -109,8 +217,10 @@ export default function App() {
           return
         }
       }
+      // Save email for next time
       localStorage.setItem('lastEmail', trimmed)
       setSent({ to: trimmed })
+      // Show brief success feedback
       setJustSent(true)
       setTimeout(() => { setJustSent(false) }, 1200)
     } finally {

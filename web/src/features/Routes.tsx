@@ -1,13 +1,49 @@
+/**
+ * Routes Feature Component
+ * 
+ * Admin interface for managing hiking/walking routes.
+ * 
+ * Features:
+ * - CRUD operations (Create, Read, Update, Delete)
+ * - CSV/TSV import/export (auto-detects delimiter)
+ * - GPX file upload for route tracks
+ * - Bulk actions (publish, archive, delete)
+ * - Search and filtering
+ * - Sortable columns
+ * - Soft delete support
+ * - Status management (draft, published, archived)
+ * - Difficulty levels (easy, moderate, challenging)
+ * 
+ * Data Model:
+ * - Routes are stored in Supabase 'routes' table
+ * - GPX files are stored in Supabase Storage 'routes' bucket
+ * - Uses soft deletes (deleted_at timestamp)
+ * - Slug is auto-generated from name if not provided
+ * 
+ * @module Routes
+ */
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import FormField from '../shared/components/FormField'
 import ModalDialog from '../shared/components/ModalDialog'
 import AutoSaveEditDialog from '../shared/components/AutoSaveEditDialog'
 import ActionMenu, { ActionMenuItem } from '../shared/components/ActionMenu'
+import IconActionButton from '../shared/components/IconActionButton'
+import archiveIcon from '../assets/archive.svg'
+import trashIcon from '../assets/trash.svg'
 import { slugify } from '../../shared/utils/slugify'
 import type { RouteRow, Difficulty, Status } from '../../shared/types/models'
 
-// --- CSV helpers (CSV/TSV, quoted fields supported) ---
+/**
+ * CSV/TSV Parser
+ * 
+ * Auto-detects delimiter (tab vs comma) by counting occurrences in header line.
+ * Supports quoted fields with escaped quotes (standard CSV format).
+ * Handles both CSV and TSV formats seamlessly.
+ * 
+ * @param text - Raw CSV/TSV text content
+ * @returns 2D array where each inner array is a row of cells
+ */
 function parseCSV(text: string): string[][] {
   // Auto-detect delimiter from header line (tab vs comma)
   const firstLineEnd = text.indexOf('\n') === -1 ? text.length : text.indexOf('\n')
@@ -42,6 +78,16 @@ function parseCSV(text: string): string[][] {
     .filter(r => r.length && r.some(c => c !== ''))
 }
 
+/**
+ * Convert data rows to CSV format
+ * 
+ * Escapes values containing commas, quotes, or newlines.
+ * Uses standard CSV escaping (wrap in quotes, double internal quotes).
+ * 
+ * @param rows - Array of data objects
+ * @param headers - Column names to include in CSV
+ * @returns CSV-formatted string
+ */
 function toCSV(rows: any[], headers: string[]): string {
   const esc = (v: any) => {
     if (v == null) return ''
@@ -53,6 +99,12 @@ function toCSV(rows: any[], headers: string[]): string {
   return lines.join('\n')
 }
 
+/**
+ * Download CSV template file
+ * 
+ * Provides a template CSV with sample data showing expected format.
+ * Helps users understand the required columns and data types.
+ */
 function downloadTemplateCSV() {
   const headers = ['name','slug','duration_minutes','start_point','end_point','difficulty','notes','status','sort_order']
   const sample = [{
@@ -76,34 +128,81 @@ function downloadTemplateCSV() {
   a.remove()
 }
 
+/**
+ * Props for Routes component
+ */
 interface RoutesProps {
-  darkMode?: boolean
-  sidebarCollapsed?: boolean
+  darkMode?: boolean // Whether dark mode is enabled
+  sidebarCollapsed?: boolean // Whether sidebar is collapsed (affects dialog positioning)
 }
 
+/**
+ * Routes component
+ * 
+ * Main component for managing route data. Handles CRUD operations,
+ * GPX file uploads, import/export, bulk actions, and filtering.
+ */
 export default function Routes({ darkMode = false, sidebarCollapsed = false }: RoutesProps) {
-  const [rows, setRows] = useState<RouteRow[]>([])
-  const [loading, setLoading] = useState(false)
-  const [editing, setEditing] = useState<RouteRow | null>(null)
-  const [q, setQ] = useState('')
-  const fileRef = useRef<HTMLInputElement | null>(null)
+  // Data state
+  const [rows, setRows] = useState<RouteRow[]>([]) // All loaded routes
+  const [loading, setLoading] = useState(false) // Loading indicator
+  const [editing, setEditing] = useState<RouteRow | null>(null) // Currently editing route
+  const [q, setQ] = useState('') // Search query (filters by name)
+  const fileRef = useRef<HTMLInputElement | null>(null) // Ref to GPX file input
 
-  const [busy, setBusy] = useState(false)
-  const [toast, setToast] = useState<{ type: 'ok' | 'err' | 'info', msg: string } | null>(null)
+  // UI feedback state
+  const [busy, setBusy] = useState(false) // Whether a save/upload operation is in progress
+  const [toast, setToast] = useState<{ type: 'ok' | 'err' | 'info', msg: string } | null>(null) // Toast notification
 
   // Import/Export state
-  const [importing, setImporting] = useState(false)
-  const [importPreview, setImportPreview] = useState<any[] | null>(null)
-  const [importErrors, setImportErrors] = useState<string[]>([])
-  const importFileInputRef = useRef<HTMLInputElement>(null)
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [importing, setImporting] = useState(false) // Whether import preview dialog is open
+  const [importPreview, setImportPreview] = useState<any[] | null>(null) // Parsed CSV data for preview
+  const [importErrors, setImportErrors] = useState<string[]>([]) // Validation errors from import
+  const importFileInputRef = useRef<HTMLInputElement>(null) // Ref to hidden file input for CSV import
+  
+  // Selection and sorting state
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set()) // IDs of selected rows for bulk actions
+  const [sortBy, setSortBy] = useState<'name' | 'duration_minutes' | 'difficulty' | 'status'>('name') // Column to sort by
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc') // Sort direction
 
+  /**
+   * Handle column header click for sorting
+   * 
+   * Behavior:
+   * - Clicking same column: toggles sort order (asc ↔ desc)
+   * - Clicking different column: sets new sort column, defaults to asc
+   */
+  const handleSort = (column: 'name' | 'duration_minutes' | 'difficulty' | 'status') => {
+    if (sortBy === column) {
+      // If clicking the same column, toggle sort order
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')
+    } else {
+      // If clicking a different column, set it as sort column and default to asc
+      setSortBy(column)
+      setSortOrder('asc')
+    }
+  }
+
+  /**
+   * Show a toast notification
+   * 
+   * Displays a temporary message in the bottom-right corner.
+   * Automatically dismisses after 2.5 seconds.
+   * 
+   * @param msg - Message to display
+   * @param type - Toast type ('ok' = success, 'err' = error, 'info' = info)
+   */
   function pushToast(msg: string, type: 'ok' | 'err' | 'info' = 'info') {
     setToast({ type, msg })
     window.setTimeout(() => setToast(null), 2500)
   }
 
-  // Close edit dialog with ESC key
+  /**
+   * Handle Escape key to close edit dialog
+   * 
+   * Provides keyboard accessibility - pressing Escape closes the edit dialog
+   * and clears any selected GPX file.
+   */
   useEffect(() => {
     function handleKeyDown(ev: KeyboardEvent) {
       if (ev.key === 'Escape' && editing) {
@@ -115,6 +214,12 @@ export default function Routes({ darkMode = false, sidebarCollapsed = false }: R
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [editing])
 
+  /**
+   * Load routes from database
+   * 
+   * Fetches all non-deleted routes, optionally filtered by search query.
+   * Results are sorted by sort_order (ascending), then by name.
+   */
   const load = async () => {
     setLoading(true)
     let query = supabase
@@ -132,7 +237,13 @@ export default function Routes({ darkMode = false, sidebarCollapsed = false }: R
 
   useEffect(() => { load() }, [q])
 
-  // Export/Import handlers
+  /**
+   * Export routes to CSV file
+   * 
+   * Fetches current filtered data and downloads as CSV.
+   * Respects current search filter (q).
+   * Only exports non-deleted routes.
+   */
   const exportCSV = async () => {
     let query = supabase
       .from('routes')
@@ -155,6 +266,21 @@ export default function Routes({ darkMode = false, sidebarCollapsed = false }: R
     a.remove()
   }
 
+  /**
+   * Handle CSV/TSV file import
+   * 
+   * Process:
+   * 1. Read file content
+   * 2. Parse CSV/TSV (auto-detects delimiter)
+   * 3. Map headers with aliases (e.g., "title" → "name")
+   * 4. Normalize and validate data
+   * 5. Show preview with validation errors
+   * 
+   * Supports header aliases for common column name variations.
+   * Import uses upsert (update existing or insert new) based on slug.
+   * 
+   * @param e - File input change event
+   */
   async function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
@@ -162,7 +288,7 @@ export default function Routes({ darkMode = false, sidebarCollapsed = false }: R
     const grid = parseCSV(text)
     if (grid.length < 2) { alert('CSV/TSV must include a header and at least one row'); return }
 
-    // Map headers (allow some aliases)
+    // Map headers (allow some aliases for user convenience)
     const rawHeaders = grid[0].map(h => h.trim().toLowerCase())
     const headerAlias: Record<string, string> = {
       'title': 'name',
@@ -275,46 +401,72 @@ export default function Routes({ darkMode = false, sidebarCollapsed = false }: R
     })
   }
 
+  /**
+   * Upload GPX file to Supabase Storage
+   * 
+   * Uploads GPX files to the 'routes' storage bucket.
+   * Files are organized by route slug for easy management.
+   * 
+   * File naming: {slug}/{timestamp}-{filename}
+   * 
+   * @param file - GPX file to upload
+   * @returns Public URL of uploaded file, or null if upload fails
+   */
   async function uploadGpx(file: File): Promise<string | null> {
-    // ensure user is signed in (uploads are blocked for anon by RLS)
+    // Ensure user is signed in (uploads are blocked for anonymous users by RLS)
     const { data: s } = await supabase.auth.getSession()
     if (!s.session) { pushToast('Please sign in again to upload.', 'err'); return null }
 
+    // Generate storage path: {slug}/{timestamp}-{filename}
     const base = (editing?.slug || slugify(editing?.name || 'route')) || crypto.randomUUID()
     const path = `${base}/${Date.now()}-${file.name.replace(/\s+/g, '_')}`
 
+    // Upload to Supabase Storage
     const { error } = await supabase.storage.from('routes').upload(path, file, {
       cacheControl: '3600',
-      upsert: false,
+      upsert: false, // Don't overwrite existing files
       contentType: file.type || 'application/gpx+xml'
     })
     if (error) { pushToast(`Upload failed: ${error.message}`, 'err'); return null }
 
+    // Get public URL for the uploaded file
     const { data } = supabase.storage.from('routes').getPublicUrl(path)
     return data.publicUrl
   }
 
+  /**
+   * Save route (create or update)
+   * 
+   * Handles both insert (new) and update (existing) operations.
+   * If a GPX file is selected, uploads it first and sets gpx_url.
+   * Auto-generates slug from name if slug is missing.
+   * 
+   * @param options - Optional configuration
+   * @param options.suppressClose - If true, keeps dialog open after save (useful for navigation)
+   */
   const save = async (options?: { suppressClose?: boolean }) => {
     if (!editing) return
     setBusy(true)
     try {
     const payload = { ...editing }
 
+      // Validate required fields
       if (!payload.name) { pushToast('Name is required', 'err'); return }
+    // Auto-generate slug if missing
     if (!payload.slug) payload.slug = slugify(payload.name)
 
-    // If a file is selected, upload first and set gpx_url
+    // If a GPX file is selected, upload it first and set gpx_url
     const file = fileRef.current?.files?.[0]
     if (file) {
         pushToast('Uploading GPX…', 'info')
       const url = await uploadGpx(file)
-      if (!url) return
+      if (!url) return // Upload failed, error already shown
       payload.gpx_url = url
         pushToast('GPX uploaded', 'ok')
     }
 
     if (payload.id) {
-      // UPDATE – send only editable columns
+      // UPDATE existing route – send only editable columns
       const { error } = await supabase.from('routes')
         .update({
           name: payload.name,
@@ -331,16 +483,18 @@ export default function Routes({ darkMode = false, sidebarCollapsed = false }: R
         .eq('id', payload.id)
         if (error) { pushToast(error.message, 'err'); return }
     } else {
-      // INSERT – strip id/timestamps so Postgres generates them
+      // INSERT new route – strip id/timestamps so Postgres generates them
       const { id, created_at, updated_at, deleted_at, ...insertable } = payload
       const { data, error } = await supabase.from('routes').insert(insertable).select().single()
         if (error) { pushToast(error.message, 'err'); return }
       payload.id = data!.id
     }
 
+    // Close dialog unless suppressClose is true
     if (!options?.suppressClose) setEditing(null)
+    // Clear file input
     fileRef.current && (fileRef.current.value = '')
-    await load()
+    await load() // Reload to show changes
       pushToast('Saved', 'ok')
     } finally {
       setBusy(false)
@@ -480,7 +634,53 @@ export default function Routes({ darkMode = false, sidebarCollapsed = false }: R
             </button>
           </div>
           
-          <div style={{ marginLeft: 'auto', flexShrink: 0 }}>
+          <div style={{ marginLeft: 'auto', flexShrink: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button
+              className="btn"
+              onClick={exportCSV}
+              disabled={busy || importing}
+              title="Export"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '6px',
+                background: darkMode ? '#374151' : '#ffffff',
+                border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`,
+                color: darkMode ? '#f9fafb' : '#374151',
+                borderRadius: '6px',
+                cursor: (busy || importing) ? 'not-allowed' : 'pointer',
+                fontSize: '16px',
+                minWidth: '32px',
+                height: '32px',
+                opacity: (busy || importing) ? 0.6 : 1
+              }}
+            >
+              ⬇️
+            </button>
+            <button
+              className="btn"
+              onClick={() => importFileInputRef.current?.click()}
+              disabled={busy || importing}
+              title="Import"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '6px',
+                background: darkMode ? '#374151' : '#ffffff',
+                border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`,
+                color: darkMode ? '#f9fafb' : '#374151',
+                borderRadius: '6px',
+                cursor: (busy || importing) ? 'not-allowed' : 'pointer',
+                fontSize: '16px',
+                minWidth: '32px',
+                height: '32px',
+                opacity: (busy || importing) ? 0.6 : 1
+              }}
+            >
+              ⬆️
+            </button>
             <ActionMenu
             items={[
               {
@@ -495,20 +695,6 @@ export default function Routes({ darkMode = false, sidebarCollapsed = false }: R
                 label: 'Template',
                 icon: '📋',
                 onClick: downloadTemplateCSV,
-                disabled: busy || importing
-              },
-              {
-                id: 'export',
-                label: 'Export',
-                icon: '📤',
-                onClick: exportCSV,
-                disabled: busy || importing
-              },
-              {
-                id: 'import',
-                label: 'Import',
-                icon: '📥',
-                onClick: () => importFileInputRef.current?.click(),
                 disabled: busy || importing
               },
               {
@@ -656,16 +842,82 @@ export default function Routes({ darkMode = false, sidebarCollapsed = false }: R
                   title="Select all"
                 />
               </th>
-              <th>Name</th>
-              <th>Duration</th>
-              <th>Difficulty</th>
+              <th
+                onClick={() => handleSort('name')}
+                style={{
+                  textAlign: 'left',
+                  padding: '8px 6px',
+                  cursor: 'pointer',
+                  userSelect: 'none',
+                  color: darkMode ? '#f9fafb' : '#1f2937'
+                }}
+              >
+                Name {sortBy === 'name' && (sortOrder === 'asc' ? '↑' : '↓')}
+              </th>
+              <th
+                onClick={() => handleSort('duration_minutes')}
+                style={{
+                  textAlign: 'left',
+                  padding: '8px 6px',
+                  cursor: 'pointer',
+                  userSelect: 'none',
+                  color: darkMode ? '#f9fafb' : '#1f2937'
+                }}
+              >
+                Duration {sortBy === 'duration_minutes' && (sortOrder === 'asc' ? '↑' : '↓')}
+              </th>
+              <th
+                onClick={() => handleSort('difficulty')}
+                style={{
+                  textAlign: 'left',
+                  padding: '8px 6px',
+                  cursor: 'pointer',
+                  userSelect: 'none',
+                  color: darkMode ? '#f9fafb' : '#1f2937'
+                }}
+              >
+                Difficulty {sortBy === 'difficulty' && (sortOrder === 'asc' ? '↑' : '↓')}
+              </th>
               <th>GPX</th>
-              <th>Status</th>
+              <th
+                onClick={() => handleSort('status')}
+                style={{
+                  textAlign: 'left',
+                  padding: '8px 6px',
+                  cursor: 'pointer',
+                  userSelect: 'none',
+                  color: darkMode ? '#f9fafb' : '#1f2937'
+                }}
+              >
+                Status {sortBy === 'status' && (sortOrder === 'asc' ? '↑' : '↓')}
+              </th>
               <th></th>
             </tr>
           </thead>
           <tbody>
-            {rows.map(r => (
+            {rows
+              .sort((a, b) => {
+                let aVal = a[sortBy]
+                let bVal = b[sortBy]
+                
+                // Handle null/undefined values
+                if (aVal == null && bVal == null) return 0
+                if (aVal == null) return sortOrder === 'asc' ? 1 : -1
+                if (bVal == null) return sortOrder === 'asc' ? -1 : 1
+                
+                // Handle string sorting (for name, difficulty, status)
+                if (typeof aVal === 'string' && typeof bVal === 'string') {
+                  return sortOrder === 'asc' 
+                    ? aVal.localeCompare(bVal)
+                    : bVal.localeCompare(aVal)
+                }
+                
+                // Handle numeric sorting (for duration_minutes)
+                if (aVal < bVal) return sortOrder === 'asc' ? -1 : 1
+                if (aVal > bVal) return sortOrder === 'asc' ? 1 : -1
+                return 0
+              })
+              .map(r => (
               <tr 
                 key={r.id}
                 onClick={() => setEditing(r)}
@@ -771,51 +1023,25 @@ export default function Routes({ darkMode = false, sidebarCollapsed = false }: R
                       </button>
                     )}
                     {r.status !== 'archived' && (
-                      <button 
-                        className="btn" 
+                      <IconActionButton
+                        icon={<img src={archiveIcon} alt="archive" width={16} height={16} />}
                         onClick={(e) => {
                           e.stopPropagation()
                           archiveRow(r.id)
                         }}
-                        style={{ 
-                          padding: '6px 10px', 
-                          fontSize: '12px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          background: darkMode ? '#374151' : '#fff3e0',
-                          border: `1px solid ${darkMode ? '#4b5563' : '#ffcc02'}`,
-                          borderRadius: '4px',
-                          color: darkMode ? '#f9fafb' : '#f57c00'
-                        }}
                         title="Archive route"
-                      >
-                        <span>📦</span>
-                        Archive
-                      </button>
+                        darkMode={darkMode}
+                      />
                     )}
-                    <button 
-                      className="btn" 
+                    <IconActionButton
+                      icon={<img src={trashIcon} alt="delete" width={16} height={16} />}
                       onClick={(e) => {
                         e.stopPropagation()
                         softDelete(r.id)
                       }}
-                      style={{ 
-                        padding: '6px 10px', 
-                        fontSize: '12px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        background: darkMode ? '#7f1d1d' : '#ffebee',
-                        border: `1px solid ${darkMode ? '#991b1b' : '#ffcdd2'}`,
-                        borderRadius: '4px',
-                        color: darkMode ? '#ffffff' : '#c62828'
-                      }}
                       title="Delete route"
-                    >
-                      <span>🗑️</span>
-                      Delete
-                    </button>
+                      darkMode={darkMode}
+                    />
                   </div>
                 </td>
               </tr>

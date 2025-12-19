@@ -1,14 +1,38 @@
+/**
+ * KeywordSelector Component
+ * 
+ * A tag-based keyword input component with autocomplete suggestions.
+ * Used in Events module for managing event keywords.
+ * 
+ * Features:
+ * - Type-ahead autocomplete from existing keywords
+ * - Add keywords by pressing Enter or Tab
+ * - Remove keywords by clicking X on tag
+ * - Remove last keyword with Backspace on empty input
+ * - Keyboard navigation (Escape to close suggestions)
+ * - Visual tag display with remove buttons
+ * 
+ * @module KeywordSelector
+ */
 import React, { useState, useEffect, useRef } from 'react'
 
+/**
+ * Props for KeywordSelector component
+ */
 interface KeywordSelectorProps {
-  label: string
-  value: string[]
-  onChange: (keywords: string[]) => void
-  existingKeywords?: string[]
-  darkMode?: boolean
-  editingId?: string
+  label: string // Field label
+  value: string[] // Currently selected keywords
+  onChange: (keywords: string[]) => void // Callback when keywords change
+  existingKeywords?: string[] // Available keywords for autocomplete
+  darkMode?: boolean // Whether dark mode is enabled
+  editingId?: string // ID of item being edited (for unique key generation)
 }
 
+/**
+ * KeywordSelector component
+ * 
+ * Renders an input field with tag-based keyword display and autocomplete dropdown.
+ */
 export default function KeywordSelector({
   label,
   value = [],
@@ -17,13 +41,23 @@ export default function KeywordSelector({
   darkMode = false,
   editingId
 }: KeywordSelectorProps) {
+  // Input field value
   const [inputValue, setInputValue] = useState('')
+  // Whether to show autocomplete suggestions dropdown
   const [showSuggestions, setShowSuggestions] = useState(false)
+  // Filtered list of suggestions matching current input
   const [filteredSuggestions, setFilteredSuggestions] = useState<string[]>([])
+  // Refs for DOM elements
   const inputRef = useRef<HTMLInputElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
-  // Filter suggestions based on input
+  /**
+   * Filter suggestions based on input value
+   * 
+   * Shows up to 10 suggestions that:
+   * - Match the input text (case-insensitive)
+   * - Are not already selected
+   */
   useEffect(() => {
     if (inputValue.trim()) {
       const lowerInput = inputValue.toLowerCase()
@@ -32,7 +66,7 @@ export default function KeywordSelector({
           kw.toLowerCase().includes(lowerInput) && 
           !value.includes(kw)
         )
-        .slice(0, 10) // Limit to 10 suggestions
+        .slice(0, 10) // Limit to 10 suggestions for performance
       setFilteredSuggestions(filtered)
       setShowSuggestions(filtered.length > 0)
     } else {
@@ -41,7 +75,11 @@ export default function KeywordSelector({
     }
   }, [inputValue, existingKeywords, value])
 
-  // Close suggestions when clicking outside
+  /**
+   * Close suggestions when clicking outside the component
+   * 
+   * Improves UX by automatically closing dropdown when user clicks elsewhere
+   */
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
@@ -52,6 +90,11 @@ export default function KeywordSelector({
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
+  /**
+   * Add a keyword to the selected list
+   * 
+   * Normalizes the keyword (trim, lowercase) and prevents duplicates
+   */
   const addKeyword = (keyword: string) => {
     const trimmed = keyword.trim().toLowerCase()
     if (trimmed && !value.includes(trimmed)) {
@@ -61,15 +104,27 @@ export default function KeywordSelector({
     }
   }
 
+  /**
+   * Remove a keyword from the selected list
+   */
   const removeKeyword = (keywordToRemove: string) => {
     onChange(value.filter(kw => kw !== keywordToRemove))
   }
 
+  /**
+   * Handle keyboard input
+   * 
+   * Keyboard shortcuts:
+   * - Enter: Add current input as keyword
+   * - Tab: Add current input as keyword (prevents tabbing away)
+   * - Backspace (on empty input): Remove last keyword
+   * - Escape: Close suggestions and blur input
+   */
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && inputValue.trim()) {
       e.preventDefault()
       addKeyword(inputValue)
-      // Refocus the input field after adding keyword
+      // Refocus the input field after adding keyword for rapid entry
       setTimeout(() => {
         inputRef.current?.focus()
       }, 0)

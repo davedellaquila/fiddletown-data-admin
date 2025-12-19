@@ -1,29 +1,95 @@
+/**
+ * Locations Feature Component
+ * 
+ * Admin interface for managing wineries, parks, and other location data.
+ * 
+ * Features:
+ * - CRUD operations (Create, Read, Update, Delete)
+ * - CSV import/export
+ * - Bulk actions (publish, archive, delete)
+ * - Search and filtering
+ * - Sortable columns
+ * - Soft delete support (deleted_at field)
+ * - Status management (draft, published, archived)
+ * 
+ * Data Model:
+ * - Locations are stored in Supabase 'locations' table
+ * - Uses soft deletes (deleted_at timestamp) instead of hard deletes
+ * - Slug is auto-generated from name if not provided
+ * - Sort order determines display sequence
+ * 
+ * @module Locations
+ */
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import FormField from '../shared/components/FormField'
 import AutoSaveEditDialog from '../shared/components/AutoSaveEditDialog'
 import ActionMenu, { ActionMenuItem } from '../shared/components/ActionMenu'
+import IconActionButton from '../shared/components/IconActionButton'
+import archiveIcon from '../assets/archive.svg'
+import trashIcon from '../assets/trash.svg'
 import { slugify } from '../../shared/utils/slugify'
 import type { Location } from '../../shared/types/models'
 
+/**
+ * Props for Locations component
+ */
 interface LocationsProps {
-  darkMode?: boolean
-  sidebarCollapsed?: boolean
+  darkMode?: boolean // Whether dark mode is enabled
+  sidebarCollapsed?: boolean // Whether sidebar is collapsed (affects dialog positioning)
 }
 
+/**
+ * Locations component
+ * 
+ * Main component for managing location data. Handles all CRUD operations,
+ * import/export, bulk actions, and filtering.
+ */
 export default function Locations({ darkMode = false, sidebarCollapsed = false }: LocationsProps) {
-  const [rows, setRows] = useState<Location[]>([])
-  const [loading, setLoading] = useState(false)
-  const [editing, setEditing] = useState<Location | null>(null)
-  const [q, setQ] = useState('')
-  const [importing, setImporting] = useState(false)
-  const [importPreview, setImportPreview] = useState<any[] | null>(null)
-  const [importErrors, setImportErrors] = useState<string[]>([])
-  const fileInputRef = useState<HTMLInputElement | null>(null)[0]
-  const importFileInputRef = useRef<HTMLInputElement>(null)
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  // Data state
+  const [rows, setRows] = useState<Location[]>([]) // All loaded locations
+  const [loading, setLoading] = useState(false) // Loading indicator
+  const [editing, setEditing] = useState<Location | null>(null) // Currently editing location (null = not editing)
+  
+  // Search and filter state
+  const [q, setQ] = useState('') // Search query (filters by name)
+  
+  // Import/export state
+  const [importing, setImporting] = useState(false) // Whether import preview dialog is open
+  const [importPreview, setImportPreview] = useState<any[] | null>(null) // Parsed CSV data for preview
+  const [importErrors, setImportErrors] = useState<string[]>([]) // Validation errors from import
+  const fileInputRef = useState<HTMLInputElement | null>(null)[0] // Legacy ref (unused)
+  const importFileInputRef = useRef<HTMLInputElement>(null) // Ref to hidden file input for CSV import
+  
+  // Selection and sorting state
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set()) // IDs of selected rows for bulk actions
+  const [sortBy, setSortBy] = useState<'name' | 'region' | 'status'>('name') // Column to sort by
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc') // Sort direction
 
-  // Sticky header offset (align table header under toolbar)
+  /**
+   * Handle column header click for sorting
+   * 
+   * Behavior:
+   * - Clicking same column: toggles sort order (asc ↔ desc)
+   * - Clicking different column: sets new sort column, defaults to asc
+   */
+  const handleSort = (column: 'name' | 'region' | 'status') => {
+    if (sortBy === column) {
+      // If clicking the same column, toggle sort order
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')
+    } else {
+      // If clicking a different column, set it as sort column and default to asc
+      setSortBy(column)
+      setSortOrder('asc')
+    }
+  }
+
+  /**
+   * Calculate toolbar height for sticky table header positioning
+   * 
+   * The table header needs to be positioned below the toolbar when scrolling.
+   * This effect measures the toolbar height and updates it on resize.
+   */
   const toolbarRef = useRef<HTMLDivElement | null>(null)
   const [toolbarHeight, setToolbarHeight] = useState<number>(0)
   useEffect(() => {
@@ -35,7 +101,21 @@ export default function Locations({ darkMode = false, sidebarCollapsed = false }
     return () => { window.removeEventListener('resize', update); ro.disconnect() }
   }, [])
 
-  // Tiny CSV parser supporting quotes and commas
+  /**
+   * Parse CSV text into a 2D array of strings
+   * 
+   * Handles:
+   * - Quoted fields (with escaped quotes "")
+   * - Commas within quoted fields
+   * - Newlines within quoted fields
+   * - Empty rows (filtered out)
+   * 
+   * This is a simple parser suitable for the expected CSV format.
+   * For more complex CSV files, consider using a library like papaparse.
+   * 
+   * @param text - Raw CSV text content
+   * @returns 2D array where each inner array is a row of cells
+   */
   function parseCSV(text: string): string[][] {
     const rows: string[][] = []
     let cur: string[] = []
@@ -62,7 +142,18 @@ export default function Locations({ darkMode = false, sidebarCollapsed = false }
     return rows.filter(r => r.length && r.some(c => c.trim() !== ''))
   }
 
+  /**
+   * Convert data rows to CSV format
+   * 
+   * Escapes values that contain commas, quotes, or newlines by wrapping in quotes
+   * and doubling internal quotes (standard CSV escaping).
+   * 
+   * @param rows - Array of data objects
+   * @param headers - Column names to include in CSV
+   * @returns CSV-formatted string
+   */
   function toCSV(rows: any[], headers: string[]): string {
+    // Escape function: wraps values in quotes if they contain special characters
     const esc = (v: any) => {
       if (v == null) return ''
       const s = String(v)
@@ -73,14 +164,24 @@ export default function Locations({ darkMode = false, sidebarCollapsed = false }
     return lines.join('\n')
   }
 
+  /**
+   * Export locations to CSV file
+   * 
+   * Fetches current filtered data and downloads as CSV.
+   * Respects current search filter (q).
+   * Only exports non-deleted locations.
+   * 
+   * File is automatically downloaded with name 'locations-export.csv'
+   */
   const exportCSV = async () => {
-    // fetch fresh rows (respect current filter)
+    // Fetch fresh rows (respect current filter)
     let query = supabase.from('locations').select('name,slug,region,short_description,website_url,status,sort_order').is('deleted_at', null).order('sort_order', { ascending: true }).order('name')
     if (q.trim()) query = query.ilike('name', `%${q}%`)
     const { data, error } = await query
     if (error) { alert(error.message); return }
     const headers = ['name','slug','region','short_description','website_url','status','sort_order']
     const csv = toCSV(data || [], headers)
+    // Create download link and trigger download
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
     const a = document.createElement('a')
     a.href = URL.createObjectURL(blob)
@@ -90,6 +191,12 @@ export default function Locations({ darkMode = false, sidebarCollapsed = false }
     a.remove()
   }
 
+  /**
+   * Download CSV template file
+   * 
+   * Provides a template CSV with sample data to help users understand
+   * the expected format for imports.
+   */
   const downloadTemplate = () => {
     const headers = ['name','slug','region','short_description','website_url','status','sort_order']
     const sampleData = [
@@ -122,6 +229,21 @@ export default function Locations({ darkMode = false, sidebarCollapsed = false }
     a.remove()
   }
 
+  /**
+   * Handle CSV file import
+   * 
+   * Process:
+   * 1. Read file content
+   * 2. Parse CSV into rows
+   * 3. Map headers to data fields
+   * 4. Normalize and validate data
+   * 5. Show preview with validation errors
+   * 
+   * The preview allows users to review data before confirming import.
+   * Import uses upsert (update existing or insert new) based on slug.
+   * 
+   * @param e - File input change event
+   */
   async function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
@@ -131,27 +253,31 @@ export default function Locations({ darkMode = false, sidebarCollapsed = false }
       alert('CSV must have header + at least one data row')
       return
     }
+    // Map headers to lowercase for case-insensitive matching
     const headers = grid[0].map(h => h.trim().toLowerCase())
+    // Convert rows to objects
     const rows = grid.slice(1).map((cols, i) => {
       const obj: Record<string, any> = {}
       headers.forEach((h, idx) => obj[h] = (cols[idx] ?? '').trim())
       return obj
     })
   
+    // Normalize and validate each row
     const preview = rows.map((r, idx) => {
       const name = r.name || ''
-      const slug = r.slug || (name ? slugify(name) : '')
+      const slug = r.slug || (name ? slugify(name) : '') // Auto-generate slug if missing
       const region = r.region || null
       const short_description = r.short_description || null
       const website_url = r.website_url || null
       let status = (r.status || '').toLowerCase()
+      // Validate status - default to 'draft' if invalid
       if (!['draft','published','archived'].includes(status)) status = 'draft'
       const sort_order = r.sort_order ? parseInt(r.sort_order, 10) : null
   
       return { name, slug, region, short_description, website_url, status, sort_order }
     })
   
-    // Basic validation
+    // Basic validation - collect errors for display
     const errors: string[] = []
     preview.forEach((r, i) => {
       if (!r.name) errors.push(`Row ${i+2}: missing name`)
@@ -161,18 +287,29 @@ export default function Locations({ darkMode = false, sidebarCollapsed = false }
     setImportPreview(preview)
     setImportErrors(errors)
     setImporting(true)
-    e.target.value = ''  // clear the file input
+    e.target.value = ''  // Clear the file input to allow re-selecting same file
   }  
 
+  /**
+   * Confirm and execute CSV import
+   * 
+   * Validates that there are no errors, then upserts all rows.
+   * Uses slug as the conflict key (updates existing locations with same slug,
+   * creates new ones if slug doesn't exist).
+   * 
+   * Sets created_by to current user ID for audit trail.
+   */
   async function confirmImport() {
     if (!importPreview) return
     if (importErrors.length > 0) {
       alert('Fix errors before import')
       return
     }
+    // Get current user for created_by field
     const { data: session } = await supabase.auth.getSession()
     const uid = session.session?.user.id || null
   
+    // Map preview data to database payload
     const payload = importPreview.map(r => ({
       name: r.name,
       slug: r.slug,
@@ -184,6 +321,7 @@ export default function Locations({ darkMode = false, sidebarCollapsed = false }
       created_by: uid
     }))
   
+    // Upsert: update if slug exists, insert if new
     const { error } = await supabase
       .from('locations')
       .upsert(payload, { onConflict: 'slug' })
@@ -192,6 +330,7 @@ export default function Locations({ darkMode = false, sidebarCollapsed = false }
       setImportErrors([error.message])
       return
     }
+    // Clear import state and reload data
     setImportPreview(null)
     setImportErrors([])
     setImporting(false)
@@ -199,12 +338,22 @@ export default function Locations({ darkMode = false, sidebarCollapsed = false }
     alert('Import successful')
   }
 
+  /**
+   * Load locations from database
+   * 
+   * Fetches all non-deleted locations, optionally filtered by search query.
+   * Results are sorted by sort_order (ascending), then by name.
+   * 
+   * Only loads locations where deleted_at is null (soft delete filter).
+   */
   const load = async () => {
     setLoading(true)
     let query = supabase.from('locations').select('*').is('deleted_at', null).order('sort_order', { ascending: true }).order('name')
+    // Apply search filter if query exists
     if (q.trim()) query = query.ilike('name', `%${q}%`)
     const { data, error } = await query
     
+    // Debug logging (can be removed in production)
     console.log('Load query result:', { data, error })
     console.log('Records found:', data?.length || 0)
     if (data) {
@@ -216,9 +365,18 @@ export default function Locations({ darkMode = false, sidebarCollapsed = false }
     setLoading(false)
   }
 
+  /**
+   * Reload data when search query changes
+   * 
+   * Automatically refetches locations when user types in search box
+   */
   useEffect(() => { load() }, [q])
 
-  // Handle Escape key to close edit dialog
+  /**
+   * Handle Escape key to close edit dialog
+   * 
+   * Provides keyboard accessibility - pressing Escape closes the edit dialog
+   */
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && editing) {
@@ -235,6 +393,15 @@ export default function Locations({ darkMode = false, sidebarCollapsed = false }
     }
   }, [editing])
 
+  /**
+   * Start creating a new location
+   * 
+   * Initializes the edit dialog with empty form fields.
+   * Sets default values:
+   * - status: 'draft'
+   * - sort_order: 1000 (appears at end of list)
+   * - created_by: current user ID
+   */
   const startNew = async () => {
     const { data: session } = await supabase.auth.getSession()
     setEditing({
@@ -253,15 +420,26 @@ export default function Locations({ darkMode = false, sidebarCollapsed = false }
     })
   }
 
+  /**
+   * Save location (create or update)
+   * 
+   * Handles both insert (new) and update (existing) operations.
+   * Auto-generates slug from name if slug is missing.
+   * 
+   * @param options - Optional configuration
+   * @param options.suppressClose - If true, keeps dialog open after save (useful for navigation)
+   */
   const save = async (options?: { suppressClose?: boolean }) => {
     if (!editing) return
     const payload = { ...editing }
   
+    // Auto-generate slug if missing
     if (!payload.slug && payload.name) {
       payload.slug = slugify(payload.name)
     }
   
     if (payload.id) {
+      // UPDATE existing location
       const { error } = await supabase.from('locations')
         .update({
           name: payload.name,
@@ -275,6 +453,8 @@ export default function Locations({ darkMode = false, sidebarCollapsed = false }
         .eq('id', payload.id)
       if (error) { alert(error.message); return }
     } else {
+      // INSERT new location
+      // Remove fields that Postgres will generate
       const { id, created_at, updated_at, deleted_at, ...insertable } = payload
       const { data, error } = await supabase.from('locations')
         .insert(insertable)
@@ -284,20 +464,38 @@ export default function Locations({ darkMode = false, sidebarCollapsed = false }
       payload.id = data!.id
     }
   
+    // Close dialog unless suppressClose is true
     if (!options?.suppressClose) setEditing(null)
-    await load()
+    await load() // Reload to show changes
   }
 
+  /**
+   * Publish a single location
+   * 
+   * Changes status to 'published' (makes it visible to public)
+   */
   const publishRow = async (id: string) => {
     const { error } = await supabase.from('locations').update({ status: 'published' }).eq('id', id)
     if (error) alert(error.message); else load()
   }
 
+  /**
+   * Archive a single location
+   * 
+   * Changes status to 'archived' (hides from public but keeps in database)
+   */
   const archiveRow = async (id: string) => {
     const { error } = await supabase.from('locations').update({ status: 'archived' }).eq('id', id)
     if (error) alert(error.message); else load()
   }
 
+  /**
+   * Soft delete a location
+   * 
+   * Sets deleted_at timestamp instead of actually deleting the record.
+   * This allows recovery and maintains referential integrity.
+   * The location will no longer appear in the list (filtered by deleted_at IS NULL).
+   */
   const softDelete = async (id: string) => {
     if (!confirm('Delete this location? (soft delete)')) return
     
@@ -320,18 +518,37 @@ export default function Locations({ darkMode = false, sidebarCollapsed = false }
     }
   }
 
+  /**
+   * Bulk publish selected locations
+   * 
+   * Updates status to 'published' for all selected locations.
+   * Clears selection after successful update.
+   */
   const bulkPublish = async () => {
     if (!selectedIds.size) { alert('Select at least one location.'); return }
     const { error } = await supabase.from('locations').update({ status: 'published' }).in('id', Array.from(selectedIds))
     if (error) alert(error.message); else { await load(); setSelectedIds(new Set()) }
   }
 
+  /**
+   * Bulk archive selected locations
+   * 
+   * Updates status to 'archived' for all selected locations.
+   * Clears selection after successful update.
+   */
   const bulkArchive = async () => {
     if (!selectedIds.size) { alert('Select at least one location.'); return }
     const { error } = await supabase.from('locations').update({ status: 'archived' }).in('id', Array.from(selectedIds))
     if (error) alert(error.message); else { await load(); setSelectedIds(new Set()) }
   }
 
+  /**
+   * Bulk soft delete selected locations
+   * 
+   * Sets deleted_at timestamp for all selected locations.
+   * Requires confirmation before proceeding.
+   * Clears selection after successful deletion.
+   */
   const bulkDelete = async () => {
     if (!selectedIds.size) { alert('Select at least one location.'); return }
     if (!confirm('Soft delete selected locations?')) return
@@ -339,6 +556,12 @@ export default function Locations({ darkMode = false, sidebarCollapsed = false }
     if (error) alert(error.message); else { await load(); setSelectedIds(new Set()) }
   }
 
+  /**
+   * Toggle selection of a single location
+   * 
+   * @param id - Location ID to toggle
+   * @param checked - Whether location should be selected
+   */
   const toggleSelect = (id: string, checked: boolean) => {
     setSelectedIds(prev => {
       const next = new Set(prev)
@@ -347,6 +570,11 @@ export default function Locations({ darkMode = false, sidebarCollapsed = false }
     })
   }
 
+  /**
+   * Toggle selection of all visible locations
+   * 
+   * @param checked - Whether all locations should be selected
+   */
   const toggleSelectAllVisible = (checked: boolean) => {
     setSelectedIds(prev => {
       if (!checked) return new Set()
@@ -422,7 +650,49 @@ export default function Locations({ darkMode = false, sidebarCollapsed = false }
             </button>
           </div>
           
-          <div style={{ marginLeft: 'auto', flexShrink: 0 }}>
+          <div style={{ marginLeft: 'auto', flexShrink: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button
+              className="btn"
+              onClick={exportCSV}
+              title="Export"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '6px',
+                background: darkMode ? '#374151' : '#ffffff',
+                border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`,
+                color: darkMode ? '#f9fafb' : '#374151',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '16px',
+                minWidth: '32px',
+                height: '32px'
+              }}
+            >
+              ⬇️
+            </button>
+            <button
+              className="btn"
+              onClick={() => importFileInputRef.current?.click()}
+              title="Import"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '6px',
+                background: darkMode ? '#374151' : '#ffffff',
+                border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`,
+                color: darkMode ? '#f9fafb' : '#374151',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '16px',
+                minWidth: '32px',
+                height: '32px'
+              }}
+            >
+              ⬆️
+            </button>
             <ActionMenu
             items={[
               {
@@ -433,22 +703,10 @@ export default function Locations({ darkMode = false, sidebarCollapsed = false }
                 disabled: loading
               },
               {
-                id: 'export',
-                label: 'Export',
-                icon: '📤',
-                onClick: exportCSV
-              },
-              {
                 id: 'template',
                 label: 'Template',
                 icon: '📋',
                 onClick: downloadTemplate
-              },
-              {
-                id: 'import',
-                label: 'Import',
-                icon: '📥',
-                onClick: () => importFileInputRef.current?.click()
               },
               {
                 id: 'publish',
@@ -589,14 +847,69 @@ export default function Locations({ darkMode = false, sidebarCollapsed = false }
                   title="Select all"
                 />
               </th>
-              <th>Name</th>
-              <th>Region</th>
-              <th style={{ padding: '8px 4px', width: '1%' }}>Status</th>
+              <th
+                onClick={() => handleSort('name')}
+                style={{
+                  textAlign: 'left',
+                  padding: '8px 6px',
+                  cursor: 'pointer',
+                  userSelect: 'none',
+                  color: darkMode ? '#f9fafb' : '#1f2937'
+                }}
+              >
+                Name {sortBy === 'name' && (sortOrder === 'asc' ? '↑' : '↓')}
+              </th>
+              <th
+                onClick={() => handleSort('region')}
+                style={{
+                  textAlign: 'left',
+                  padding: '8px 6px',
+                  cursor: 'pointer',
+                  userSelect: 'none',
+                  color: darkMode ? '#f9fafb' : '#1f2937'
+                }}
+              >
+                Region {sortBy === 'region' && (sortOrder === 'asc' ? '↑' : '↓')}
+              </th>
+              <th
+                onClick={() => handleSort('status')}
+                style={{
+                  padding: '8px 4px',
+                  width: '1%',
+                  cursor: 'pointer',
+                  userSelect: 'none',
+                  color: darkMode ? '#f9fafb' : '#1f2937'
+                }}
+              >
+                Status {sortBy === 'status' && (sortOrder === 'asc' ? '↑' : '↓')}
+              </th>
               <th style={{ padding: '8px 4px', width: '1%' }}></th>
             </tr>
           </thead>
           <tbody>
-            {rows.map(r => (
+            {rows
+              .sort((a, b) => {
+                let aVal = a[sortBy]
+                let bVal = b[sortBy]
+                
+                // Handle null/undefined values
+                if (aVal == null && bVal == null) return 0
+                if (aVal == null) return sortOrder === 'asc' ? 1 : -1
+                if (bVal == null) return sortOrder === 'asc' ? -1 : 1
+                
+                // Handle string sorting
+                if (typeof aVal === 'string' && typeof bVal === 'string') {
+                  return sortOrder === 'asc' 
+                    ? aVal.localeCompare(bVal)
+                    : bVal.localeCompare(aVal)
+                }
+                
+                // Handle numeric sorting (for status enum, treat as string)
+                if (aVal < bVal) return sortOrder === 'asc' ? -1 : 1
+                if (aVal > bVal) return sortOrder === 'asc' ? 1 : -1
+                return 0
+              })
+              .map(r => (
               <tr 
                 key={r.id}
                 onClick={(e) => {
@@ -671,51 +984,25 @@ export default function Locations({ darkMode = false, sidebarCollapsed = false }
                       </button>
                     )}
                     {r.status !== 'archived' && (
-                      <button 
-                        className="btn" 
+                      <IconActionButton
+                        icon={<img src={archiveIcon} alt="archive" width={16} height={16} />}
                         onClick={(e) => {
                           e.stopPropagation()
                           archiveRow(r.id)
                         }}
-                        style={{ 
-                          padding: '6px 10px', 
-                          fontSize: '12px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          background: darkMode ? '#374151' : '#fff3e0',
-                          border: `1px solid ${darkMode ? '#4b5563' : '#ffcc02'}`,
-                          borderRadius: '4px',
-                          color: darkMode ? '#f9fafb' : '#f57c00'
-                        }}
                         title="Archive location"
-                      >
-                        <span>📦</span>
-                        Archive
-                      </button>
+                        darkMode={darkMode}
+                      />
                     )}
-                    <button 
-                      className="btn" 
+                    <IconActionButton
+                      icon={<img src={trashIcon} alt="delete" width={16} height={16} />}
                       onClick={(e) => {
                         e.stopPropagation()
                         softDelete(r.id)
                       }}
-                      style={{ 
-                        padding: '6px 10px', 
-                        fontSize: '12px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        background: darkMode ? '#7f1d1d' : '#ffebee',
-                        border: `1px solid ${darkMode ? '#991b1b' : '#ffcdd2'}`,
-                        borderRadius: '4px',
-                        color: darkMode ? '#ffffff' : '#c62828'
-                      }}
                       title="Delete location"
-                    >
-                      <span>🗑️</span>
-                      Delete
-                    </button>
+                      darkMode={darkMode}
+                    />
                   </div>
                 </td>
               </tr>

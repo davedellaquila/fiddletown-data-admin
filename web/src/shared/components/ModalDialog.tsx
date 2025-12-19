@@ -1,14 +1,41 @@
+/**
+ * ModalDialog Component
+ * 
+ * A simple modal dialog component with backdrop and close functionality.
+ * Used for displaying content in an overlay dialog.
+ * 
+ * Features:
+ * - Backdrop click to close
+ * - Escape key to close
+ * - Prevents closing when busy (e.g., during save operations)
+ * - Responsive max-width
+ * - Scrollable content area
+ * 
+ * Note: This is a simpler alternative to AutoSaveEditDialog.
+ * Use AutoSaveEditDialog for edit forms with auto-save and navigation.
+ * 
+ * @module ModalDialog
+ */
 import React from 'react'
 
+/**
+ * Props for ModalDialog component
+ */
 interface ModalDialogProps {
-  isOpen: boolean
-  onClose: () => void
-  title: string
-  children: React.ReactNode
-  maxWidth?: string
-  busy?: boolean
+  isOpen: boolean // Whether dialog is visible
+  onClose: () => void // Callback when dialog should close
+  title: string // Dialog title text
+  children: React.ReactNode // Dialog content
+  maxWidth?: string // Maximum width of dialog (default: '700px')
+  busy?: boolean // Whether dialog is busy (prevents closing)
 }
 
+/**
+ * ModalDialog component
+ * 
+ * Renders a centered modal dialog with backdrop overlay.
+ * Closes on backdrop click or Escape key (unless busy).
+ */
 export default function ModalDialog({
   isOpen,
   onClose,
@@ -17,8 +44,15 @@ export default function ModalDialog({
   maxWidth = '700px',
   busy = false
 }: ModalDialogProps) {
+  // Don't render if not open (conditional rendering for performance)
   if (!isOpen) return null
 
+  /**
+   * Handle backdrop click
+   * 
+   * Only closes dialog if clicking directly on backdrop (not dialog content)
+   * and not busy.
+   */
   const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
     // Only close if clicking the backdrop, not the dialog content
     if (e.target === e.currentTarget && !busy) {
@@ -26,6 +60,11 @@ export default function ModalDialog({
     }
   }
 
+  /**
+   * Handle keyboard events
+   * 
+   * Closes dialog on Escape key press (unless busy).
+   */
   const handleKeyDown = (e: React.KeyboardEvent) => {
     // Close on Escape key
     if (e.key === 'Escape' && !busy) {

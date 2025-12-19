@@ -1,11 +1,35 @@
+/**
+ * StickyToolbar Component
+ * 
+ * A sticky toolbar container that stays at the top when scrolling.
+ * Used in feature modules (Locations, Events, Routes) to keep action buttons
+ * and search controls visible while scrolling through data tables.
+ * 
+ * Features:
+ * - Sticky positioning (stays at top when scrolling)
+ * - Dark mode support
+ * - Consistent styling across modules
+ * - High z-index to stay above table content
+ * 
+ * @module StickyToolbar
+ */
 import React from 'react'
 
+/**
+ * Props for StickyToolbar component
+ */
 interface StickyToolbarProps {
-  darkMode: boolean
-  children: React.ReactNode
-  className?: string
+  darkMode: boolean // Whether dark mode is enabled
+  children: React.ReactNode // Toolbar content (buttons, search, etc.)
+  className?: string // Additional CSS class names
 }
 
+/**
+ * StickyToolbar component
+ * 
+ * Renders a toolbar that sticks to the top of the viewport when scrolling.
+ * Provides consistent styling and positioning for module toolbars.
+ */
 export default function StickyToolbar({ 
   darkMode, 
   children, 

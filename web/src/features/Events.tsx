@@ -1,3 +1,36 @@
+/**
+ * Events Feature Component
+ * 
+ * Admin interface for managing event data (concerts, festivals, markets, etc.).
+ * 
+ * Features:
+ * - CRUD operations (Create, Read, Update, Delete)
+ * - OCR image-to-event conversion (scan event flyers/images)
+ * - CSV import/export
+ * - Bulk actions (publish, archive, delete, duplicate)
+ * - Advanced filtering (date range, keywords, search)
+ * - Sortable columns
+ * - Image upload and management
+ * - Keyword tagging system
+ * - Soft delete support
+ * - Status management (draft, published, archived)
+ * - Weekend date quick filters
+ * - Image hover previews
+ * 
+ * Data Model:
+ * - Events are stored in Supabase 'events' table
+ * - Keywords are stored in 'keywords' table with many-to-many relationship via 'event_keywords'
+ * - Images are stored in Supabase Storage 'events' bucket
+ * - Uses soft deletes (deleted_at timestamp)
+ * - Slug is auto-generated from name if not provided
+ * 
+ * OCR Integration:
+ * - Uses Tesseract.js for OCR processing
+ * - Parses event flyers/images to extract event details
+ * - Auto-fills form fields from OCR results
+ * 
+ * @module Events
+ */
 import { useEffect, useState, useRef } from 'react'
 import dupIcon from '../assets/duplicate.svg'
 import trashIcon from '../assets/trash.svg'
@@ -13,8 +46,17 @@ import type { EventRow } from '../../shared/types/models'
 
 
 /**
- * Optimized OCR function using worker with PSM/OEM settings
- * Matches the OCR test page configuration for consistent results
+ * Run OCR on an image file using optimized Tesseract settings
+ * 
+ * Uses the same configuration as the OCR test page for consistent results.
+ * Optimized for event flyer text recognition.
+ * 
+ * Configuration:
+ * - PSM 6: Uniform block of text (good for flyers)
+ * - OEM 3: Default engine (LSTM + Legacy)
+ * 
+ * @param file - Image file to process
+ * @returns Extracted text from the image
  */
 async function runOptimizedOCR(file: File): Promise<string> {
   const Tesseract = await import('tesseract.js')
@@ -45,6 +87,15 @@ async function runOptimizedOCR(file: File): Promise<string> {
   return (data?.text || '').trim()
 }
 
+/**
+ * Parse OCR text and convert to event data format
+ * 
+ * Uses the improved OCR parser to extract event information from text.
+ * Maps parsed data to the EventRow format expected by the component.
+ * 
+ * @param text - Raw OCR text from image processing
+ * @returns Event data object with parsed fields
+ */
 function parseEventText(text: string) {
   console.log('Parsing OCR text with improved parser:', text)
   
@@ -79,6 +130,15 @@ function parseEventText(text: string) {
   return result
 }
 
+/**
+ * Parse CSV text into a 2D array of strings
+ * 
+ * Handles quoted fields and commas within quotes.
+ * Filters out empty rows.
+ * 
+ * @param text - Raw CSV text content
+ * @returns 2D array where each inner array is a row of cells
+ */
 function parseCSV(text: string): string[][] {
   const lines = text.split(/\r?\n/).filter(Boolean)
   const rows: string[][] = []
@@ -113,6 +173,16 @@ function parseCSV(text: string): string[][] {
     .filter(r => r.length && r.some(c => c !== ''))
 }
 
+/**
+ * Convert data rows to CSV format
+ * 
+ * Escapes values containing commas, quotes, or newlines.
+ * Uses standard CSV escaping (wrap in quotes, double internal quotes).
+ * 
+ * @param rows - Array of data objects
+ * @param headers - Column names to include in CSV
+ * @returns CSV-formatted string
+ */
 function toCSV(rows: any[], headers: string[]): string {
   const esc = (v: any) => {
     if (v == null) return ''
@@ -124,6 +194,12 @@ function toCSV(rows: any[], headers: string[]): string {
   return lines.join('\n')
 }
 
+/**
+ * Download CSV template file
+ * 
+ * Provides a template CSV with column headers to help users
+ * understand the expected format for imports.
+ */
 function downloadTemplateCSV() {
   const headers = ['name','slug','host_org','start_date','end_date','start_time','end_time','location','recurrence','website_url','status','sort_order','keywords']
   const csv = toCSV([], headers) + '\n'
@@ -134,19 +210,31 @@ function downloadTemplateCSV() {
   URL.revokeObjectURL(url)
 }
 
+/**
+ * Props for Events component
+ */
 interface EventsProps {
-  darkMode?: boolean
-  sidebarCollapsed?: boolean
+  darkMode?: boolean // Whether dark mode is enabled
+  sidebarCollapsed?: boolean // Whether sidebar is collapsed (affects dialog positioning)
 }
 
+/**
+ * Events component
+ * 
+ * Main component for managing event data. Handles CRUD operations,
+ * OCR processing, import/export, bulk actions, filtering, and keyword management.
+ */
 export default function Events({ darkMode = false, sidebarCollapsed = false }: EventsProps) {
-  const [rows, setRows] = useState<EventRow[]>([])
-  const [allRows, setAllRows] = useState<EventRow[]>([]) // Store all events for client-side filtering
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [importing, setImporting] = useState(false)
-  const [navigating, setNavigating] = useState(false)
-  const [importPreview, setImportPreview] = useState<any[] | null>(null)
+  // Data state
+  const [rows, setRows] = useState<EventRow[]>([]) // Filtered events (displayed in table)
+  const [allRows, setAllRows] = useState<EventRow[]>([]) // All events (for client-side filtering)
+  const [loading, setLoading] = useState(true) // Loading indicator
+  const [error, setError] = useState<string | null>(null) // Error message
+  
+  // Import/export state
+  const [importing, setImporting] = useState(false) // Whether import preview dialog is open
+  const [navigating, setNavigating] = useState(false) // Whether navigating between records
+  const [importPreview, setImportPreview] = useState<any[] | null>(null) // Parsed CSV data for preview
 
   // Helper function for button styles
   const getButtonStyle = (baseStyle: any = {}) => ({
@@ -232,7 +320,18 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
     }
   }
 
-  // Calculate upcoming weekend dates (Friday, Saturday, and Sunday)
+  /**
+   * Calculate upcoming weekend dates (Friday, Saturday, and Sunday)
+   * 
+   * Returns the date range for the current or next weekend based on today's date.
+   * Used for quick filtering to show weekend events.
+   * 
+   * Logic:
+   * - If today is Friday-Sunday: returns this weekend
+   * - If today is Monday-Thursday: returns this coming weekend
+   * 
+   * @returns Object with 'from' (Friday) and 'to' (Sunday) dates in YYYY-MM-DD format
+   */
   const getUpcomingWeekend = () => {
     const today = new Date()
     const dayOfWeek = today.getDay() // 0 = Sunday, 6 = Saturday
@@ -279,6 +378,14 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
     }
   }
 
+  /**
+   * Calculate next weekend dates (Friday, Saturday, and Sunday)
+   * 
+   * Returns the date range for the weekend after the upcoming one.
+   * Used for quick filtering to show next weekend's events.
+   * 
+   * @returns Object with 'from' (Friday) and 'to' (Sunday) dates in YYYY-MM-DD format
+   */
   const getNextWeekend = () => {
     const today = new Date()
     const dayOfWeek = today.getDay() // 0 = Sunday, 6 = Saturday
@@ -420,7 +527,17 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
     }
   }
 
-  // Client-side filtering function
+  /**
+   * Apply client-side filters to events
+   * 
+   * Filters events by:
+   * - Search query (name contains query, case-insensitive)
+   * - Keywords (event must have ANY of the selected keywords - OR logic)
+   * 
+   * Note: Date filtering is done server-side for performance.
+   * 
+   * @param events - Array of events to filter
+   */
   const applyFilters = (events: EventRow[]) => {
     let filtered = events
     
@@ -1471,7 +1588,53 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
             </button>
           </div>
           
-          <div style={{ marginLeft: 'auto', flexShrink: 0 }}>
+          <div style={{ marginLeft: 'auto', flexShrink: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button
+              className="btn"
+              onClick={exportCSV}
+              disabled={importing}
+              title="Export"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '6px',
+                background: darkMode ? '#374151' : '#ffffff',
+                border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`,
+                color: darkMode ? '#f9fafb' : '#374151',
+                borderRadius: '6px',
+                cursor: importing ? 'not-allowed' : 'pointer',
+                fontSize: '16px',
+                minWidth: '32px',
+                height: '32px',
+                opacity: importing ? 0.6 : 1
+              }}
+            >
+              ⬇️
+            </button>
+            <button
+              className="btn"
+              onClick={() => importFileInputRef.current?.click()}
+              disabled={importing}
+              title="Import"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '6px',
+                background: darkMode ? '#374151' : '#ffffff',
+                border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`,
+                color: darkMode ? '#f9fafb' : '#374151',
+                borderRadius: '6px',
+                cursor: importing ? 'not-allowed' : 'pointer',
+                fontSize: '16px',
+                minWidth: '32px',
+                height: '32px',
+                opacity: importing ? 0.6 : 1
+              }}
+            >
+              ⬆️
+            </button>
             <ActionMenu
           items={[
             {
@@ -1493,20 +1656,6 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
               label: 'Template',
               icon: '📋',
               onClick: downloadTemplateCSV,
-              disabled: importing
-            },
-            {
-              id: 'export',
-              label: 'Export',
-              icon: '📤',
-              onClick: exportCSV,
-              disabled: importing
-            },
-            {
-              id: 'import',
-              label: 'Import',
-              icon: '📥',
-              onClick: () => importFileInputRef.current?.click(),
               disabled: importing
             },
             {

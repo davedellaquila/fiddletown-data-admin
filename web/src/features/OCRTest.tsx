@@ -1,10 +1,42 @@
+/**
+ * OCR Test Feature Component
+ * 
+ * Testing and debugging interface for OCR (Optical Character Recognition) functionality.
+ * Allows users to test OCR settings and see how event flyers/images are parsed.
+ * 
+ * Features:
+ * - Image upload (file picker or paste from clipboard)
+ * - OCR processing with configurable Tesseract settings
+ * - Real-time OCR text display
+ * - Event data parsing preview
+ * - Configurable PSM (Page Segmentation Mode) and OEM (OCR Engine Mode)
+ * - Processing time measurement
+ * - Error handling and display
+ * 
+ * Use Cases:
+ * - Testing OCR accuracy on different image types
+ * - Debugging parsing issues
+ * - Finding optimal OCR settings for event flyers
+ * - Validating OCR parser improvements
+ * 
+ * @module OCRTest
+ */
 import React, { useState, useRef, useEffect } from 'react'
 import { parseEventText, ParsedEventData } from '../shared/utils/ocrParser'
 
+/**
+ * Props for OCRTest component
+ */
 interface OCRTestProps {
-  darkMode?: boolean
+  darkMode?: boolean // Whether dark mode is enabled
 }
 
+/**
+ * OCRTest component
+ * 
+ * Provides an interactive interface for testing OCR functionality
+ * and visualizing how event data is extracted from images.
+ */
 export default function OCRTest({ darkMode = false }: OCRTestProps) {
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
