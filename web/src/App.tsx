@@ -363,6 +363,7 @@ export default function App() {
             )}
             <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
               <button 
+                className="sidebar-control-btn"
                 onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
                 style={{
                   border: 'none',
@@ -382,6 +383,7 @@ export default function App() {
                 {sidebarCollapsed ? '→' : '←'}
               </button>
               <button 
+                className="sidebar-control-btn"
                 onClick={toggleDarkMode}
                 style={{
                   border: 'none',
@@ -404,7 +406,7 @@ export default function App() {
           </div>
           {!sidebarCollapsed && (
             <button 
-              className="btn" 
+              className="btn sidebar-action-btn" 
               onClick={() => {
                 if (IS_DEVELOPMENT_MODE) {
                   // In development mode, just reload the page
@@ -427,7 +429,7 @@ export default function App() {
         </div>
         <nav className="stack" style={{ flexDirection: 'column', alignItems: sidebarCollapsed ? 'center' : 'stretch' }}>
           <button 
-            className="btn" 
+            className={`btn sidebar-nav-btn ${view === 'locations' ? 'active' : ''}`}
             onClick={() => setView('locations')}
             title="Go to Locations (⌘1 / Ctrl1)"
             style={{
@@ -449,7 +451,7 @@ export default function App() {
             {!sidebarCollapsed && <span>Locations</span>}
           </button>
           <button 
-            className="btn" 
+            className={`btn sidebar-nav-btn ${view === 'events' ? 'active' : ''}`}
             onClick={() => setView('events')}
             title="Go to Events (⌘2 / Ctrl2)"
             style={{
@@ -471,7 +473,7 @@ export default function App() {
             {!sidebarCollapsed && <span>Events</span>}
           </button>
           <button 
-            className="btn" 
+            className={`btn sidebar-nav-btn ${view === 'routes' ? 'active' : ''}`}
             onClick={() => setView('routes')}
             title="Go to Routes (⌘3 / Ctrl3)"
             style={{
@@ -493,7 +495,7 @@ export default function App() {
             {!sidebarCollapsed && <span>Routes</span>}
           </button>
           <button 
-            className="btn" 
+            className={`btn sidebar-nav-btn ${view === 'ocr-test' ? 'active' : ''}`}
             onClick={() => setView('ocr-test')}
             title="OCR Test Page (⌘4 / Ctrl4)"
             style={{
@@ -515,7 +517,7 @@ export default function App() {
             {!sidebarCollapsed && <span>OCR Test</span>}
           </button>
           <button 
-            className="btn" 
+            className="btn sidebar-nav-btn" 
             onClick={() => {
               // Open the HTML file in a new browser tab
               const htmlPath = '/code-snippets/events/event-list-dev.html'

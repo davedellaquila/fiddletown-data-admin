@@ -176,3 +176,73 @@ thead th { background: #fafafa; }
 [data-theme="dark"] thead th {
   background: #374151;
 }
+
+/* 
+ * Sidebar Navigation Button Hover Effects
+ * 
+ * Provides visual feedback when hovering over sidebar navigation buttons
+ * (Locations, Events, Routes, OCR Test, Events List Dev).
+ * 
+ * Behavior:
+ * - Light mode: Background becomes slightly darker (#f3f4f6) on hover
+ * - Dark mode: Background becomes slightly lighter (#4b5563) on hover
+ * - Active buttons (with .active class) don't show hover effect to maintain visual distinction
+ */
+.sidebar-nav-btn {
+  transition: background-color 0.2s ease;
+}
+
+/* Only apply hover to inactive buttons (not active/selected ones) */
+.sidebar-nav-btn:not(.active):hover {
+  background-color: #f3f4f6 !important;
+}
+
+[data-theme="dark"] .sidebar-nav-btn:not(.active):hover {
+  background-color: #4b5563 !important;
+}
+
+/* 
+ * Sidebar Control Button Hover Effects
+ * 
+ * Visual feedback for control buttons in the sidebar header:
+ * - Collapse/expand sidebar button
+ * - Dark mode toggle button
+ * 
+ * Behavior:
+ * - Light mode: Background becomes darker (#d1d5db) on hover
+ * - Dark mode: Background becomes lighter (#4b5563) on hover
+ */
+.sidebar-control-btn {
+  transition: background-color 0.2s ease;
+}
+
+.sidebar-control-btn:hover {
+  background-color: #d1d5db !important;
+}
+
+[data-theme="dark"] .sidebar-control-btn:hover {
+  background-color: #4b5563 !important;
+}
+
+/* 
+ * Sidebar Action Button Hover Effects
+ * 
+ * Visual feedback for the main action button in the sidebar:
+ * - Sign out button (production)
+ * - Reload button (development mode)
+ * 
+ * Behavior:
+ * - Light mode: Background becomes slightly darker (#f3f4f6) on hover
+ * - Dark mode: Background becomes slightly lighter (#4b5563) on hover
+ */
+.sidebar-action-btn {
+  transition: background-color 0.2s ease;
+}
+
+.sidebar-action-btn:hover {
+  background-color: #f3f4f6 !important;
+}
+
+[data-theme="dark"] .sidebar-action-btn:hover {
+  background-color: #4b5563 !important;
+}

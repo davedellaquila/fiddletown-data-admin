@@ -1,0 +1,160 @@
+# SSA Admin Project Rules
+
+## Architecture Overview
+This is a dual-platform admin application with shared business logic:
+- **Web**: React + TypeScript + Vite (`web/` directory)
+- **iOS**: Swift + SwiftUI (`ios/` directory)
+- **Shared Logic**: TypeScript types are the source of truth, Swift models must sync
+
+## Code Style & Patterns
+
+### General Principles
+- Always prefer simple solutions over complex ones
+- Avoid code duplication - check for existing similar functionality first
+- Write code that works in dev, test, and prod environments
+- Only make changes that are requested or clearly related to the current task
+- Keep files under 200-300 lines - refactor when approaching this limit
+- Keep the codebase clean and organized
+
+### TypeScript (Web)
+- Use TypeScript for all web code
+- Types are defined in `web/shared/types/models.ts` - this is the source of truth
+- Add JSDoc comments to types documenting business rules and validation
+- Export types from `web/shared/types/index.ts`
+- Use shared utilities from `web/shared/utils/`
+- Follow API patterns from `web/shared/api/supabaseQueries.ts`
+- Constants should be in `web/shared/constants/index.ts`
+
+### Swift (iOS)
+- Use Swift for all iOS code
+- Models must sync with TypeScript types (see `docs/TYPE_SYNC.md`)
+- Use `CodingKeys` to map snake_case (API) ↔ camelCase (Swift)
+- Follow patterns in `ios/SSA-Admin/Shared/Models/README.md`
+- Use shared utilities from `ios/SSA-Admin/Shared/Utils/`
+- Constants should match TypeScript constants
+
+## Shared Logic Rules
+
+### When Adding/Updating Business Logic
+1. **Update documentation first**: Modify `docs/SHARED_LOGIC.md`
+2. **Update TypeScript**: Implement in `web/shared/utils/`
+3. **Update Swift**: Sync implementation in `ios/SSA-Admin/Shared/Utils/`
+4. **Test both platforms**: Ensure identical behavior
+
+### When Adding/Updating Types
+1. **Update TypeScript types**: Modify `web/shared/types/models.ts`
+2. **Add JSDoc**: Document fields, validation rules, business rules
+3. **Run validation**: Use `scripts/validate-types.ts` to check sync
+4. **Update Swift models**: Follow `ios/SSA-Admin/Shared/Models/README.md`
+5. **Update both apps**: Update forms and views on both platforms
+
+### When Adding/Updating API Patterns
+1. **Update documentation**: Modify `docs/API_CONTRACTS.md` and `docs/API_PATTERNS.md`
+2. **Update TypeScript helpers**: Modify `web/shared/api/supabaseQueries.ts`
+3. **Update Swift service**: Modify `SupabaseService.swift` to match
+4. **Test queries**: Verify on both platforms
+
+## Development Environment
+
+### Authentication
+- Development mode bypasses authentication (see `docs/DEVELOPMENT_AUTH.md`)
+- Never mock data for dev/prod - only for tests
+- Never add stubbing or fake data patterns to dev/prod code
+
+### Environment Variables
+- Web: Use `.env.local` for Supabase keys (see `docs/SUPABASE_CONFIG.md`)
+- iOS: Use `Info.plist` or Xcode Scheme Environment Variables
+- Never overwrite env files without asking first
+
+## File Organization
+
+### Web Structure
+- `web/src/features/` - Feature components
+- `web/src/shared/components/` - Reusable components
+- `web/shared/types/` - Type definitions (source of truth)
+- `web/shared/utils/` - Utility functions
+- `web/shared/api/` - API query helpers
+- `web/shared/constants/` - Shared constants
+
+### iOS Structure
+- `ios/SSA-Admin/Features/` - Feature views
+- `ios/SSA-Admin/Shared/Models/` - Data models (synced with TypeScript)
+- `ios/SSA-Admin/Shared/Utils/` - Utility functions (synced with TypeScript)
+- `ios/SSA-Admin/Shared/Services/` - Service layer (Supabase)
+- `ios/SSA-Admin/Shared/Constants/` - Constants (synced with TypeScript)
+
+## Testing
+
+### Unit Tests
+- Test utility functions with all documented test cases from `docs/SHARED_LOGIC.md`
+- Test type guards and validation helpers
+- Test API query helpers
+
+### Cross-Platform Tests
+- Compare utility function outputs for same inputs
+- Verify API queries return same data structure
+- Ensure business logic behaves identically
+
+## Common Patterns
+
+### Date Handling
+- Always be careful with timezones
+- Use ISO date format (YYYY-MM-DD) for API
+- Parse dates manually to avoid timezone shifts: `new Date(year, month - 1, day)`
+- See `docs/SHARED_LOGIC.md` for date formatting contracts
+
+### API Queries
+- Use PostgREST filter syntax correctly
+- Avoid deeply nested `or` filters (flatten them)
+- Filter out soft-deleted records: `.is('deleted_at', null)`
+- Use date filters carefully: `gt` (day before) and `lte` (day after) for inclusive ranges
+
+### Status Management
+- Valid statuses: `"draft"`, `"published"`, `"archived"`
+- Default status: `"draft"`
+- Status transitions are unrestricted
+
+## Documentation
+
+### Required Documentation
+- Business logic contracts: `docs/SHARED_LOGIC.md`
+- API patterns: `docs/API_CONTRACTS.md` and `docs/API_PATTERNS.md`
+- Type sync guide: `docs/TYPE_SYNC.md`
+- Development workflow: `docs/DEVELOPMENT_WORKFLOW.md`
+
+### When to Update Documentation
+- Before implementing shared logic changes
+- When adding new API patterns
+- When updating type definitions
+- When changing business rules
+
+## Code Review Checklist
+
+### TypeScript Changes
+- [ ] Types have JSDoc comments
+- [ ] Utility functions match contracts in `docs/SHARED_LOGIC.md`
+- [ ] API queries follow patterns in `docs/API_CONTRACTS.md`
+- [ ] Constants exported from `web/shared/constants/index.ts`
+
+### Swift Changes
+- [ ] Models match TypeScript types
+- [ ] Utility functions match TypeScript behavior
+- [ ] CodingKeys map snake_case correctly
+- [ ] Constants match TypeScript constants
+
+### Feature Changes
+- [ ] Feature works on both platforms
+- [ ] Behavior is consistent across platforms
+- [ ] Shared logic is documented
+- [ ] Tests added for new functionality
+
+## Important Reminders
+
+- **TypeScript types are the source of truth** - always update them first
+- **Sync Swift models** after TypeScript type changes
+- **Document business logic** before implementing
+- **Test both platforms** before completing features
+- **Keep files small** - refactor at 200-300 lines
+- **No mocking in dev/prod** - only in tests
+- **Simple solutions preferred** - avoid over-engineering
+
