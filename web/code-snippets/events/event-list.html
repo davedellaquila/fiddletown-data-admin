@@ -471,9 +471,28 @@
     return grouped;
   }
 
+  // Parse date string in local timezone to avoid timezone shifts
+  // Date strings like "2025-12-20" are parsed as local dates, not UTC
+  function parseLocalDate(dateString) {
+    if (!dateString) return null;
+    const [year, month, day] = dateString.split('-').map(Number);
+    return new Date(year, month - 1, day);
+  }
+
+  // Format date to YYYY-MM-DD string using local date components
+  // This avoids timezone shifts when converting dates to strings
+  function formatLocalDateString(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
   function formatDayHeader(dateString) {
     if (!dateString) return 'TBA';
-    const date = new Date(dateString);
+    // Parse date in local timezone to avoid timezone shifts
+    const date = parseLocalDate(dateString);
+    if (!date) return 'TBA';
     
     // Get full day name
     const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
@@ -510,13 +529,17 @@
         return;
       }
       
-      const startDate = new Date(event.start_date + 'T00:00:00');
-      const endDate = event.end_date ? new Date(event.end_date + 'T00:00:00') : startDate;
+      // Parse dates in local timezone to avoid timezone shifts
+      const startDate = parseLocalDate(event.start_date);
+      const endDate = event.end_date ? parseLocalDate(event.end_date) : startDate;
+      
+      if (!startDate) return;
       
       // Iterate through each day the event is active
       const currentDate = new Date(startDate);
       while (currentDate <= endDate) {
-        const dateKey = currentDate.toISOString().slice(0, 10);
+        // Use local date components to create date key, avoiding timezone shifts
+        const dateKey = formatLocalDateString(currentDate);
         
         if (!grouped[dateKey]) {
           grouped[dateKey] = [];
@@ -757,9 +780,9 @@
     // Determine which month to display
     let displayDate;
     if (fromDate) {
-      displayDate = new Date(fromDate + 'T00:00:00');
+      displayDate = parseLocalDate(fromDate) || new Date();
     } else if (toDate) {
-      displayDate = new Date(toDate + 'T00:00:00');
+      displayDate = parseLocalDate(toDate) || new Date();
     } else {
       displayDate = new Date();
     }
@@ -780,8 +803,11 @@
         return;
       }
       
-      const startDate = new Date(event.start_date + 'T00:00:00');
-      const endDate = event.end_date ? new Date(event.end_date + 'T00:00:00') : startDate;
+      // Parse dates in local timezone to avoid timezone shifts
+      const startDate = parseLocalDate(event.start_date);
+      const endDate = event.end_date ? parseLocalDate(event.end_date) : startDate;
+      
+      if (!startDate) return;
       
       // Only include events that fall within the displayed month
       const monthStart = new Date(year, month, 1);
@@ -798,7 +824,8 @@
       
       while (currentDate <= maxDate) {
         const day = currentDate.getDate();
-        const dateKey = currentDate.toISOString().slice(0, 10);
+        // Use local date components to create date key, avoiding timezone shifts
+        const dateKey = formatLocalDateString(currentDate);
         
         // Check if this day falls within the date range filter
         if (fromDate || toDate) {
