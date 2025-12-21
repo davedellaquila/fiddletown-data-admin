@@ -3,7 +3,14 @@
 html, body, #root { height: 100%; margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, Apple Color Emoji, Segoe UI Emoji; }
 button, input, select, textarea { font: inherit; }
 a { color: inherit; }
-.btn { padding: 8px 12px; border-radius: 8px; border: 1px solid #ddd; background: #fff; cursor: pointer; }
+.btn { 
+  padding: 8px 12px; 
+  border-radius: 8px; 
+  border: 1px solid #ddd; 
+  background: #fff; 
+  cursor: pointer; 
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
 .btn.primary { background: #1a73e8; color: #fff; border-color: #1a73e8; }
 .stack { display: flex; gap: 8px; align-items: center; }
 .sidebar { border-right: 1px solid #eee; padding: 16px; }
@@ -21,7 +28,6 @@ thead th { background: #fafafa; }
   background: #374151;
   border-color: #4b5563;
   color: #f9fafb;
-  transition: all 0.2s ease;
 }
 
 [data-theme="dark"] .btn:hover {
@@ -245,4 +251,67 @@ thead th { background: #fafafa; }
 
 [data-theme="dark"] .sidebar-action-btn:hover {
   background-color: #4b5563 !important;
+}
+
+/* 
+ * Toolbar Button Hover Effects
+ * 
+ * Visual feedback for buttons in module toolbars (New, Export, Import, etc.)
+ * 
+ * Behavior:
+ * - Light mode: Background becomes slightly darker on hover
+ * - Dark mode: Background becomes slightly lighter on hover
+ */
+.btn:hover:not(:disabled) {
+  background-color: #f3f4f6 !important;
+}
+
+[data-theme="dark"] .btn:hover:not(:disabled) {
+  background-color: #4b5563 !important;
+}
+
+/* Primary button hover (New button, etc.) */
+.btn.primary:hover:not(:disabled) {
+  background-color: #2563eb !important;
+  border-color: #2563eb !important;
+}
+
+[data-theme="dark"] .btn.primary:hover:not(:disabled) {
+  background-color: #2563eb !important;
+  border-color: #2563eb !important;
+}
+
+/* 
+ * Row Action Button Hover Effects
+ * 
+ * Visual feedback for action buttons in table rows (Publish, Archive, Delete)
+ * 
+ * Behavior:
+ * - Light mode: Background becomes slightly darker on hover
+ * - Dark mode: Background becomes slightly lighter on hover
+ * - Icon buttons: Border becomes more prominent on hover
+ */
+.icon-action-btn {
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.icon-action-btn:hover {
+  background-color: #f3f4f6 !important;
+  border-color: #9ca3af !important;
+}
+
+[data-theme="dark"] .icon-action-btn:hover {
+  background-color: #4b5563 !important;
+  border-color: #6b7280 !important;
+}
+
+/* Publish button specific hover (green theme) */
+.btn-publish:hover {
+  background-color: #c8e6c9 !important;
+  border-color: #a5d6a7 !important;
+}
+
+[data-theme="dark"] .btn-publish:hover {
+  background-color: #065f46 !important;
+  border-color: #047857 !important;
 }

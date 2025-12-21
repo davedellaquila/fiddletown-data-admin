@@ -961,7 +961,7 @@ export default function Locations({ darkMode = false, sidebarCollapsed = false }
                   <div style={{ display: 'flex', gap: 6, alignItems: 'center', justifyContent: 'flex-end' }}>
                     {r.status !== 'published' && (
                       <button 
-                        className="btn" 
+                        className="btn btn-publish" 
                         onClick={(e) => {
                           e.stopPropagation()
                           publishRow(r.id)

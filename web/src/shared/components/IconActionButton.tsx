@@ -21,7 +21,7 @@ export default function IconActionButton({
 }: IconActionButtonProps) {
   return (
     <button
-      className="btn"
+      className="btn icon-action-btn"
       onClick={onClick}
       title={title}
       aria-label={ariaLabel || title}
