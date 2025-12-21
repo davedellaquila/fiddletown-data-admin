@@ -73,6 +73,8 @@ export default function App() {
     const saved = localStorage.getItem('sidebarCollapsed')
     return saved ? JSON.parse(saved) : false
   })
+  // Track if user manually collapsed sidebar (vs auto-collapse)
+  const [userManuallyCollapsed, setUserManuallyCollapsed] = useState(false)
 
   /**
    * Authentication setup effect
@@ -146,6 +148,47 @@ export default function App() {
     const last = localStorage.getItem('lastEmail')
     if (last) setEmail(last)
   }, [])
+
+  /**
+   * Auto-collapse sidebar on narrow screens (≤1024px)
+   * 
+   * Automatically collapses sidebar when screen width is ≤1024px.
+   * Restores previous state when screen width >1024px, unless user manually collapsed it.
+   */
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(max-width: 1024px)')
+    
+    const handleResize = (e: MediaQueryListEvent | MediaQueryList) => {
+      const isNarrow = e.matches
+      
+      if (isNarrow) {
+        // Auto-collapse on narrow screens
+        if (!sidebarCollapsed) {
+          setSidebarCollapsed(true)
+        }
+      } else {
+        // Restore previous state on wider screens (unless user manually collapsed)
+        if (!userManuallyCollapsed) {
+          const saved = localStorage.getItem('sidebarCollapsed')
+          const savedState = saved ? JSON.parse(saved) : false
+          setSidebarCollapsed(savedState)
+        }
+      }
+    }
+    
+    // Check initial state
+    handleResize(mediaQuery)
+    
+    // Listen for changes
+    if (mediaQuery.addEventListener) {
+      mediaQuery.addEventListener('change', handleResize)
+      return () => mediaQuery.removeEventListener('change', handleResize)
+    } else {
+      // Fallback for older browsers
+      mediaQuery.addListener(handleResize)
+      return () => mediaQuery.removeListener(handleResize)
+    }
+  }, [sidebarCollapsed, userManuallyCollapsed])
 
   /**
    * Persist dark mode preference to localStorage
@@ -364,7 +407,12 @@ export default function App() {
             <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
               <button 
                 className="sidebar-control-btn"
-                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                onClick={() => {
+                  const newState = !sidebarCollapsed
+                  setSidebarCollapsed(newState)
+                  setUserManuallyCollapsed(newState)
+                  localStorage.setItem('sidebarCollapsed', JSON.stringify(newState))
+                }}
                 style={{
                   border: 'none',
                   fontSize: '18px',
@@ -553,7 +601,9 @@ export default function App() {
         padding: '0 0 20px 20px',
         width: sidebarCollapsed ? 'calc(100vw - 60px)' : 'calc(100vw - 220px)',
         minHeight: '100vh',
-        transition: 'margin-left 0.3s ease, width 0.3s ease'
+        transition: 'margin-left 0.3s ease, width 0.3s ease',
+        maxWidth: '100%',
+        overflowX: 'hidden'
       }}>
         {/* Reserved for future notifications/info header (currently hidden) */}
         <div 

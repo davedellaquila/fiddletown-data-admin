@@ -1550,6 +1550,7 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
         )}
         {/* Top row: Module title and Action buttons */}
         <div
+          className="responsive-toolbar-row"
           style={{ 
             display: 'flex',
             flexWrap: 'nowrap',
@@ -1588,7 +1589,7 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
             </button>
           </div>
           
-          <div style={{ marginLeft: 'auto', flexShrink: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div className="responsive-toolbar-controls" style={{ marginLeft: 'auto', flexShrink: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
             <button
               className="btn"
               onClick={exportCSV}
@@ -1712,6 +1713,7 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
 
         {/* Bottom row: Search and filter controls */}
         <div
+          className="responsive-filters"
           style={{
             display: 'flex',
             flexWrap: 'wrap',
@@ -1719,7 +1721,7 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
             alignItems: 'center'
           }}
         >
-          <div style={{ position: 'relative', flex: 1, minWidth: 220 }}>
+          <div className="responsive-search" style={{ position: 'relative', flex: 1, minWidth: 220 }}>
             <input 
               placeholder="Search events..." 
               value={q} 
@@ -1758,70 +1760,95 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
             )}
           </div>
           
-          <label style={{ color: darkMode ? '#f9fafb' : '#374151' }}>
-            From <input 
-              type="date" 
-              value={from} 
-              onChange={e=>setFrom(e.target.value)} 
-              style={{
-                background: darkMode ? '#374151' : '#ffffff',
-                border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`,
-                borderRadius: '6px',
-                color: darkMode ? '#f9fafb' : '#1f2937',
-                padding: '4px'
-              }}
-            />
-          </label>
-          
-          <label style={{ color: darkMode ? '#f9fafb' : '#374151' }}>
-            To <input 
-              type="date" 
-              value={to} 
-              onChange={e=>setTo(e.target.value)} 
-              style={{
-                background: darkMode ? '#374151' : '#ffffff',
-                border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`,
-                borderRadius: '6px',
-                color: darkMode ? '#f9fafb' : '#1f2937',
-                padding: '4px'
-              }}
-            />
-          </label>
+          {/* Date filters grouped together */}
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'nowrap' }}>
+            <label style={{ color: darkMode ? '#f9fafb' : '#374151', whiteSpace: 'nowrap' }}>
+              From <input 
+                type="date" 
+                value={from} 
+                onChange={e=>setFrom(e.target.value)} 
+                style={{
+                  background: darkMode ? '#374151' : '#ffffff',
+                  border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`,
+                  borderRadius: '6px',
+                  color: darkMode ? '#f9fafb' : '#1f2937',
+                  padding: '4px'
+                }}
+              />
+            </label>
+            
+            <label style={{ color: darkMode ? '#f9fafb' : '#374151', whiteSpace: 'nowrap' }}>
+              To <input 
+                type="date" 
+                value={to} 
+                onChange={e=>setTo(e.target.value)} 
+                style={{
+                  background: darkMode ? '#374151' : '#ffffff',
+                  border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`,
+                  borderRadius: '6px',
+                  color: darkMode ? '#f9fafb' : '#1f2937',
+                  padding: '4px'
+                }}
+              />
+            </label>
+          </div>
 
-          <button
-            onClick={setWeekendFilter}
-            title="Set date range to upcoming weekend"
-            style={{
-              padding: '6px 12px',
-              background: darkMode ? '#374151' : '#ffffff',
-              border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`,
-              borderRadius: '6px',
-              color: darkMode ? '#f9fafb' : '#374151',
-              cursor: 'pointer',
-              fontSize: '14px',
-              fontWeight: '500',
-              whiteSpace: 'nowrap',
-              transition: 'all 0.2s ease'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = darkMode ? '#4b5563' : '#f3f4f6'
-              e.currentTarget.style.borderColor = darkMode ? '#6b7280' : '#9ca3af'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = darkMode ? '#374151' : '#ffffff'
-              e.currentTarget.style.borderColor = darkMode ? '#4b5563' : '#d1d5db'
-            }}
-          >
-            📅 This Weekend
-          </button>
-          <button
-            type="button"
-            onClick={setNextWeekendFilter}
-            className="px-3 py-1.5 text-sm border border-gray-300 rounded bg-white hover:bg-gray-50"
-            title="Set date range to next weekend"
-          >
-            📅 Next Weekend
-          </button>
+          {/* Weekend buttons grouped together */}
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'nowrap' }}>
+            <button
+              onClick={setWeekendFilter}
+              title="Set date range to upcoming weekend"
+              style={{
+                padding: '6px 12px',
+                background: darkMode ? '#374151' : '#ffffff',
+                border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`,
+                borderRadius: '6px',
+                color: darkMode ? '#f9fafb' : '#374151',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '500',
+                whiteSpace: 'nowrap',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = darkMode ? '#4b5563' : '#f3f4f6'
+                e.currentTarget.style.borderColor = darkMode ? '#6b7280' : '#9ca3af'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = darkMode ? '#374151' : '#ffffff'
+                e.currentTarget.style.borderColor = darkMode ? '#4b5563' : '#d1d5db'
+              }}
+            >
+              📅 This Weekend
+            </button>
+            <button
+              type="button"
+              onClick={setNextWeekendFilter}
+              title="Set date range to next weekend"
+              style={{
+                padding: '6px 12px',
+                background: darkMode ? '#374151' : '#ffffff',
+                border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`,
+                borderRadius: '6px',
+                color: darkMode ? '#f9fafb' : '#374151',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '500',
+                whiteSpace: 'nowrap',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = darkMode ? '#4b5563' : '#f3f4f6'
+                e.currentTarget.style.borderColor = darkMode ? '#6b7280' : '#9ca3af'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = darkMode ? '#374151' : '#ffffff'
+                e.currentTarget.style.borderColor = darkMode ? '#4b5563' : '#d1d5db'
+              }}
+            >
+              📅 Next Weekend
+            </button>
+          </div>
 
           <button
             type="button"
@@ -2039,7 +2066,9 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
       )}
       {/* OCR panel removed per request */}
 
-      <table className="table" style={{ 
+      {/* Desktop table view */}
+      <div style={{ position: 'relative' }}>
+      <table className="table responsive-table" style={{ 
         width: '100%', 
         borderCollapse: 'collapse',
         background: darkMode ? '#1f2937' : '#ffffff',
@@ -2519,6 +2548,217 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
             ))}
           </tbody>
         </table>
+      </div>
+
+      {/* Mobile card layout */}
+      <div className="responsive-card-layout">
+        {rows
+          .sort((a, b) => {
+            let aVal = a[sortBy]
+            let bVal = b[sortBy]
+            
+            // Handle null/undefined values
+            if (aVal == null && bVal == null) return 0
+            if (aVal == null) return sortOrder === 'asc' ? 1 : -1
+            if (bVal == null) return sortOrder === 'asc' ? -1 : 1
+            
+            // Handle date sorting
+            if (sortBy === 'start_date' || sortBy === 'end_date') {
+              const aTime = new Date(aVal).getTime()
+              const bTime = new Date(bVal).getTime()
+              if (aTime < bTime) return sortOrder === 'asc' ? -1 : 1
+              if (aTime > bTime) return sortOrder === 'asc' ? 1 : -1
+              return 0
+            }
+            
+            // Handle string sorting
+            if (typeof aVal === 'string' && typeof bVal === 'string') {
+              return sortOrder === 'asc' 
+                ? aVal.localeCompare(bVal)
+                : bVal.localeCompare(aVal)
+            }
+            
+            // Handle numeric sorting
+            if (aVal < bVal) return sortOrder === 'asc' ? -1 : 1
+            if (aVal > bVal) return sortOrder === 'asc' ? 1 : -1
+            return 0
+          })
+          .map((r) => (
+            <div
+              key={r.id ?? r.slug ?? r.name}
+              className="data-card"
+              onClick={() => setEditing(r)}
+              style={{
+                cursor: 'pointer',
+                background: darkMode ? '#1f2937' : '#ffffff',
+                border: `1px solid ${darkMode ? '#374151' : '#e5e7eb'}`,
+                borderRadius: '8px',
+                padding: '12px',
+                marginBottom: '12px'
+              }}
+            >
+              <div className="data-card-header">
+                <input 
+                  type="checkbox" 
+                  checked={selectedIds.has(r.id!.toString())} 
+                  onChange={(e) => {
+                    e.stopPropagation()
+                    toggleSelect(r.id!.toString(), e.target.checked)
+                  }}
+                  style={{
+                    accentColor: darkMode ? '#3b82f6' : '#3b82f6',
+                    marginTop: '4px'
+                  }}
+                />
+                {r.image_url && (
+                  <img 
+                    src={r.image_url} 
+                    alt="event" 
+                    style={{ 
+                      width: '64px', 
+                      height: '64px', 
+                      objectFit: 'cover', 
+                      borderRadius: '6px', 
+                      border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}` 
+                    }} 
+                  />
+                )}
+                <div style={{ flex: 1 }}>
+                  <div style={{ 
+                    fontWeight: 600, 
+                    fontSize: '16px',
+                    color: darkMode ? '#f9fafb' : '#1f2937',
+                    marginBottom: '8px'
+                  }}>
+                    {r.name}
+                    {r.website_url && r.website_url.trim() && (
+                      <a
+                        href={normalizeUrl(r.website_url)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        style={{
+                          marginLeft: '8px',
+                          fontSize: '16px',
+                          color: darkMode ? '#3b82f6' : '#1976d2',
+                          textDecoration: 'none'
+                        }}
+                      >
+                        🔗
+                      </a>
+                    )}
+                  </div>
+                  <div style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    fontSize: '12px',
+                    fontWeight: '500',
+                    padding: '4px 8px',
+                    borderRadius: '4px',
+                    background: r.status === 'published' 
+                      ? (darkMode ? '#065f46' : '#d1fae5')
+                      : r.status === 'archived'
+                      ? (darkMode ? '#78350f' : '#fef3c7')
+                      : (darkMode ? '#374151' : '#f3f4f6'),
+                    color: r.status === 'published'
+                      ? (darkMode ? '#10b981' : '#2e7d32')
+                      : (darkMode ? '#e5e7eb' : '#374151')
+                  }}>
+                    {r.status === 'published' ? '✅' : r.status === 'archived' ? '📦' : '📝'}
+                    {r.status === 'published' ? 'Published' : r.status === 'archived' ? 'Archived' : 'Draft'}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  <button
+                    className="btn"
+                    onClick={(e) => { e.stopPropagation(); copyEvent(r) }}
+                    title="Duplicate"
+                    style={{
+                      width: 32,
+                      height: 32,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      borderRadius: 6,
+                      background: 'transparent',
+                      border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`,
+                      color: darkMode ? '#e5e7eb' : '#374151',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <img src={dupIcon} alt="duplicate" width={16} height={16} />
+                  </button>
+                  <button
+                    className="btn"
+                    onClick={(e) => { e.stopPropagation(); softDelete(r.id!.toString()) }}
+                    title="Delete"
+                    style={{
+                      width: 32,
+                      height: 32,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      borderRadius: 6,
+                      background: 'transparent',
+                      border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`,
+                      color: darkMode ? '#e5e7eb' : '#374151',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <img src={trashIcon} alt="delete" width={16} height={16} />
+                  </button>
+                </div>
+              </div>
+              <div className="data-card-content">
+                {r.start_date && (
+                  <div className="data-card-field">
+                    <div className="data-card-label">Start Date</div>
+                    <div className="data-card-value">
+                      {new Date(r.start_date + 'T00:00:00').toLocaleDateString()}
+                    </div>
+                  </div>
+                )}
+                {r.end_date && (
+                  <div className="data-card-field">
+                    <div className="data-card-label">End Date</div>
+                    <div className="data-card-value">
+                      {new Date(r.end_date + 'T00:00:00').toLocaleDateString()}
+                    </div>
+                  </div>
+                )}
+                {(r.start_time || r.end_time) && (
+                  <div className="data-card-field">
+                    <div className="data-card-label">Time</div>
+                    <div className="data-card-value">
+                      {formatTimeToAMPM(r.start_time)}
+                      {r.start_time && r.end_time ? ' - ' : ''}
+                      {formatTimeToAMPM(r.end_time)}
+                    </div>
+                  </div>
+                )}
+                {r.location && (
+                  <div className="data-card-field">
+                    <div className="data-card-label">Location</div>
+                    <div className="data-card-value">{r.location}</div>
+                  </div>
+                )}
+                {r.host_org && (
+                  <div className="data-card-field">
+                    <div className="data-card-label">Host</div>
+                    <div className="data-card-value">{r.host_org}</div>
+                  </div>
+                )}
+                {r.recurrence && (
+                  <div className="data-card-field">
+                    <div className="data-card-label">Recurrence</div>
+                    <div className="data-card-value">{r.recurrence}</div>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+      </div>
 
         <AutoSaveEditDialog
           key="event-dialog"

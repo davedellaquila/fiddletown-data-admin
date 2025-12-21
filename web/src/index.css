@@ -315,3 +315,175 @@ thead th { background: #fafafa; }
   background-color: #065f46 !important;
   border-color: #047857 !important;
 }
+
+/* 
+ * Responsive Design Utilities
+ * 
+ * Breakpoints:
+ * - 1024px: Tablet landscape / smaller laptops - Sidebar auto-collapses, toolbar adjustments
+ * - 768px: Tablet portrait / mobile - Card layout for tables, full vertical stacking
+ */
+
+:root {
+  --breakpoint-tablet: 1024px;
+  --breakpoint-mobile: 768px;
+}
+
+/* Responsive table to card conversion */
+.responsive-table-container {
+  overflow-x: auto;
+  /* Note: overflow-x creates a containing block which can break position:sticky */
+  /* Sticky headers may need to be applied to individual th elements */
+}
+
+@media (max-width: 768px) {
+  /* Hide table on mobile, show card layout instead */
+  .responsive-table {
+    display: none;
+  }
+  
+  .responsive-card-layout {
+    display: block;
+  }
+  
+  /* Card styles for mobile table conversion */
+  .data-card {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 12px;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+  }
+  
+  .data-card:hover {
+    background: #f9fafb;
+    border-color: #d1d5db;
+  }
+  
+  .data-card-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  
+  .data-card-content {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .data-card-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  
+  .data-card-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  
+  .data-card-value {
+    font-size: 14px;
+    color: #1f2937;
+    word-break: break-word;
+  }
+  
+  /* Touch-friendly button sizes */
+  .btn {
+    min-height: 44px;
+    padding: 10px 16px;
+  }
+  
+  /* Responsive padding adjustments */
+  .main {
+    padding: 12px !important;
+  }
+}
+
+/* Very narrow screens (≤640px) - stack everything vertically */
+@media (max-width: 640px) {
+  /* Responsive toolbar adjustments */
+  .responsive-toolbar-row {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+  }
+  
+  .responsive-toolbar-controls {
+    flex-direction: column !important;
+    gap: 8px !important;
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
+  
+  .responsive-toolbar-controls > * {
+    width: 100% !important;
+  }
+  
+  /* Responsive filter controls */
+  .responsive-filters {
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+  
+  .responsive-filters > * {
+    width: 100% !important;
+  }
+}
+
+@media (min-width: 769px) {
+  /* Show table on larger screens, hide card layout */
+  .responsive-table {
+    display: table;
+  }
+  
+  .responsive-card-layout {
+    display: none;
+  }
+}
+
+/* Tablet adjustments (≤1024px) */
+@media (max-width: 1024px) {
+  /* Reduce padding on smaller screens */
+  .main {
+    padding: 12px 16px !important;
+  }
+  
+  /* Allow toolbar to wrap if needed but keep items horizontal */
+  .responsive-toolbar-row {
+    flex-wrap: wrap;
+  }
+  
+  /* Make search inputs full-width on tablet when space is limited */
+  @media (max-width: 900px) {
+    .responsive-search {
+      min-width: 100% !important;
+      flex: 1 1 100% !important;
+    }
+  }
+}
+
+/* Dark mode responsive card styles */
+[data-theme="dark"] .data-card {
+  background: #1f2937;
+  border-color: #374151;
+}
+
+[data-theme="dark"] .data-card:hover {
+  background: #374151;
+  border-color: #4b5563;
+}
+
+[data-theme="dark"] .data-card-label {
+  color: #9ca3af;
+}
+
+[data-theme="dark"] .data-card-value {
+  color: #f9fafb;
+}

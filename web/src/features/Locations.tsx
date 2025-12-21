@@ -608,6 +608,7 @@ export default function Locations({ darkMode = false, sidebarCollapsed = false }
       >
         {/* Top row: Module title and Action buttons */}
         <div
+          className="responsive-toolbar-row"
           style={{
             display: 'flex',
             flexWrap: 'nowrap',
@@ -650,7 +651,7 @@ export default function Locations({ darkMode = false, sidebarCollapsed = false }
             </button>
           </div>
           
-          <div style={{ marginLeft: 'auto', flexShrink: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div className="responsive-toolbar-controls" style={{ marginLeft: 'auto', flexShrink: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
             <button
               className="btn"
               onClick={exportCSV}
@@ -743,6 +744,7 @@ export default function Locations({ darkMode = false, sidebarCollapsed = false }
 
         {/* Bottom row: Search controls */}
         <div
+          className="responsive-filters"
           style={{
             display: 'flex',
             flexWrap: 'wrap',
@@ -750,7 +752,7 @@ export default function Locations({ darkMode = false, sidebarCollapsed = false }
             alignItems: 'center'
           }}
         >
-          <div style={{ position: 'relative', flex: 1, minWidth: 220 }}>
+          <div className="responsive-search" style={{ position: 'relative', flex: 1, minWidth: 220 }}>
             <input 
               placeholder="Search name…" 
               value={q} 
@@ -834,11 +836,31 @@ export default function Locations({ darkMode = false, sidebarCollapsed = false }
         </div>
       )}
 
-      <div>
-        <table>
-          <thead style={{ position: 'sticky', top: toolbarHeight, zIndex: 110, background: darkMode ? '#374151' : '#f8f9fa' }}>
+      {/* Desktop table view */}
+      <div style={{ position: 'relative' }}>
+      <table className="responsive-table" style={{ 
+        width: '100%', 
+        borderCollapse: 'collapse',
+        background: darkMode ? '#1f2937' : '#ffffff',
+        color: darkMode ? '#f9fafb' : '#1f2937'
+      }}>
+          <thead style={{
+            position: 'sticky',
+            top: toolbarHeight,
+            zIndex: 110,
+            background: darkMode ? '#374151' : '#f8f9fa'
+          }}>
             <tr>
-              <th style={{ width: 28, padding: '8px 6px' }}>
+              <th style={{ 
+                width: 28, 
+                padding: '8px 6px',
+                borderBottom: `1px solid ${darkMode ? '#374151' : '#ddd'}`,
+                background: darkMode ? '#374151' : '#f8f9fa',
+                color: darkMode ? '#f9fafb' : '#1f2937',
+                position: 'sticky',
+                top: toolbarHeight,
+                zIndex: 110
+              }}>
                 <input 
                   type="checkbox" 
                   onChange={e=>toggleSelectAllVisible(e.target.checked)} 
@@ -854,7 +876,12 @@ export default function Locations({ darkMode = false, sidebarCollapsed = false }
                   padding: '8px 6px',
                   cursor: 'pointer',
                   userSelect: 'none',
-                  color: darkMode ? '#f9fafb' : '#1f2937'
+                  borderBottom: `1px solid ${darkMode ? '#374151' : '#ddd'}`,
+                  background: darkMode ? '#374151' : '#f8f9fa',
+                  color: darkMode ? '#f9fafb' : '#1f2937',
+                  position: 'sticky',
+                  top: toolbarHeight,
+                  zIndex: 110
                 }}
               >
                 Name {sortBy === 'name' && (sortOrder === 'asc' ? '↑' : '↓')}
@@ -866,7 +893,12 @@ export default function Locations({ darkMode = false, sidebarCollapsed = false }
                   padding: '8px 6px',
                   cursor: 'pointer',
                   userSelect: 'none',
-                  color: darkMode ? '#f9fafb' : '#1f2937'
+                  borderBottom: `1px solid ${darkMode ? '#374151' : '#ddd'}`,
+                  background: darkMode ? '#374151' : '#f8f9fa',
+                  color: darkMode ? '#f9fafb' : '#1f2937',
+                  position: 'sticky',
+                  top: toolbarHeight,
+                  zIndex: 110
                 }}
               >
                 Region {sortBy === 'region' && (sortOrder === 'asc' ? '↑' : '↓')}
@@ -878,12 +910,26 @@ export default function Locations({ darkMode = false, sidebarCollapsed = false }
                   width: '1%',
                   cursor: 'pointer',
                   userSelect: 'none',
-                  color: darkMode ? '#f9fafb' : '#1f2937'
+                  borderBottom: `1px solid ${darkMode ? '#374151' : '#ddd'}`,
+                  background: darkMode ? '#374151' : '#f8f9fa',
+                  color: darkMode ? '#f9fafb' : '#1f2937',
+                  position: 'sticky',
+                  top: toolbarHeight,
+                  zIndex: 110
                 }}
               >
                 Status {sortBy === 'status' && (sortOrder === 'asc' ? '↑' : '↓')}
               </th>
-              <th style={{ padding: '8px 4px', width: '1%' }}></th>
+              <th style={{ 
+                padding: '8px 4px', 
+                width: '1%',
+                borderBottom: `1px solid ${darkMode ? '#374151' : '#ddd'}`,
+                background: darkMode ? '#374151' : '#f8f9fa',
+                color: darkMode ? '#f9fafb' : '#1f2937',
+                position: 'sticky',
+                top: toolbarHeight,
+                zIndex: 110
+              }}></th>
             </tr>
           </thead>
           <tbody>
@@ -1012,6 +1058,151 @@ export default function Locations({ darkMode = false, sidebarCollapsed = false }
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* Mobile card layout */}
+      <div className="responsive-card-layout">
+        {rows.length === 0 && !loading && (
+          <div style={{ padding: '20px', textAlign: 'center', color: darkMode ? '#9ca3af' : '#6b7280' }}>
+            No records.
+          </div>
+        )}
+        {rows
+          .sort((a, b) => {
+            let aVal = a[sortBy]
+            let bVal = b[sortBy]
+            
+            // Handle null/undefined values
+            if (aVal == null && bVal == null) return 0
+            if (aVal == null) return sortOrder === 'asc' ? 1 : -1
+            if (bVal == null) return sortOrder === 'asc' ? -1 : 1
+            
+            // Handle string sorting
+            if (typeof aVal === 'string' && typeof bVal === 'string') {
+              return sortOrder === 'asc' 
+                ? aVal.localeCompare(bVal)
+                : bVal.localeCompare(aVal)
+            }
+            
+            // Handle numeric sorting (for status enum, treat as string)
+            if (aVal < bVal) return sortOrder === 'asc' ? -1 : 1
+            if (aVal > bVal) return sortOrder === 'asc' ? 1 : -1
+            return 0
+          })
+          .map(r => (
+            <div
+              key={r.id}
+              className="data-card"
+              onClick={() => setEditing(r)}
+              style={{
+                cursor: 'pointer',
+                background: darkMode ? '#1f2937' : '#ffffff',
+                border: `1px solid ${darkMode ? '#374151' : '#e5e7eb'}`,
+                borderRadius: '8px',
+                padding: '12px',
+                marginBottom: '12px'
+              }}
+            >
+              <div className="data-card-header">
+                <input 
+                  type="checkbox" 
+                  checked={selectedIds.has(r.id)} 
+                  onChange={(e) => {
+                    e.stopPropagation()
+                    toggleSelect(r.id, e.target.checked)
+                  }}
+                  style={{
+                    accentColor: darkMode ? '#3b82f6' : '#3b82f6',
+                    marginTop: '4px'
+                  }}
+                />
+                <div style={{ flex: 1 }}>
+                  <div style={{ 
+                    fontWeight: 600, 
+                    fontSize: '16px',
+                    color: darkMode ? '#f9fafb' : '#1f2937',
+                    marginBottom: '8px'
+                  }}>
+                    {r.name}
+                  </div>
+                  <div style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    fontSize: '12px',
+                    fontWeight: '500',
+                    padding: '4px 8px',
+                    borderRadius: '4px',
+                    background: r.status === 'published' 
+                      ? (darkMode ? '#065f46' : '#d1fae5')
+                      : r.status === 'archived'
+                      ? (darkMode ? '#78350f' : '#fef3c7')
+                      : (darkMode ? '#374151' : '#f3f4f6'),
+                    color: r.status === 'published'
+                      ? (darkMode ? '#10b981' : '#2e7d32')
+                      : (darkMode ? '#e5e7eb' : '#374151')
+                  }}>
+                    {r.status === 'published' ? '✅' : r.status === 'archived' ? '📦' : '📝'}
+                    {r.status === 'published' ? 'Published' : r.status === 'archived' ? 'Archived' : 'Draft'}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                  {r.status !== 'published' && (
+                    <button 
+                      className="btn btn-publish" 
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        publishRow(r.id)
+                      }}
+                      style={{ 
+                        padding: '6px 10px', 
+                        fontSize: '12px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        background: '#e8f5e8',
+                        border: '1px solid #c8e6c9',
+                        borderRadius: '4px',
+                        color: '#2e7d32'
+                      }}
+                      title="Publish location"
+                    >
+                      <span>🚀</span>
+                      Publish
+                    </button>
+                  )}
+                  {r.status !== 'archived' && (
+                    <IconActionButton
+                      icon={<img src={archiveIcon} alt="archive" width={16} height={16} />}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        archiveRow(r.id)
+                      }}
+                      title="Archive location"
+                      darkMode={darkMode}
+                    />
+                  )}
+                  <IconActionButton
+                    icon={<img src={trashIcon} alt="delete" width={16} height={16} />}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      softDelete(r.id)
+                    }}
+                    title="Delete location"
+                    darkMode={darkMode}
+                  />
+                </div>
+              </div>
+              <div className="data-card-content">
+                {r.region && (
+                  <div className="data-card-field">
+                    <div className="data-card-label">Region</div>
+                    <div className="data-card-value">{r.region}</div>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
       </div>
 
         <AutoSaveEditDialog

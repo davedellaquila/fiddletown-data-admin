@@ -591,6 +591,7 @@ export default function Routes({ darkMode = false, sidebarCollapsed = false }: R
       >
         {/* Top row: Module title and Action buttons */}
         <div
+          className="responsive-toolbar-row"
           style={{
             display: 'flex',
             flexWrap: 'nowrap',
@@ -634,7 +635,7 @@ export default function Routes({ darkMode = false, sidebarCollapsed = false }: R
             </button>
           </div>
           
-          <div style={{ marginLeft: 'auto', flexShrink: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div className="responsive-toolbar-controls" style={{ marginLeft: 'auto', flexShrink: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
             <button
               className="btn"
               onClick={exportCSV}
@@ -733,6 +734,7 @@ export default function Routes({ darkMode = false, sidebarCollapsed = false }: R
 
         {/* Bottom row: Search controls */}
         <div
+          className="responsive-filters"
           style={{
             display: 'flex',
             flexWrap: 'wrap',
@@ -740,7 +742,7 @@ export default function Routes({ darkMode = false, sidebarCollapsed = false }: R
             alignItems: 'center'
           }}
         >
-          <div style={{ position: 'relative', flex: 1, minWidth: 220 }}>
+          <div className="responsive-search" style={{ position: 'relative', flex: 1, minWidth: 220 }}>
             <input 
               placeholder="Search name…" 
               value={q} 
@@ -830,7 +832,9 @@ export default function Routes({ darkMode = false, sidebarCollapsed = false }: R
         </div>
       )}
 
-      <table>
+      {/* Desktop table view */}
+      <div className="responsive-table-container">
+      <table className="responsive-table">
           <thead>
             <tr>
               <th style={{ width: 28, padding: '8px 6px' }}>
@@ -1051,6 +1055,189 @@ export default function Routes({ darkMode = false, sidebarCollapsed = false }: R
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* Mobile card layout */}
+      <div className="responsive-card-layout">
+        {rows.length === 0 && !loading && (
+          <div style={{ padding: '20px', textAlign: 'center', color: darkMode ? '#9ca3af' : '#6b7280' }}>
+            No records.
+          </div>
+        )}
+        {rows
+          .sort((a, b) => {
+            let aVal = a[sortBy]
+            let bVal = b[sortBy]
+            
+            // Handle null/undefined values
+            if (aVal == null && bVal == null) return 0
+            if (aVal == null) return sortOrder === 'asc' ? 1 : -1
+            if (bVal == null) return sortOrder === 'asc' ? -1 : 1
+            
+            // Handle string sorting (for name, difficulty, status)
+            if (typeof aVal === 'string' && typeof bVal === 'string') {
+              return sortOrder === 'asc' 
+                ? aVal.localeCompare(bVal)
+                : bVal.localeCompare(aVal)
+            }
+            
+            // Handle numeric sorting (for duration_minutes)
+            if (aVal < bVal) return sortOrder === 'asc' ? -1 : 1
+            if (aVal > bVal) return sortOrder === 'asc' ? 1 : -1
+            return 0
+          })
+          .map(r => (
+            <div
+              key={r.id}
+              className="data-card"
+              onClick={() => setEditing(r)}
+              style={{
+                cursor: 'pointer',
+                background: darkMode ? '#1f2937' : '#ffffff',
+                border: `1px solid ${darkMode ? '#374151' : '#e5e7eb'}`,
+                borderRadius: '8px',
+                padding: '12px',
+                marginBottom: '12px'
+              }}
+            >
+              <div className="data-card-header">
+                <input 
+                  type="checkbox" 
+                  checked={selectedIds.has(r.id)} 
+                  onChange={(e) => {
+                    e.stopPropagation()
+                    toggleSelect(r.id, e.target.checked)
+                  }}
+                  style={{
+                    accentColor: darkMode ? '#3b82f6' : '#3b82f6',
+                    marginTop: '4px'
+                  }}
+                />
+                <div style={{ flex: 1 }}>
+                  <div style={{ 
+                    fontWeight: 600, 
+                    fontSize: '16px',
+                    color: darkMode ? '#f9fafb' : '#1f2937',
+                    marginBottom: '8px'
+                  }}>
+                    {r.name}
+                  </div>
+                  <div style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    fontSize: '12px',
+                    fontWeight: '500',
+                    padding: '4px 8px',
+                    borderRadius: '4px',
+                    background: r.status === 'published' 
+                      ? (darkMode ? '#065f46' : '#d1fae5')
+                      : r.status === 'archived'
+                      ? (darkMode ? '#78350f' : '#fef3c7')
+                      : (darkMode ? '#374151' : '#f3f4f6'),
+                    color: r.status === 'published'
+                      ? (darkMode ? '#10b981' : '#2e7d32')
+                      : (darkMode ? '#e5e7eb' : '#374151')
+                  }}>
+                    {r.status === 'published' ? '✅' : r.status === 'archived' ? '📦' : '📝'}
+                    {r.status === 'published' ? 'Published' : r.status === 'archived' ? 'Archived' : 'Draft'}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                  {r.status !== 'published' && (
+                    <button 
+                      className="btn btn-publish" 
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        publishRow(r.id)
+                      }}
+                      style={{ 
+                        padding: '6px 10px', 
+                        fontSize: '12px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        background: darkMode ? '#065f46' : '#e8f5e8',
+                        border: `1px solid ${darkMode ? '#047857' : '#c8e6c9'}`,
+                        borderRadius: '4px',
+                        color: darkMode ? '#ffffff' : '#2e7d32'
+                      }}
+                      title="Publish route"
+                    >
+                      <span>🚀</span>
+                      Publish
+                    </button>
+                  )}
+                  {r.status !== 'archived' && (
+                    <IconActionButton
+                      icon={<img src={archiveIcon} alt="archive" width={16} height={16} />}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        archiveRow(r.id)
+                      }}
+                      title="Archive route"
+                      darkMode={darkMode}
+                    />
+                  )}
+                  <IconActionButton
+                    icon={<img src={trashIcon} alt="delete" width={16} height={16} />}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      softDelete(r.id)
+                    }}
+                    title="Delete route"
+                    darkMode={darkMode}
+                  />
+                </div>
+              </div>
+              <div className="data-card-content">
+                {r.duration_minutes && (
+                  <div className="data-card-field">
+                    <div className="data-card-label">Duration</div>
+                    <div className="data-card-value">{r.duration_minutes} min</div>
+                  </div>
+                )}
+                {r.difficulty && (
+                  <div className="data-card-field">
+                    <div className="data-card-label">Difficulty</div>
+                    <div className="data-card-value">{r.difficulty}</div>
+                  </div>
+                )}
+                {r.start_point && (
+                  <div className="data-card-field">
+                    <div className="data-card-label">Start Point</div>
+                    <div className="data-card-value">{r.start_point}</div>
+                  </div>
+                )}
+                {r.end_point && (
+                  <div className="data-card-field">
+                    <div className="data-card-label">End Point</div>
+                    <div className="data-card-value">{r.end_point}</div>
+                  </div>
+                )}
+                {r.gpx_url && (
+                  <div className="data-card-field">
+                    <div className="data-card-label">GPX File</div>
+                    <div className="data-card-value">
+                      <a 
+                        href={r.gpx_url} 
+                        target="_blank" 
+                        rel="noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        style={{
+                          color: darkMode ? '#3b82f6' : '#1976d2',
+                          textDecoration: 'none'
+                        }}
+                      >
+                        📁 View GPX
+                      </a>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+      </div>
 
       <AutoSaveEditDialog
         key="route-dialog"
