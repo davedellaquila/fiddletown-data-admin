@@ -762,11 +762,14 @@
         html += `<div class="ssa-event-details">`;
         html += `<span class="ssa-event-name-wrapper">`;
         
-        // Info icon for description (only if description exists)
+        // Info icon for description or URL
         const hasDescription = event.description && event.description.trim();
         html += `<span class="ssa-icon-group">`;
-        if (hasDescription) {
-          html += `<span class="ssa-info-icon" data-event-id="${eventId}" data-description="${event.description.replace(/"/g, '&quot;').replace(/'/g, '&#39;')}" title="Hover to view description"></span>`;
+        if (hasDescription || hasWebsiteUrl) {
+          const descriptionAttr = hasDescription ? `data-description="${event.description.replace(/"/g, '&quot;').replace(/'/g, '&#39;')}"` : '';
+          const urlAttr = hasWebsiteUrl ? `data-website-url="${eventUrl}"` : '';
+          const titleText = hasDescription ? 'Hover to view description' : 'Click to open event website';
+          html += `<span class="ssa-info-icon" data-event-id="${eventId}" ${descriptionAttr} ${urlAttr} title="${titleText}"></span>`;
         }
         
         // Image icon button - always show if image exists (regardless of showImages checkbox)
@@ -853,6 +856,15 @@
       const imageUrl = hasImageUrl ? ev.image_url.trim() : '';
       const imageStyle = showImage ? `style="--card-bg-image: url('${imageUrl.replace(/'/g, "\\'")}');"` : '';
       const eventId = ev.id ? `event-${ev.id}` : `event-${btoa(ev.name + (ev.start_date || '')).replace(/[^a-zA-Z0-9]/g, '').substring(0, 10)}`;
+      const hasDescription = ev.description && ev.description.trim();
+      const hasWebsiteUrl = ev.website_url && ev.website_url.trim();
+      let eventUrl = hasWebsiteUrl ? ev.website_url.trim() : '';
+      if (eventUrl && !eventUrl.match(/^https?:\/\//i)) {
+        eventUrl = 'https://' + eventUrl;
+      }
+      if (eventUrl) {
+        eventUrl = eventUrl.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+      }
       return `
       <article class="ssa-card" ${showImage ? `data-has-image="true"` : ''} ${imageStyle}>
         <div class="ssa-card-content">
@@ -860,7 +872,12 @@
           ${showImage ? `<div class="ssa-card-image-icon" data-event-id="${eventId}" data-image-url="${imageUrl}" title="Click to preview image"><img src="${imageUrl}" alt="${ev.name}" class="ssa-card-icon-thumb" /></div>` : ''}
           <h3 class="ssa-title">
             <span class="ssa-icon-group">
-              ${ev.description && ev.description.trim() ? `<span class="ssa-info-icon" data-event-id="${eventId}" data-description="${ev.description.replace(/"/g, '&quot;').replace(/'/g, '&#39;')}" title="Hover to view description"></span>` : ''}
+              ${hasDescription || hasWebsiteUrl ? (() => {
+                const descriptionAttr = hasDescription ? `data-description="${ev.description.replace(/"/g, '&quot;').replace(/'/g, '&#39;')}"` : '';
+                const urlAttr = hasWebsiteUrl ? `data-website-url="${eventUrl}"` : '';
+                const titleText = hasDescription ? 'Hover to view description' : 'Click to open event website';
+                return `<span class="ssa-info-icon" data-event-id="${eventId}" ${descriptionAttr} ${urlAttr} title="${titleText}"></span>`;
+              })() : ''}
               ${hasImageUrl ? `<span class="ssa-image-icon-btn" data-event-id="${eventId}" data-image-url="${imageUrl}" title="Tap to view image">🖼️</span>` : ''}
                 ${ev.location ? `<span class="ssa-location-icon-btn" data-location="${ev.location.replace(/"/g, '&quot;').replace(/'/g, '&#39;')}" title="Tap to view map">📍</span>` : ''}
               </span>
@@ -1654,11 +1671,32 @@
     
     mount.querySelectorAll('.ssa-info-icon').forEach(element => {
       const description = element.dataset.description;
+      const websiteUrl = element.dataset.websiteUrl;
       const isCalendarView = element.dataset.calendarView === 'true';
       
+      // Check if we have description or URL
+      const hasDescription = description && description.trim();
+      const hasUrl = websiteUrl && websiteUrl.trim();
+      
       // For calendar view, always show popover even without description
-      // For other views, require description
-      if (!isCalendarView && (!description || !description.trim())) return;
+      // For other views, if no description and no URL, skip (shouldn't happen, but safety check)
+      if (!isCalendarView && !hasDescription && !hasUrl) return;
+      
+      // If no description but has URL, add click handler to open URL
+      if (!hasDescription && hasUrl) {
+        element.style.cursor = 'pointer';
+        element.addEventListener('click', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          // Unescape the URL
+          const unescapedUrl = websiteUrl.replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+          window.open(unescapedUrl, '_blank', 'noopener,noreferrer');
+        });
+        // Skip hover behavior for URL-only icons (unless it's calendar view which always shows popover)
+        if (!isCalendarView) {
+          return;
+        }
+      }
       
       // Decode HTML entities
       let decodedDescription = '';
