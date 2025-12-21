@@ -1053,8 +1053,7 @@
     // Render controls
     let controlsHTML = '<div class="ssa-controls">';
     
-    // Layout switcher with dark mode toggle and show images on the same row
-    const isDarkMode = document.body && document.body.classList.contains('dark-mode');
+    // Layout switcher
     controlsHTML += '<div class="ssa-layout-switcher-wrapper">';
     controlsHTML += '<label class="ssa-control-label">View Types:</label>';
     controlsHTML += '<div class="ssa-layout-switcher">';
@@ -1062,8 +1061,6 @@
     controlsHTML += `<button class="ssa-layout-btn ${layout === LAYOUTS.GRID ? 'ssa-active' : ''}" data-layout="${LAYOUTS.GRID}" title="Grid view">⊞</button>`;
     controlsHTML += `<button class="ssa-layout-btn ${layout === LAYOUTS.CALENDAR ? 'ssa-active' : ''}" data-layout="${LAYOUTS.CALENDAR}" title="Calendar view">📅</button>`;
     controlsHTML += '</div>';
-    controlsHTML += `<button class="ssa-show-images-toggle ${showImages ? 'ssa-active' : ''}" id="ssa-show-images-btn" title="Toggle image display">🖼️ Show Images</button>`;
-    controlsHTML += '<button class="ssa-dark-mode-toggle" title="Toggle dark mode">' + (isDarkMode ? '☀️ Light Mode' : '🌙 Dark Mode') + '</button>';
     controlsHTML += '</div>';
     
     // Grouping switcher (only show for list layout)
@@ -1076,6 +1073,16 @@
       controlsHTML += '</div>';
       controlsHTML += '</div>';
     }
+    
+    // Display options (Show Images and Dark Mode)
+    const isDarkMode = document.body && document.body.classList.contains('dark-mode');
+    controlsHTML += '<div class="ssa-display-options-wrapper">';
+    controlsHTML += '<label class="ssa-control-label">Display Options:</label>';
+    controlsHTML += '<div class="ssa-display-options-switcher">';
+    controlsHTML += `<button class="ssa-show-images-toggle ${showImages ? 'ssa-active' : ''}" id="ssa-show-images-btn" title="Toggle image display">🖼️ Show Images</button>`;
+    controlsHTML += '<button class="ssa-dark-mode-toggle" title="Toggle dark mode">' + (isDarkMode ? '☀️ Light Mode' : '🌙 Dark Mode') + '</button>';
+    controlsHTML += '</div>';
+    controlsHTML += '</div>';
     
     // Date range filters
     controlsHTML += '<div class="ssa-date-filters">';
@@ -2275,6 +2282,7 @@
       .ssa-controls{display:flex;flex-direction:column;gap:16px;margin-bottom:24px;padding-bottom:20px;border-bottom:1px solid #e5e7eb;align-items:center}
       .ssa-layout-switcher-wrapper{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center}
       .ssa-group-switcher-wrapper{display:flex;align-items:center;gap:8px;justify-content:center}
+      .ssa-display-options-wrapper{display:flex;align-items:center;gap:8px;justify-content:center}
       .ssa-control-label{font-size:0.875rem;font-weight:500;color:#374151;white-space:nowrap}
       body.dark-mode .ssa-control-label{color:#f9fafb!important}
       .ssa-show-images-toggle{padding:8px 12px;border:1px solid #d1d5db;border-radius:6px;background:#fff;color:#374151;cursor:pointer;font-size:0.875rem;font-weight:500;transition:all 0.2s;white-space:nowrap}
@@ -2297,6 +2305,7 @@
       .ssa-group-btn.ssa-active{background:#3b82f6!important;border-color:#3b82f6!important;color:#fff!important}
       body.dark-mode .ssa-group-btn.ssa-active{background:transparent!important;border-color:#3b82f6!important;color:#3b82f6!important}
       body.dark-mode .ssa-group-btn.ssa-active:hover{background:transparent!important;border-color:#60a5fa!important;color:#60a5fa!important}
+      .ssa-display-options-switcher{display:flex;gap:16px}
       .ssa-date-filters{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:center}
       .ssa-date-inputs-row{display:flex;gap:12px;align-items:center}
       .ssa-date-filters label{display:flex;align-items:center;gap:6px;font-size:0.875rem;color:#374151}
@@ -2440,6 +2449,7 @@
         .ssa-controls{padding-bottom:16px;gap:12px;padding-left:0;padding-right:0}
         .ssa-layout-switcher-wrapper{flex-direction:column;align-items:flex-start;gap:6px}
         .ssa-group-switcher-wrapper{flex-direction:column;align-items:flex-start;gap:6px}
+        .ssa-display-options-wrapper{flex-direction:column;align-items:flex-start;gap:6px}
         .ssa-control-label{font-size:0.9rem}
         .ssa-layout-btn{padding:10px 14px;font-size:1.1rem;min-height:44px}
         .ssa-group-switcher{gap:6px}

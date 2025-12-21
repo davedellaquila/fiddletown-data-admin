@@ -1,6 +1,23 @@
 :root { color-scheme: light; }
 * { box-sizing: border-box; }
 html, body, #root { height: 100%; margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, Apple Color Emoji, Segoe UI Emoji; }
+
+/* Dark mode root elements */
+html[data-theme="dark"] {
+  color-scheme: dark;
+  background-color: #111827;
+  color: #f9fafb;
+}
+
+html[data-theme="dark"] body {
+  background-color: #111827;
+  color: #f9fafb;
+}
+
+html[data-theme="dark"] #root {
+  background-color: #111827;
+  color: #f9fafb;
+}
 button, input, select, textarea { font: inherit; }
 a { color: inherit; }
 .btn { 
@@ -19,10 +36,7 @@ table { border-collapse: collapse; width: 100%; }
 th, td { padding: 8px; border-top: 1px solid #eee; text-align: left; }
 thead th { background: #fafafa; }
 
-/* Dark mode support */
-[data-theme="dark"] {
-  color-scheme: dark;
-}
+/* Dark mode support - root styles moved above */
 
 [data-theme="dark"] .btn {
   background: #374151;
