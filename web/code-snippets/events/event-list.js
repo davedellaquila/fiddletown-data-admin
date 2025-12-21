@@ -645,7 +645,7 @@
     let html = '';
     groups.forEach(groupKey => {
       const headerText = groupBy === 'day' ? formatDayHeader(groupKey) : groupKey;
-      html += `<h3 class="${headerClass}">${headerText}</h3>`;
+      html += `<h3 class="${headerClass}" style="color: #000000 !important;">${headerText}</h3>`;
       html += `<ul class="ssa-events-list">`;
       
       grouped[groupKey].forEach((event, idx) => {
@@ -745,13 +745,13 @@
               }
             }
           }
-          html += `<div class="ssa-event-meta-item"><strong>Date:</strong> ${dateTimeDisplay}</div>`;
+          html += `<div class="ssa-event-meta-item" style="color: #000000 !important;"><strong style="color: #000000 !important;">Date:</strong> ${dateTimeDisplay}</div>`;
         }
         if (event.location) {
-          html += `<div class="ssa-event-meta-item"><strong>Location:</strong> <span class="ssa-location" data-location="${event.location.replace(/"/g, '&quot;').replace(/'/g, '&#39;')}" title="Click to get directions">${event.location}</span></div>`;
+          html += `<div class="ssa-event-meta-item" style="color: #000000 !important;"><strong style="color: #000000 !important;">Location:</strong> <span class="ssa-location" data-location="${event.location.replace(/"/g, '&quot;').replace(/'/g, '&#39;')}" title="Click to get directions">${event.location}</span></div>`;
         }
         if (event.host_org) {
-          html += `<div class="ssa-event-meta-item"><strong>Host:</strong> ${event.host_org}</div>`;
+          html += `<div class="ssa-event-meta-item" style="color: #000000 !important;"><strong style="color: #000000 !important;">Host:</strong> ${event.host_org}</div>`;
         }
         html += `</div>`;
         html += `</div>`;
@@ -1599,7 +1599,7 @@
           // Date range
           if (startDate || endDate) {
             const dateDiv = document.createElement('div');
-            dateDiv.style.cssText = `margin-bottom: 6px; font-size: 0.875rem; color: ${isDarkMode ? '#d1d5db' : '#4b5563'};`;
+            dateDiv.style.cssText = `margin-bottom: 6px; font-size: 0.875rem; color: ${isDarkMode ? '#d1d5db' : '#000000'};`;
             let dateText = '';
             if (startDate) {
               dateText = formatEventDate(startDate);
@@ -1620,7 +1620,7 @@
             
             const dateLabel = document.createElement('strong');
             dateLabel.textContent = 'Date: ';
-            dateLabel.style.cssText = `color: ${isDarkMode ? '#f9fafb' : '#374151'}; margin-right: 4px;`;
+            dateLabel.style.cssText = `color: ${isDarkMode ? '#f9fafb' : '#000000'}; margin-right: 4px;`;
             dateDiv.appendChild(dateLabel);
             dateDiv.appendChild(document.createTextNode(dateText));
             headerDiv.appendChild(dateDiv);
@@ -1632,7 +1632,7 @@
             locationDiv.style.cssText = 'margin-bottom: 6px; font-size: 0.875rem;';
             const locationLabel = document.createElement('strong');
             locationLabel.textContent = 'Location: ';
-            locationLabel.style.cssText = `color: ${isDarkMode ? '#f9fafb' : '#374151'}; margin-right: 4px;`;
+            locationLabel.style.cssText = `color: ${isDarkMode ? '#f9fafb' : '#000000'}; margin-right: 4px;`;
             locationDiv.appendChild(locationLabel);
             
             // Make location a clickable link for directions
@@ -2294,7 +2294,8 @@
       .ssa-skel{height:110px;border-radius:14px;background:linear-gradient(90deg,#f4f4f5,#f9fafb,#f4f4f5);background-size:200% 100%;animation:ssaShimmer 1.1s linear infinite}
       @keyframes ssaShimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
       .ssa-month-header{margin:24px 0 12px;font-size:1.25rem;font-weight:600;color:#1f2937}
-      .ssa-day-header{margin:24px 0 12px;font-size:1.25rem;font-weight:600;color:#1f2937;padding-bottom:8px;border-bottom:2px solid #e5e7eb}
+      .ssa-day-header,.ssa-day-header *,#events-list .ssa-day-header,#events-list .ssa-day-header *{margin:24px 0 12px;font-size:1.25rem;font-weight:600;color:#000000!important;padding-bottom:8px;border-bottom:2px solid #e5e7eb}
+      h3.ssa-day-header,h3.ssa-day-header *{color:#000000!important}
       .ssa-events-list{list-style:none;padding:0;margin:0 0 32px}
       .ssa-event-item{margin-bottom:12px;padding:12px 0;border-bottom:1px solid #f3f4f6}
       .ssa-event-item:last-child{border-bottom:none}
@@ -2307,8 +2308,9 @@
       .ssa-event-details{flex:1;min-width:0}
       .ssa-event-name-wrapper{display:inline-flex;align-items:center;gap:6px}
       .ssa-event-meta{margin-top:8px;display:flex;flex-direction:column;gap:4px}
-      .ssa-event-meta-item{font-size:0.9rem;line-height:1.5;color:#4b5563}
-      .ssa-event-meta-item strong{color:#374151;margin-right:4px}
+      .ssa-event-meta-item,.ssa-event-meta-item *,#events-list .ssa-event-meta-item,#events-list .ssa-event-meta-item *{font-size:0.9rem;line-height:1.5;color:#000000!important}
+      .ssa-event-meta-item strong,#events-list .ssa-event-meta-item strong,.ssa-event-meta-item strong *,#events-list .ssa-event-meta-item strong *{color:#000000!important;margin-right:4px}
+      div.ssa-event-meta-item,div.ssa-event-meta-item *{color:#000000!important}
       .ssa-event-link{color:#3b82f6;text-decoration:none;cursor:pointer}
       .ssa-event-link:hover{text-decoration:underline}
       .ssa-event-name{cursor:default}
