@@ -645,7 +645,7 @@
     let html = '';
     groups.forEach(groupKey => {
       const headerText = groupBy === 'day' ? formatDayHeader(groupKey) : groupKey;
-      html += `<h3 class="${headerClass}" style="color: #000000 !important;">${headerText}</h3>`;
+      html += `<h3 class="${headerClass}">${headerText}</h3>`;
       html += `<ul class="ssa-events-list">`;
       
       grouped[groupKey].forEach((event, idx) => {
@@ -748,13 +748,13 @@
               }
             }
           }
-          html += `<div class="ssa-event-meta-item" style="color: #000000 !important;"><strong style="color: #000000 !important;">Date:</strong> ${dateTimeDisplay}</div>`;
+          html += `<div class="ssa-event-meta-item"><strong>Date:</strong> ${dateTimeDisplay}</div>`;
         }
         if (event.location) {
-          html += `<div class="ssa-event-meta-item" style="color: #000000 !important;"><strong style="color: #000000 !important;">Location:</strong> <span class="ssa-location" data-location="${event.location.replace(/"/g, '&quot;').replace(/'/g, '&#39;')}" title="Click to get directions">${event.location}</span></div>`;
+          html += `<div class="ssa-event-meta-item"><strong>Location:</strong> <span class="ssa-location" data-location="${event.location.replace(/"/g, '&quot;').replace(/'/g, '&#39;')}" title="Click to get directions">${event.location}</span></div>`;
         }
         if (event.host_org) {
-          html += `<div class="ssa-event-meta-item" style="color: #000000 !important;"><strong style="color: #000000 !important;">Host:</strong> ${event.host_org}</div>`;
+          html += `<div class="ssa-event-meta-item"><strong>Host:</strong> ${event.host_org}</div>`;
         }
         html += `</div>`;
         html += `</div>`;
@@ -2314,6 +2314,12 @@
       .ssa-dark-mode-toggle:hover{background:#f9fafb;border-color:#9ca3af}
       body.dark-mode .ssa-dark-mode-toggle{background:#374151;border-color:#4b5563;color:#f9fafb}
       body.dark-mode .ssa-dark-mode-toggle:hover{background:#4b5563;border-color:#6b7280}
+      body.dark-mode{background:#111827!important;color:#f9fafb!important}
+      html body.dark-mode{background:#111827!important;color:#f9fafb!important}
+      body.dark-mode #events-list{background:#111827!important;color:#f9fafb!important}
+      body.dark-mode #events-list *{color:inherit}
+      body.dark-mode .Main-content{background:#111827!important}
+      body.dark-mode .sqs-block{background:transparent!important}
       .ssa-date-input{padding:6px 10px;border:1px solid #d1d5db;border-radius:4px;font-size:0.875rem}
       .ssa-clear-dates{padding:6px 12px;border:1px solid #d1d5db;border-radius:4px;background:#fff!important;color:#374151!important;cursor:pointer;font-size:0.875rem}
       .ssa-clear-dates:hover{background:#f9fafb!important}
@@ -2443,6 +2449,38 @@
       body.dark-mode .ssa-tag-clickable:hover{background:#4b5563!important;border-color:#6b7280!important}
       body.dark-mode .ssa-tag-clickable.ssa-tag-active{background:transparent!important;border-color:#3b82f6!important;color:#3b82f6!important}
       body.dark-mode .ssa-tag-clickable.ssa-tag-active:hover{background:transparent!important;border-color:#60a5fa!important;color:#60a5fa!important}
+      body.dark-mode .ssa-event-name,.ssa-event-meta-item{color:#f9fafb!important}
+      body.dark-mode .ssa-event-meta-item,.ssa-event-meta-item *{color:#f9fafb!important}
+      body.dark-mode #events-list .ssa-event-meta-item,#events-list .ssa-event-meta-item *{color:#f9fafb!important}
+      body.dark-mode div.ssa-event-meta-item,div.ssa-event-meta-item *{color:#f9fafb!important}
+      body.dark-mode .ssa-event-meta-item strong{color:#f9fafb!important}
+      body.dark-mode #events-list .ssa-event-meta-item strong,.ssa-event-meta-item strong *,#events-list .ssa-event-meta-item strong *{color:#f9fafb!important}
+      body.dark-mode .ssa-card{background:#374151!important;border-color:#4b5563!important}
+      body.dark-mode .ssa-card *{color:#f9fafb!important}
+      body.dark-mode .ssa-title,.ssa-meta{color:#f9fafb!important}
+      body.dark-mode .ssa-card .ssa-location{color:#60a5fa!important}
+      body.dark-mode .ssa-card .ssa-location:hover{color:#93c5fd!important}
+      body.dark-mode .ssa-card h3{color:#f9fafb!important}
+      body.dark-mode .ssa-card p{color:#f9fafb!important}
+      body.dark-mode .ssa-card span{color:#f9fafb!important}
+      body.dark-mode .ssa-card strong{color:#f9fafb!important}
+      body.dark-mode .ssa-card a{color:#60a5fa!important}
+      body.dark-mode .ssa-card a:hover{color:#93c5fd!important}
+      body.dark-mode .ssa-event-item{border-bottom-color:#374151!important}
+      body.dark-mode .ssa-event-name,.ssa-event-meta-item{color:#f9fafb!important}
+      body.dark-mode .ssa-event-meta-item,.ssa-event-meta-item *{color:#f9fafb!important}
+      body.dark-mode #events-list .ssa-event-meta-item,#events-list .ssa-event-meta-item *{color:#f9fafb!important}
+      body.dark-mode div.ssa-event-meta-item,div.ssa-event-meta-item *{color:#f9fafb!important}
+      body.dark-mode .ssa-event-meta-item strong{color:#f9fafb!important}
+      body.dark-mode #events-list .ssa-event-meta-item strong,.ssa-event-meta-item strong *,#events-list .ssa-event-meta-item strong *{color:#f9fafb!important}
+      body.dark-mode .ssa-month-header,.ssa-day-header,.ssa-calendar-month-header{color:#f9fafb!important}
+      body.dark-mode .ssa-calendar-day{background:#374151!important;border-color:#4b5563!important}
+      body.dark-mode .ssa-calendar-day-empty{background:#111827!important}
+      body.dark-mode .ssa-calendar-day-out-of-range{opacity:0.3;background:#1f2937!important}
+      body.dark-mode .ssa-calendar-day-out-of-range .ssa-calendar-day-number{color:#6b7280!important}
+      body.dark-mode .ssa-calendar-day-header{background:#374151!important;color:#9ca3af!important}
+      body.dark-mode .ssa-calendar-day-number{color:#f9fafb!important}
+      body.dark-mode .ssa-calendar-grid{background:#4b5563!important;border-color:#4b5563!important}
       .ssa-link{text-decoration:underline;color:#3b82f6;font-weight:500}
       @media(max-width:768px){
         #events-list{padding:0 12px;box-sizing:border-box;max-width:100%;overflow-x:hidden}
