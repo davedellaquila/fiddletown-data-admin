@@ -655,7 +655,28 @@
         
         // Check if website_url exists and is not empty
         const hasWebsiteUrl = event.website_url && event.website_url.trim();
-        const eventUrl = hasWebsiteUrl ? event.website_url.trim() : null;
+        let eventUrl = hasWebsiteUrl ? event.website_url.trim() : null;
+        
+        // Normalize URL: if it doesn't start with http:// or https://, prepend https://
+        // This prevents relative URLs from being treated as relative to the current domain
+        if (eventUrl && !eventUrl.match(/^https?:\/\//i)) {
+          eventUrl = 'https://' + eventUrl;
+        }
+        
+        // Escape URL for HTML attribute (escape quotes and ampersands)
+        if (eventUrl) {
+          eventUrl = eventUrl.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+          // Debug: Log URL for specific event
+          if (event.name && event.name.includes('Sutter Creek Flea Market')) {
+            console.debug('Sutter Creek Flea Market URL:', {
+              original: event.website_url,
+              trimmed: event.website_url ? event.website_url.trim() : null,
+              normalized: eventUrl.replace(/&quot;/g, '"').replace(/&#39;/g, "'"),
+              escaped: eventUrl,
+              eventName: event.name
+            });
+          }
+        }
         
         // Create unique event ID - use database ID if available, otherwise create hash
         const eventId = event.id ? `event-${event.id}` : `event-${btoa(event.name + (event.start_date || '')).replace(/[^a-zA-Z0-9]/g, '').substring(0, 10)}`;
@@ -779,7 +800,7 @@
                 ${hasImageUrl ? `<span class="ssa-image-icon-btn" data-event-id="${eventId}" data-image-url="${imageUrl}" title="Tap to view image">🖼️</span>` : ''}
                 ${ev.location ? `<span class="ssa-location-icon-btn" data-location="${ev.location.replace(/"/g, '&quot;').replace(/'/g, '&#39;')}" title="Tap to view map">📍</span>` : ''}
               </span>
-              ${ev.website_url ? `<a href="${ev.website_url}" class="ssa-event-link" target="_blank" rel="noopener">${ev.name}</a>` : `<span class="ssa-event-name">${ev.name}</span>`}
+              ${ev.website_url ? `<a href="${ev.website_url.replace(/"/g, '&quot;').replace(/'/g, '&#39;')}" class="ssa-event-link" target="_blank" rel="noopener">${ev.name}</a>` : `<span class="ssa-event-name">${ev.name}</span>`}
             </h3>
           </header>
           ${(() => {
@@ -916,6 +937,16 @@
     for (let day = 1; day <= daysInMonth; day++) {
       const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
       
+      // Check if this day is outside the date filter range (only when both fromDate and toDate are set)
+      let isOutOfRange = false;
+      if (fromDate && toDate) {
+        const normalizedFromDate = normalizeDateString(fromDate);
+        const normalizedToDate = normalizeDateString(toDate);
+        if (normalizedFromDate && normalizedToDate) {
+          isOutOfRange = dateKey < normalizedFromDate || dateKey > normalizedToDate;
+        }
+      }
+      
       // Filter dayEvents to only include events for days within the date range
       let dayEvents = eventsByDay[day] || [];
       if (fromDate || toDate) {
@@ -927,7 +958,8 @@
         });
       }
       
-      html += `<div class="ssa-calendar-day" data-date="${dateKey}">`;
+      const outOfRangeClass = isOutOfRange ? ' ssa-calendar-day-out-of-range' : '';
+      html += `<div class="ssa-calendar-day${outOfRangeClass}" data-date="${dateKey}">`;
       html += `<div class="ssa-calendar-day-number">${day}</div>`;
       
       if (dayEvents.length > 0) {
@@ -941,9 +973,14 @@
           const location = event.location ? event.location.replace(/"/g, '&quot;').replace(/'/g, '&#39;') : '';
           const startTime = event.start_time || '';
           const endTime = event.end_time || '';
-          const websiteUrl = event.website_url ? event.website_url.replace(/"/g, '&quot;').replace(/'/g, '&#39;') : '';
+          let websiteUrl = event.website_url ? event.website_url.trim() : '';
+          // Normalize URL: if it doesn't start with http:// or https://, prepend https://
+          if (websiteUrl && !websiteUrl.match(/^https?:\/\//i)) {
+            websiteUrl = 'https://' + websiteUrl;
+          }
+          websiteUrl = websiteUrl ? websiteUrl.replace(/"/g, '&quot;').replace(/'/g, '&#39;') : '';
           const keywords = event.keywords && event.keywords.length > 0 ? event.keywords.join(',') : '';
-          
+
           // Always show info icon in calendar view (even without description)
           html += `<span class="ssa-calendar-info-icon ssa-info-icon" data-event-id="${eventId}" data-description="${description}" data-event-name="${name}" data-start-date="${startDate}" data-end-date="${endDate}" data-location="${location}" data-start-time="${startTime}" data-end-time="${endTime}" data-website-url="${websiteUrl}" data-keywords="${keywords}" data-calendar-view="true" title="Hover to view event details"></span>`;
         });
@@ -999,7 +1036,8 @@
     // Render controls
     let controlsHTML = '<div class="ssa-controls">';
     
-    // Layout switcher
+    // Layout switcher with dark mode toggle and show images on the same row
+    const isDarkMode = document.body && document.body.classList.contains('dark-mode');
     controlsHTML += '<div class="ssa-layout-switcher-wrapper">';
     controlsHTML += '<label class="ssa-control-label">View Types:</label>';
     controlsHTML += '<div class="ssa-layout-switcher">';
@@ -1007,6 +1045,8 @@
     controlsHTML += `<button class="ssa-layout-btn ${layout === LAYOUTS.GRID ? 'ssa-active' : ''}" data-layout="${LAYOUTS.GRID}" title="Grid view">⊞</button>`;
     controlsHTML += `<button class="ssa-layout-btn ${layout === LAYOUTS.CALENDAR ? 'ssa-active' : ''}" data-layout="${LAYOUTS.CALENDAR}" title="Calendar view">📅</button>`;
     controlsHTML += '</div>';
+    controlsHTML += `<button class="ssa-show-images-toggle ${showImages ? 'ssa-active' : ''}" id="ssa-show-images-btn" title="Toggle image display">🖼️ Show Images</button>`;
+    controlsHTML += '<button class="ssa-dark-mode-toggle" title="Toggle dark mode">' + (isDarkMode ? '☀️ Light Mode' : '🌙 Dark Mode') + '</button>';
     controlsHTML += '</div>';
     
     // Grouping switcher (only show for list layout)
@@ -1020,20 +1060,10 @@
       controlsHTML += '</div>';
     }
     
-    // Image display toggle
-    controlsHTML += '<div class="ssa-image-toggle">';
-    controlsHTML += `<label>`;
-    controlsHTML += `<input type="checkbox" id="ssa-show-images" ${showImages ? 'checked' : ''}>`;
-    controlsHTML += `<span>Show Images</span>`;
-    controlsHTML += `</label>`;
-    controlsHTML += '</div>';
-    
     // Date range filters
     controlsHTML += '<div class="ssa-date-filters">';
-    controlsHTML += '<div class="ssa-weekend-buttons-row">';
     controlsHTML += `<button class="ssa-weekend-btn" title="Set date range to upcoming weekend">📅 This Weekend</button>`;
     controlsHTML += `<button class="ssa-weekend-btn ssa-next-weekend-btn" title="Set date range to next weekend">📅 Next Weekend</button>`;
-    controlsHTML += '</div>';
     controlsHTML += '<div class="ssa-date-inputs-row">';
     controlsHTML += `<label>From: <input type="date" class="ssa-date-input" id="ssa-from-date" value="${fromDate || ''}"></label>`;
     controlsHTML += `<label>To: <input type="date" class="ssa-date-input" id="ssa-to-date" value="${toDate || ''}"></label>`;
@@ -1064,7 +1094,14 @@
     }
     
     mount.innerHTML = controlsHTML + eventsHTML;
-    
+
+    // Initialize dark mode toggle (wrap in try-catch to prevent breaking event loading)
+    try {
+      initDarkModeToggle();
+    } catch (e) {
+      console.error('Error initializing dark mode toggle:', e);
+    }
+
     // Attach event handlers
     attachEventHandlers(mount, rows, state);
     
@@ -1143,10 +1180,11 @@
     }
     
     // Image display toggle checkbox
-    const showImagesCheckbox = mount.querySelector('#ssa-show-images');
-    if (showImagesCheckbox) {
-      showImagesCheckbox.addEventListener('change', async function() {
-        const newState = { ...state, showImages: this.checked };
+    const showImagesBtn = mount.querySelector('#ssa-show-images-btn');
+    if (showImagesBtn) {
+      showImagesBtn.addEventListener('click', async function() {
+        const newShowImages = !state.showImages;
+        const newState = { ...state, showImages: newShowImages };
         // Re-render events with updated image display setting (no need to reload from server)
         await renderEvents(mount, rows, newState);
       });
@@ -1531,8 +1569,13 @@
             
             if (websiteUrl && websiteUrl.trim()) {
               // Make it a clickable link
+              let url = websiteUrl.trim();
+              // Normalize URL: if it doesn't start with http:// or https://, prepend https://
+              if (!url.match(/^https?:\/\//i)) {
+                url = 'https://' + url;
+              }
               const nameLink = document.createElement('a');
-              nameLink.href = websiteUrl.trim();
+              nameLink.href = url;
               nameLink.target = '_blank';
               nameLink.rel = 'noopener noreferrer';
               nameLink.textContent = eventName;
@@ -1754,6 +1797,120 @@
         popover.style.zIndex = '10002';
         
         activePopover = popover;
+        
+        // Prevent scroll events from propagating to the document when scrolling inside the popover
+        const preventBackgroundScroll = function(e) {
+          // Check if the scroll is happening on the popover or its scrollable content
+          const target = e.target;
+          const isInsidePopover = popover.contains(target);
+          
+          if (isInsidePopover) {
+            // Find the scrollable element (could be the popover itself or a child scrollable div)
+            let scrollableElement = target;
+            let foundScrollable = null;
+            
+            // First, find the scrollable element
+            while (scrollableElement && scrollableElement !== document.body) {
+              const style = window.getComputedStyle(scrollableElement);
+              const overflowY = style.overflowY || style.overflow;
+              const isScrollable = overflowY === 'auto' || overflowY === 'scroll';
+              
+              // Also check if element actually has overflow
+              const hasOverflow = scrollableElement.scrollHeight > scrollableElement.clientHeight;
+              
+              if (isScrollable && hasOverflow) {
+                foundScrollable = scrollableElement;
+                break;
+              }
+              
+              // If we've reached the popover itself, stop looking
+              if (scrollableElement === popover) {
+                break;
+              }
+              
+              scrollableElement = scrollableElement.parentElement;
+            }
+            
+            if (foundScrollable) {
+              // Check if we can scroll further in the direction of the scroll
+              const canScrollUp = foundScrollable.scrollTop > 0;
+              const canScrollDown = foundScrollable.scrollTop < 
+                (foundScrollable.scrollHeight - foundScrollable.clientHeight - 1);
+              
+              // If we can scroll in the direction of the wheel event, manually scroll it
+              if ((e.deltaY < 0 && canScrollUp) || (e.deltaY > 0 && canScrollDown)) {
+                // Manually scroll the element - use scrollBy for smoother scrolling
+                const scrollAmount = e.deltaY;
+                foundScrollable.scrollBy({
+                  top: scrollAmount,
+                  behavior: 'auto'
+                });
+                // Prevent default and stop propagation to prevent background scroll
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+                return;
+              }
+              // If we're at the boundary, prevent default to stop background scroll
+              e.preventDefault();
+              e.stopPropagation();
+              e.stopImmediatePropagation();
+              return;
+            }
+            
+            // If we're inside the popover but not on a scrollable element, prevent background scroll
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+          }
+        };
+        
+        // Add wheel event listener to prevent background scrolling (use capture phase)
+        document.addEventListener('wheel', preventBackgroundScroll, { passive: false, capture: true });
+        
+        // Also prevent touchmove events on mobile
+        const preventTouchScroll = function(e) {
+          const target = e.target;
+          const isInsidePopover = popover.contains(target);
+          if (isInsidePopover) {
+            // Allow scrolling within scrollable elements
+            let scrollableElement = target;
+            while (scrollableElement && scrollableElement !== document.body) {
+              const style = window.getComputedStyle(scrollableElement);
+              if (style.overflowY === 'auto' || style.overflowY === 'scroll' || 
+                  style.overflow === 'auto' || style.overflow === 'scroll') {
+                // Check if we can scroll
+                const canScrollUp = scrollableElement.scrollTop > 0;
+                const canScrollDown = scrollableElement.scrollTop < 
+                  (scrollableElement.scrollHeight - scrollableElement.clientHeight - 1);
+                
+                // If we can scroll, allow it
+                if (canScrollUp || canScrollDown) {
+                  return; // Allow the scroll
+                }
+                // At boundary, prevent background scroll
+                e.preventDefault();
+                return;
+              }
+              if (scrollableElement === popover) {
+                break;
+              }
+              scrollableElement = scrollableElement.parentElement;
+            }
+            // If not on a scrollable element, prevent default to stop background scroll
+            e.preventDefault();
+          }
+        };
+        
+        document.addEventListener('touchmove', preventTouchScroll, { passive: false });
+        
+        // Clean up event listeners when popover is removed
+        const originalRemove = popover.remove;
+        popover.remove = function() {
+          document.removeEventListener('wheel', preventBackgroundScroll, { capture: true });
+          document.removeEventListener('touchmove', preventTouchScroll);
+          originalRemove.call(this);
+        };
         
         // Close when clicking outside the popover
         // Use setTimeout to avoid immediate closure when opening via hover
@@ -2077,16 +2234,19 @@
     const css = document.createElement('style');
     css.id = 'ssa-styles-events';
     css.textContent = `
-      .ssa-controls{display:flex;flex-direction:column;gap:16px;margin-bottom:24px;padding-bottom:20px;border-bottom:1px solid #e5e7eb}
-      .ssa-layout-switcher-wrapper{display:flex;align-items:center;gap:8px}
-      .ssa-group-switcher-wrapper{display:flex;align-items:center;gap:8px}
+      .ssa-controls{display:flex;flex-direction:column;gap:16px;margin-bottom:24px;padding-bottom:20px;border-bottom:1px solid #e5e7eb;align-items:center}
+      .ssa-layout-switcher-wrapper{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center}
+      .ssa-group-switcher-wrapper{display:flex;align-items:center;gap:8px;justify-content:center}
       .ssa-control-label{font-size:0.875rem;font-weight:500;color:#374151;white-space:nowrap}
       body.dark-mode .ssa-control-label{color:#f9fafb!important}
-      .ssa-image-toggle{display:flex;align-items:center;gap:8px}
-      .ssa-image-toggle label{display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none}
-      .ssa-image-toggle input[type="checkbox"]{width:18px;height:18px;cursor:pointer;accent-color:#10b981}
-      .ssa-image-toggle span{font-size:0.875rem;color:#374151}
-      body.dark-mode .ssa-image-toggle span{color:#f9fafb}
+      .ssa-show-images-toggle{padding:8px 12px;border:1px solid #d1d5db;border-radius:6px;background:#fff;color:#374151;cursor:pointer;font-size:0.875rem;font-weight:500;transition:all 0.2s;white-space:nowrap}
+      .ssa-show-images-toggle:hover{background:#f9fafb;border-color:#9ca3af}
+      .ssa-show-images-toggle.ssa-active{background:#3b82f6;border-color:#3b82f6;color:#fff}
+      .ssa-show-images-toggle.ssa-active:hover{background:#2563eb;border-color:#2563eb}
+      body.dark-mode .ssa-show-images-toggle{background:#374151;border-color:#4b5563;color:#f9fafb}
+      body.dark-mode .ssa-show-images-toggle:hover{background:#4b5563;border-color:#6b7280}
+      body.dark-mode .ssa-show-images-toggle.ssa-active{background:transparent!important;border-color:#3b82f6!important;color:#3b82f6!important}
+      body.dark-mode .ssa-show-images-toggle.ssa-active:hover{background:transparent!important;border-color:#60a5fa!important;color:#60a5fa!important}
       .ssa-layout-switcher{display:flex;gap:4px}
       .ssa-layout-btn{padding:8px 12px;border:1px solid #d1d5db;border-radius:6px;background:#fff;color:#374151;cursor:pointer;font-size:1.2rem;transition:all 0.2s}
       .ssa-layout-btn:hover{background:#f9fafb;border-color:#9ca3af}
@@ -2094,28 +2254,41 @@
       body.dark-mode .ssa-layout-btn.ssa-active{background:transparent!important;border-color:#3b82f6!important;color:#3b82f6!important}
       body.dark-mode .ssa-layout-btn.ssa-active:hover{background:transparent!important;border-color:#60a5fa!important;color:#60a5fa!important}
       .ssa-group-switcher{display:flex;gap:4px}
-      .ssa-group-btn{padding:8px 12px;border:1px solid #d1d5db;border-radius:6px;background:#fff;color:#374151;cursor:pointer;font-size:0.875rem;font-weight:500;transition:all 0.2s}
-      .ssa-group-btn:hover{background:#f9fafb;border-color:#9ca3af}
-      .ssa-group-btn.ssa-active{background:#3b82f6;border-color:#3b82f6;color:#fff}
+      .ssa-group-btn{padding:8px 12px;border:1px solid #d1d5db;border-radius:6px;background:#fff!important;color:#374151!important;cursor:pointer;font-size:0.875rem;font-weight:500;transition:all 0.2s}
+      .ssa-group-btn:hover{background:#f9fafb!important;border-color:#9ca3af}
+      .ssa-group-btn.ssa-active{background:#3b82f6!important;border-color:#3b82f6!important;color:#fff!important}
       body.dark-mode .ssa-group-btn.ssa-active{background:transparent!important;border-color:#3b82f6!important;color:#3b82f6!important}
       body.dark-mode .ssa-group-btn.ssa-active:hover{background:transparent!important;border-color:#60a5fa!important;color:#60a5fa!important}
-      .ssa-date-filters{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
-      .ssa-weekend-buttons-row{display:flex;flex-wrap:nowrap;gap:12px;align-items:center}
-      .ssa-date-inputs-row{display:flex;flex-wrap:nowrap;gap:12px;align-items:center}
+      .ssa-date-filters{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:center}
+      .ssa-date-inputs-row{display:flex;gap:12px;align-items:center}
       .ssa-date-filters label{display:flex;align-items:center;gap:6px;font-size:0.875rem;color:#374151}
+      .ssa-dark-mode-toggle{padding:8px 12px;border:1px solid #d1d5db;border-radius:6px;background:#fff;color:#374151;cursor:pointer;font-size:0.875rem;font-weight:500;transition:all 0.2s;white-space:nowrap}
+      .ssa-dark-mode-toggle:hover{background:#f9fafb;border-color:#9ca3af}
+      body.dark-mode .ssa-dark-mode-toggle{background:#374151;border-color:#4b5563;color:#f9fafb}
+      body.dark-mode .ssa-dark-mode-toggle:hover{background:#4b5563;border-color:#6b7280}
       .ssa-date-input{padding:6px 10px;border:1px solid #d1d5db;border-radius:4px;font-size:0.875rem}
-      .ssa-clear-dates{padding:6px 12px;border:1px solid #d1d5db;border-radius:4px;background:#fff;color:#374151;cursor:pointer;font-size:0.875rem}
-      .ssa-clear-dates:hover{background:#f9fafb}
-      .ssa-weekend-btn{padding:6px 12px;border:1px solid #d1d5db;border-radius:4px;background:#fff;color:#374151;cursor:pointer;font-size:0.875rem;font-weight:500;white-space:nowrap}
-      .ssa-weekend-btn:hover{background:#f9fafb;border-color:#9ca3af}
-      .ssa-keyword-filters{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
-      .ssa-keyword-btn{padding:8px 16px;border:2px solid #d1d5db;border-radius:20px;background:#fff;color:#374151;cursor:pointer;font-size:0.875rem;font-weight:500;transition:all 0.2s}
-      .ssa-keyword-btn:hover{background:#f9fafb;border-color:#9ca3af}
-      .ssa-keyword-active{background:#374151;border-color:#374151;color:#fff}
-      .ssa-keyword-active:hover{background:#1f2937;border-color:#1f2937}
+      .ssa-clear-dates{padding:6px 12px;border:1px solid #d1d5db;border-radius:4px;background:#fff!important;color:#374151!important;cursor:pointer;font-size:0.875rem}
+      .ssa-clear-dates:hover{background:#f9fafb!important}
+      .ssa-weekend-btn{padding:6px 12px;border:1px solid #d1d5db;border-radius:4px;background:#fff!important;color:#374151!important;cursor:pointer;font-size:0.875rem;font-weight:500;white-space:nowrap}
+      .ssa-weekend-btn:hover{background:#f9fafb!important;border-color:#9ca3af}
+      .ssa-keyword-filters{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;justify-content:center}
+      .ssa-keyword-btn{padding:8px 16px;border:2px solid #d1d5db;border-radius:20px;background:#fff!important;color:#374151!important;cursor:pointer;font-size:0.875rem;font-weight:500;transition:all 0.2s}
+      .ssa-keyword-btn:hover{background:#f9fafb!important;border-color:#9ca3af!important;color:#374151!important}
+      .ssa-keyword-active{background:#fff!important;border-color:#3b82f6!important;color:#3b82f6!important}
+      .ssa-keyword-active:hover{background:#f0f9ff!important;border-color:#2563eb!important;color:#2563eb!important}
       body.dark-mode .ssa-keyword-filters{background:transparent!important}
       body.dark-mode .ssa-keyword-active{background:transparent!important;border-color:#3b82f6!important;color:#3b82f6!important}
       body.dark-mode .ssa-keyword-active:hover{background:transparent!important;border-color:#60a5fa!important;color:#60a5fa!important}
+      body.dark-mode .ssa-layout-btn{background:#374151!important;border-color:#4b5563!important;color:#f9fafb!important}
+      body.dark-mode .ssa-layout-btn:hover{background:#4b5563!important;border-color:#6b7280!important}
+      body.dark-mode .ssa-group-btn{background:#374151!important;border-color:#4b5563!important;color:#f9fafb!important}
+      body.dark-mode .ssa-group-btn:hover{background:#4b5563!important;border-color:#6b7280!important}
+      body.dark-mode .ssa-keyword-btn{background:#374151!important;border-color:#4b5563!important;color:#f9fafb!important}
+      body.dark-mode .ssa-keyword-btn:hover{background:#4b5563!important;border-color:#6b7280!important}
+      body.dark-mode .ssa-weekend-btn{background:#374151!important;border-color:#4b5563!important;color:#f9fafb!important}
+      body.dark-mode .ssa-weekend-btn:hover{background:#4b5563!important;border-color:#6b7280!important}
+      body.dark-mode .ssa-clear-dates{background:#374151!important;border-color:#4b5563!important;color:#f9fafb!important}
+      body.dark-mode .ssa-clear-dates:hover{background:#4b5563!important;border-color:#6b7280!important}
       .ssa-empty{color:#6b7280;padding:20px;text-align:center}
       .ssa-skel{height:110px;border-radius:14px;background:linear-gradient(90deg,#f4f4f5,#f9fafb,#f4f4f5);background-size:200% 100%;animation:ssaShimmer 1.1s linear infinite}
       @keyframes ssaShimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
@@ -2185,6 +2358,8 @@
       .ssa-calendar-day-header{background:#f8f9fa;padding:8px 4px;text-align:center;font-size:0.75rem;font-weight:600;color:#6b7280;text-transform:uppercase}
       .ssa-calendar-day{background:#fff;min-height:80px;padding:4px;display:flex;flex-direction:column;position:relative}
       .ssa-calendar-day-empty{background:#f9fafb;opacity:0.5}
+      .ssa-calendar-day-out-of-range{opacity:0.4;background:#f3f4f6}
+      .ssa-calendar-day-out-of-range .ssa-calendar-day-number{color:#9ca3af}
       .ssa-calendar-day-number{font-size:0.875rem;font-weight:600;color:#374151;margin-bottom:4px}
       .ssa-calendar-day-events{display:flex;flex-wrap:wrap;gap:2px;align-items:flex-start}
       .ssa-calendar-info-icon{width:16px;height:16px;min-width:16px;min-height:16px;font-size:0.6rem;margin:0}
@@ -2230,12 +2405,11 @@
         .ssa-group-switcher{gap:6px}
         .ssa-group-btn{padding:10px 14px;font-size:0.9rem;min-height:44px}
         .ssa-date-filters{flex-direction:column;align-items:stretch;gap:8px}
-        .ssa-weekend-buttons-row{display:flex;flex-wrap:nowrap;gap:8px;align-items:center}
-        .ssa-date-inputs-row{display:flex;flex-wrap:nowrap;gap:8px;align-items:center}
+        .ssa-date-inputs-row{display:flex;flex-direction:row;gap:8px;width:100%}
         .ssa-date-filters label{flex-direction:row;align-items:center;gap:6px;font-size:0.9rem;flex:1}
         .ssa-date-input{flex:1;padding:10px;font-size:1rem;min-height:44px}
         .ssa-clear-dates{width:100%;padding:10px;font-size:0.9rem;min-height:44px}
-        .ssa-weekend-btn{flex:1;padding:10px;font-size:0.9rem;min-height:44px}
+        .ssa-weekend-btn{width:100%;padding:10px;font-size:0.9rem;min-height:44px}
         .ssa-keyword-filters{gap:6px}
         .ssa-keyword-btn{padding:10px 14px;font-size:0.9rem;min-height:44px;border-radius:22px}
         .ssa-month-header{font-size:1.1rem;margin:20px 0 10px}
@@ -2353,9 +2527,174 @@
       mount._allRows = rows; // Store for fallback in reloadEvents
       sessionStorage.setItem(key, JSON.stringify(rows));
       await renderEvents(mount, rows, state);
+      
+      // Initialize pull-to-refresh after events are rendered
+      initPullToRefresh(mount, opts, state);
     } catch (e) {
       console.error(e);
       mount.innerHTML = `<div class="ssa-empty">Sorry, events are unavailable right now.</div>`;
+    }
+  }
+  
+  // Pull-to-refresh functionality
+  function initPullToRefresh(mount, opts, state) {
+    // Prevent duplicate initialization
+    if (mount._pullToRefreshInitialized) {
+      return;
+    }
+    mount._pullToRefreshInitialized = true;
+    
+    let touchStartY = 0;
+    let touchCurrentY = 0;
+    let isPulling = false;
+    let pullDistance = 0;
+    const pullThreshold = 80; // Distance in pixels to trigger refresh
+    
+    // Create refresh indicator element - attach to body for page-level pull-to-refresh
+    const refreshIndicator = document.createElement('div');
+    refreshIndicator.className = 'ssa-pull-to-refresh';
+    refreshIndicator.style.cssText = `
+      position: fixed;
+      top: -60px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: #3b82f6;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      opacity: 0;
+      transition: opacity 0.2s, top 0.2s;
+      pointer-events: none;
+      z-index: 10000;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    `;
+    refreshIndicator.innerHTML = '↻';
+    document.body.appendChild(refreshIndicator);
+    
+    const handleTouchStart = function(e) {
+      // Only start pull if we're at the top of the page
+      if (window.scrollY === 0) {
+        touchStartY = e.touches[0].clientY;
+        isPulling = true;
+      }
+    };
+    
+    const handleTouchMove = function(e) {
+      if (!isPulling) return;
+      
+      touchCurrentY = e.touches[0].clientY;
+      pullDistance = touchCurrentY - touchStartY;
+      
+      // Only allow pulling down
+      if (pullDistance > 0 && window.scrollY === 0) {
+        // Prevent default scrolling while pulling
+        e.preventDefault();
+        
+        // Update indicator position and opacity
+        const progress = Math.min(pullDistance / pullThreshold, 1);
+        refreshIndicator.style.top = `${pullDistance - 60}px`;
+        refreshIndicator.style.opacity = progress;
+        
+        // Rotate icon based on pull distance
+        const rotation = pullDistance >= pullThreshold ? 180 : pullDistance * 2;
+        refreshIndicator.style.transform = `translateX(-50%) rotate(${rotation}deg)`;
+      } else {
+        // Reset if pulling up or scrolled away from top
+        resetPullState();
+      }
+    };
+    
+    const handleTouchEnd = async function(e) {
+      if (!isPulling) return;
+      
+      if (pullDistance >= pullThreshold && window.scrollY === 0) {
+        // Trigger refresh
+        refreshIndicator.style.top = '20px';
+        refreshIndicator.style.opacity = '1';
+        
+        // Clear cache and reload events
+        const fetchOpts = {
+          ...opts,
+          from: state.fromDate || null,
+          to: state.toDate || null
+        };
+        const key = `ssa_events:${opts.url}:${fetchOpts.from || 'all'}:${fetchOpts.to || ''}:${opts.limit||200}`;
+        sessionStorage.removeItem(key);
+        
+        try {
+          const rows = await fetchEvents(fetchOpts);
+          mount._allRows = rows;
+          sessionStorage.setItem(key, JSON.stringify(rows));
+          
+          // Reset flag so pull-to-refresh can be re-initialized after render
+          mount._pullToRefreshInitialized = false;
+          await renderEvents(mount, rows, state);
+          
+          // Re-initialize pull-to-refresh after re-render
+          setTimeout(() => {
+            initPullToRefresh(mount, opts, state);
+          }, 100);
+        } catch (error) {
+          console.error('Error refreshing events:', error);
+          resetPullState();
+        }
+      } else {
+        resetPullState();
+      }
+    };
+    
+    const resetPullState = function() {
+      isPulling = false;
+      pullDistance = 0;
+      refreshIndicator.style.top = '-60px';
+      refreshIndicator.style.opacity = '0';
+      refreshIndicator.style.transform = 'translateX(-50%) rotate(0deg)';
+    };
+    
+    // Add touch event listeners to document for page-level pull-to-refresh
+    document.addEventListener('touchstart', handleTouchStart, { passive: true });
+    document.addEventListener('touchmove', handleTouchMove, { passive: false });
+    document.addEventListener('touchend', handleTouchEnd, { passive: true });
+    
+    // Store handlers for cleanup
+    mount._pullToRefreshHandlers = {
+      touchstart: handleTouchStart,
+      touchmove: handleTouchMove,
+      touchend: handleTouchEnd,
+      indicator: refreshIndicator
+    };
+  }
+
+  // Dark mode toggle functionality
+  function toggleDarkMode() {
+    const body = document.body;
+    const isDark = body.classList.toggle('dark-mode');
+    const button = document.querySelector('.ssa-dark-mode-toggle');
+    
+    if (button) {
+      button.textContent = isDark ? '☀️ Light Mode' : '🌙 Dark Mode';
+    }
+    
+    localStorage.setItem('ssa-dark-mode', isDark ? 'true' : 'false');
+  }
+  
+  function initDarkModeToggle() {
+    // Attach event listener to existing toggle button in controls
+    const button = document.querySelector('.ssa-dark-mode-toggle');
+    if (button) {
+      button.onclick = toggleDarkMode;
+      
+      // Check for saved preference and update button text
+      const savedDarkMode = localStorage.getItem('ssa-dark-mode');
+      if (savedDarkMode === 'true') {
+        document.body.classList.add('dark-mode');
+        button.textContent = '☀️ Light Mode';
+      }
     }
   }
 

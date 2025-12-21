@@ -51,34 +51,6 @@
       background: #374151;
       color: #f9fafb;
     }
-    .dark-mode-toggle {
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      padding: 8px 16px;
-      background: #fff;
-      border: 1px solid #d1d5db;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 14px;
-      font-weight: 500;
-      color: #374151;
-      transition: all 0.3s;
-      z-index: 1000;
-    }
-    .dark-mode-toggle:hover {
-      background: #f9fafb;
-      border-color: #9ca3af;
-    }
-    body.dark-mode .dark-mode-toggle {
-      background: #374151;
-      border-color: #4b5563;
-      color: #f9fafb;
-    }
-    body.dark-mode .dark-mode-toggle:hover {
-      background: #4b5563;
-      border-color: #6b7280;
-    }
     /* Dark mode styles for the widget */
     body.dark-mode #events-list {
       --ssa-bg: #1f2937;
@@ -232,7 +204,6 @@
   </style>
 </head>
 <body>
-  <button class="dark-mode-toggle" onclick="toggleDarkMode()" title="Toggle dark mode">🌙 Dark Mode</button>
   <h1>Events List - Development Preview</h1>
   <div class="dev-info">
     <strong>Development Mode:</strong> This is a local preview. Changes here won't affect Squarespace until you copy the code.
@@ -251,27 +222,10 @@
   <!-- Include the event list script -->
   <script src="event-list.js"></script>
   <script>
-    // Dark mode toggle function
-    function toggleDarkMode() {
-      const body = document.body;
-      const isDark = body.classList.toggle('dark-mode');
-      const button = document.querySelector('.dark-mode-toggle');
-      
-      // Update button text
-      if (isDark) {
-        button.textContent = '☀️ Light Mode';
-        localStorage.setItem('ssa-dark-mode', 'true');
-      } else {
-        button.textContent = '🌙 Dark Mode';
-        localStorage.setItem('ssa-dark-mode', 'false');
-      }
-    }
-    
-    // Check for saved dark mode preference
+    // Check for saved dark mode preference and apply it
     const savedDarkMode = localStorage.getItem('ssa-dark-mode');
     if (savedDarkMode === 'true') {
       document.body.classList.add('dark-mode');
-      document.querySelector('.dark-mode-toggle').textContent = '☀️ Light Mode';
     }
     
     // Initialize the widget with your Supabase credentials
