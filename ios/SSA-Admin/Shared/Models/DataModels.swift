@@ -93,6 +93,7 @@ struct Event: Identifiable, Codable {
     var updatedAt: String?
     var deletedAt: String?
     var keywords: [String]?
+    var isSignatureEvent: Bool?
     
     enum CodingKeys: String, CodingKey {
         case id
@@ -116,6 +117,7 @@ struct Event: Identifiable, Codable {
         case updatedAt = "updated_at"
         case deletedAt = "deleted_at"
         case keywords
+        case isSignatureEvent = "is_signature_event"
     }
 }
 

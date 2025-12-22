@@ -86,6 +86,7 @@ export interface Location {
  * @property updated_at - ISO 8601 timestamp of last update
  * @property deleted_at - ISO 8601 timestamp of soft delete (null if not deleted)
  * @property keywords - Array of keyword strings for filtering
+ * @property is_signature_event - Whether this event is a signature event (default: false)
  * 
  * @see docs/SHARED_LOGIC.md#event-validation
  */
@@ -111,6 +112,7 @@ export interface EventRow {
   updated_at?: string
   deleted_at?: string | null
   keywords?: string[]
+  is_signature_event?: boolean | null
 }
 
 /**

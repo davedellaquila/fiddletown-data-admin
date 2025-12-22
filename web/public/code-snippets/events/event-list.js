@@ -2396,7 +2396,7 @@
       .ssa-keywords-inline{display:inline-flex;flex-wrap:wrap;gap:4px;margin-left:8px}
       .ssa-tag{display:inline-block;padding:2px 8px;background:#f3f4f6;border-radius:12px;font-size:0.75rem;color:#6b7280}
       .ssa-event-keywords{margin-top:8px;display:flex;flex-wrap:wrap;gap:6px}
-      .ssa-keyword-tag-clickable{display:inline-block;padding:8px 16px;border:2px solid #d1d5db;border-radius:20px;background:#fff;color:#374151;cursor:pointer;font-size:0.875rem;font-weight:500;transition:all 0.2s}
+      .ssa-keyword-tag-clickable{display:inline-block;padding:8px 16px;border:2px solid #d1d5db;border-radius:20px;background:#fff;color:#374151;cursor:pointer;font-size:0.875rem;font-weight:500;line-height:1;transition:all 0.2s}
       .ssa-keyword-tag-clickable:hover{background:#f9fafb;border-color:#9ca3af}
       .ssa-keyword-tag-clickable.ssa-keyword-tag-active{background:#374151;border-color:#374151;color:#fff}
       .ssa-keyword-tag-clickable.ssa-keyword-tag-active:hover{background:#1f2937;border-color:#1f2937}
@@ -2440,7 +2440,7 @@
       .ssa-title{margin:0;font-size:1.05rem;line-height:1.3;color:#1f2937;font-weight:600;flex:1;display:inline-flex;align-items:center;gap:4px}
       .ssa-meta{margin:.35rem 0;color:#374151;font-weight:500}
       .ssa-keywords{margin:.5rem 0;display:flex;flex-wrap:wrap;gap:4px}
-      .ssa-tag-clickable{display:inline-block;padding:8px 16px;border:2px solid #d1d5db;border-radius:20px;background:#fff;color:#374151;cursor:pointer;font-size:0.875rem;font-weight:500;transition:all 0.2s}
+      .ssa-tag-clickable{display:inline-block;padding:8px 16px;border:2px solid #d1d5db;border-radius:20px;background:#fff;color:#374151;cursor:pointer;font-size:0.875rem;font-weight:500;line-height:1;transition:all 0.2s}
       .ssa-tag-clickable:hover{background:#f9fafb;border-color:#9ca3af}
       .ssa-tag-clickable.ssa-tag-active{background:#374151;border-color:#374151;color:#fff}
       .ssa-tag-clickable.ssa-tag-active:hover{background:#1f2937;border-color:#1f2937}

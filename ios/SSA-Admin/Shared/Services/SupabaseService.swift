@@ -216,7 +216,7 @@ class SupabaseService: ObservableObject {
     
     // MARK: - Events
     
-    func fetchEvents(searchTerm: String? = nil, fromDate: String? = nil, toDate: String? = nil) async throws -> [Event] {
+    func fetchEvents(searchTerm: String? = nil, fromDate: String? = nil, toDate: String? = nil, signatureEventsOnly: Bool = false) async throws -> [Event] {
         #if DEBUG
         if ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] == "1" {
             return []
@@ -238,6 +238,10 @@ class SupabaseService: ObservableObject {
         
         if let toDate = toDate {
             filterQuery = filterQuery.lte("start_date", value: toDate)
+        }
+        
+        if signatureEventsOnly {
+            filterQuery = filterQuery.eq("is_signature_event", value: true)
         }
         
         let response: [Event] = try await filterQuery

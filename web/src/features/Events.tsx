@@ -201,7 +201,7 @@ function toCSV(rows: any[], headers: string[]): string {
  * understand the expected format for imports.
  */
 function downloadTemplateCSV() {
-  const headers = ['name','slug','host_org','start_date','end_date','start_time','end_time','location','recurrence','website_url','status','sort_order','keywords']
+  const headers = ['name','slug','host_org','start_date','end_date','start_time','end_time','location','recurrence','website_url','status','sort_order','keywords','is_signature_event']
   const csv = toCSV([], headers) + '\n'
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
   const url = URL.createObjectURL(blob)
@@ -308,6 +308,7 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
   const [existingKeywords, setExistingKeywords] = useState<string[]>([])
   const [selectedKeywordFilters, setSelectedKeywordFilters] = useState<string[]>([])
+  const [showSignatureEventsOnly, setShowSignatureEventsOnly] = useState(false)
 
   const handleSort = (column: 'start_date' | 'end_date' | 'name' | 'location' | 'status' | 'start_time' | 'end_time' | 'created_at') => {
     if (sortBy === column) {
@@ -470,7 +471,7 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
   const [imagePasteStatus, setImagePasteStatus] = useState<string>('Paste image here')
   const [imagePasteActive, setImagePasteActive] = useState<boolean>(false)
 
-  const headers = ['name','slug','host_org','start_date','end_date','start_time','end_time','location','recurrence','website_url','status','sort_order','keywords']
+  const headers = ['name','slug','host_org','start_date','end_date','start_time','end_time','location','recurrence','website_url','status','sort_order','keywords','is_signature_event']
 
   // Dynamic sticky offset for table headers to sit right under the toolbar
   const toolbarRef = useRef<HTMLDivElement | null>(null)
@@ -533,6 +534,7 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
    * Filters events by:
    * - Search query (name contains query, case-insensitive)
    * - Keywords (event must have ANY of the selected keywords - OR logic)
+   * - Signature events (when toggle is active, show only signature events)
    * 
    * Note: Date filtering is done server-side for performance.
    * 
@@ -558,6 +560,15 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
       })
     }
     
+    // Apply signature event filter
+    // When checked (showSignatureEventsOnly = true): show ONLY signature events
+    // When unchecked (showSignatureEventsOnly = false): show ALL events
+    if (showSignatureEventsOnly) {
+      // Filter to show only signature events (is_signature_event === true)
+      filtered = filtered.filter(event => event.is_signature_event === true)
+    }
+    // When unchecked, don't filter - show all events
+    
     setRows(filtered)
   }
 
@@ -567,7 +578,7 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
     try {
     let query = supabase
       .from('events')
-        .select('id, name, slug, description, host_org, start_date, end_date, start_time, end_time, location, recurrence, website_url, image_url, status, sort_order, created_by, created_at, updated_at, deleted_at')
+        .select('id, name, slug, description, host_org, start_date, end_date, start_time, end_time, location, recurrence, website_url, image_url, status, sort_order, created_by, created_at, updated_at, deleted_at, is_signature_event')
       .is('deleted_at', null)
         .order('sort_order', { ascending: true })
       .order(sortBy, { ascending: sortOrder === 'asc' })
@@ -736,7 +747,7 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
         'status': 'status'
       }
 
-      const headers = ['name','slug','host_org','start_date','end_date','start_time','end_time','location','recurrence','website_url','status','sort_order','keywords']
+      const headers = ['name','slug','host_org','start_date','end_date','start_time','end_time','location','recurrence','website_url','status','sort_order','keywords','is_signature_event']
       const rows = grid.slice(1).map(cols => {
         const obj: Record<string, any> = {}
         headers.forEach((h, i) => { obj[h] = (cols[i] ?? '').trim() })
@@ -757,7 +768,8 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
           website_url: r.website_url || null,
           status: r.status || 'draft',
           sort_order: r.sort_order ? Number(r.sort_order) : null,
-          keywords: r.keywords ? r.keywords.split(',').map((k: string) => k.trim().toLowerCase()).filter((k: string) => k.length > 0) : []
+          keywords: r.keywords ? r.keywords.split(',').map((k: string) => k.trim().toLowerCase()).filter((k: string) => k.length > 0) : [],
+          is_signature_event: r.is_signature_event === 'true' || r.is_signature_event === '1' || r.is_signature_event === true
         }
         if (!['draft','published','archived'].includes(rec.status)) rec.status = 'draft'
         return rec
@@ -1039,7 +1051,7 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
       })
     }
     
-    const headers = ['name','slug','host_org','start_date','end_date','start_time','end_time','location','recurrence','website_url','status','sort_order','keywords']
+    const headers = ['name','slug','host_org','start_date','end_date','start_time','end_time','location','recurrence','website_url','status','sort_order','keywords','is_signature_event']
     const csv = toCSV(eventsWithKeywords, headers)
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
@@ -1262,7 +1274,8 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
         image_url: payload.image_url,
         ocr_text: payload.ocr_text,
         status: payload.status,
-        sort_order: payload.sort_order
+        sort_order: payload.sort_order,
+        is_signature_event: payload.is_signature_event ?? false
       }
       
       console.log('Database update data:', updateData)
@@ -1857,6 +1870,7 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
               setFrom(new Date().toISOString().slice(0, 10))
               setTo('')
               setSelectedKeywordFilters([])
+              setShowSignatureEventsOnly(false)
             }}
             title="Clear all filters"
             style={{
@@ -1882,6 +1896,47 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
           >
             Clear
           </button>
+
+          {/* Signature Event Filter Toggle */}
+          <label style={{ color: darkMode ? '#f9fafb' : '#374151', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+            <input
+              type="checkbox"
+              checked={showSignatureEventsOnly}
+              onChange={(e) => {
+                const newValue = e.target.checked
+                setShowSignatureEventsOnly(newValue)
+                // Apply filters immediately with the new value
+                // Create a temporary filtered array with the new filter state
+                let tempFiltered = allRows
+                if (newValue) {
+                  // When checked: show ONLY signature events
+                  tempFiltered = allRows.filter(event => event.is_signature_event === true)
+                }
+                // Apply other filters (search, keywords) to the temp filtered array
+                if (q) {
+                  tempFiltered = tempFiltered.filter(event => 
+                    event.name.toLowerCase().includes(q.toLowerCase())
+                  )
+                }
+                if (selectedKeywordFilters.length > 0) {
+                  tempFiltered = tempFiltered.filter(event => {
+                    if (!event.keywords || event.keywords.length === 0) return false
+                    return selectedKeywordFilters.some(filterKeyword => 
+                      event.keywords!.includes(filterKeyword)
+                    )
+                  })
+                }
+                setRows(tempFiltered)
+              }}
+              style={{
+                accentColor: darkMode ? '#3b82f6' : '#3b82f6',
+                cursor: 'pointer',
+                width: '16px',
+                height: '16px'
+              }}
+            />
+            <span style={{ fontSize: '14px' }}>⭐ Signature Events Only</span>
+          </label>
 
           {/* Keyword Filter */}
           <div style={{ position: 'relative', minWidth: '200px' }}>
@@ -2216,6 +2271,19 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
             >
               Location {sortBy === 'location' && (sortOrder === 'asc' ? '↑' : '↓')}
             </th>
+            <th style={{ 
+              textAlign: 'center', 
+              padding: '8px 6px', 
+              borderBottom: `1px solid ${darkMode ? '#374151' : '#ddd'}`,
+              background: darkMode ? '#374151' : '#f8f9fa',
+              color: darkMode ? '#f9fafb' : '#1f2937',
+              position: 'sticky',
+              top: toolbarHeight,
+              zIndex: 110,
+              width: '80px'
+            }}>
+              ⭐ Signature
+            </th>
             <th 
               onClick={() => handleSort('status')}
               style={{ 
@@ -2476,6 +2544,62 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
                 borderBottom: `1px solid ${darkMode ? '#374151' : '#f1f1f1'}`,
                 background: 'transparent'
               }}>{r.location ?? ''}</td>
+              <td 
+                style={{ 
+                  padding: '8px 6px', 
+                  borderBottom: `1px solid ${darkMode ? '#374151' : '#f1f1f1'}`,
+                  background: 'transparent',
+                  textAlign: 'center'
+                }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <input
+                  type="checkbox"
+                  checked={r.is_signature_event === true}
+                  onChange={async (e) => {
+                    e.stopPropagation()
+                    const newValue = e.target.checked
+                    // Optimistically update the UI
+                    const updatedRows = rows.map(row => 
+                      row.id === r.id ? { ...row, is_signature_event: newValue } : row
+                    )
+                    const updatedAllRows = allRows.map(row => 
+                      row.id === r.id ? { ...row, is_signature_event: newValue } : row
+                    )
+                    setRows(updatedRows)
+                    setAllRows(updatedAllRows)
+                    
+                    // Save to database
+                    try {
+                      const { error } = await supabase
+                        .from('events')
+                        .update({ is_signature_event: newValue })
+                        .eq('id', r.id)
+                      
+                      if (error) {
+                        console.error('Error updating signature event:', error)
+                        alert(`Failed to update signature event: ${error.message}`)
+                        // Revert optimistic update
+                        setRows(rows)
+                        setAllRows(allRows)
+                      }
+                    } catch (err: any) {
+                      console.error('Error updating signature event:', err)
+                      alert(`Failed to update signature event: ${err.message}`)
+                      // Revert optimistic update
+                      setRows(rows)
+                      setAllRows(allRows)
+                    }
+                  }}
+                  style={{
+                    accentColor: darkMode ? '#3b82f6' : '#3b82f6',
+                    cursor: 'pointer',
+                    width: '18px',
+                    height: '18px'
+                  }}
+                  title={r.is_signature_event ? 'Signature event (click to unmark)' : 'Click to mark as signature event'}
+                />
+              </td>
               <td style={{ 
                 padding: '8px 6px', 
                 borderBottom: `1px solid ${darkMode ? '#374151' : '#f1f1f1'}`,
@@ -3072,6 +3196,51 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
                     </div>
                   )}
                 </div>
+              </div>
+
+              {/* Signature Event - At the top */}
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '12px',
+                padding: '12px',
+                background: darkMode ? '#374151' : '#f3f4f6',
+                borderRadius: '8px',
+                marginBottom: '16px',
+                border: `1px solid ${darkMode ? '#4b5563' : '#e5e7eb'}`
+              }}>
+                <input
+                  type="checkbox"
+                  id="is_signature_event_top"
+                  checked={editing?.is_signature_event === true}
+                  onChange={(e) => setEditing({...editing!, is_signature_event: e.target.checked})}
+                  style={{
+                    accentColor: darkMode ? '#3b82f6' : '#3b82f6',
+                    cursor: 'pointer',
+                    width: '20px',
+                    height: '20px',
+                    margin: 0
+                  }}
+                />
+                <label
+                  htmlFor="is_signature_event_top"
+                  style={{
+                    color: darkMode ? '#f9fafb' : '#374151',
+                    fontSize: '16px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    flex: 1
+                  }}
+                >
+                  ⭐ Signature Event
+                </label>
+                <span style={{ 
+                  color: darkMode ? '#d1d5db' : '#6b7280',
+                  fontSize: '13px',
+                  fontWeight: '400'
+                }}>
+                  {editing?.is_signature_event ? 'This event is marked as a signature event' : 'Mark this event as a signature event'}
+                </span>
               </div>
 
               {/* Event Name and Slug */}

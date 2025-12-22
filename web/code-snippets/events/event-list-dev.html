@@ -219,8 +219,9 @@
   <!-- Events will render here -->
   <div id="events-list"></div>
 
-  <!-- Include the event list script -->
-  <script src="event-list.js"></script>
+  <!-- Include the event list script - using renamed file to force fresh load -->
+  <!-- FORCE RELOAD: Using new filename to bypass cache completely -->
+  <script src="event-list-v2.js"></script>
   <script>
     // Check for saved dark mode preference and apply it
     const savedDarkMode = localStorage.getItem('ssa-dark-mode');

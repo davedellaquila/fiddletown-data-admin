@@ -73,7 +73,7 @@
 
   async function fetchEvents({ url, key, from = null, to = null, limit = 200 }) {
       const api = new URL(url + '/rest/v1/events');
-      api.searchParams.set('select','id,name,slug,host_org,start_date,end_date,start_time,end_time,location,website_url,image_url,recurrence,sort_order,description');
+      api.searchParams.set('select','id,name,slug,host_org,start_date,end_date,start_time,end_time,location,website_url,image_url,recurrence,sort_order,description,is_signature_event');
       api.searchParams.set('order','start_date.asc,name.asc');
       api.searchParams.set('limit', String(limit));
 
@@ -140,15 +140,18 @@
 	    // 3. Are undated
 	    // Note: PostgREST doesn't easily support combining AND/OR filters, so we'll filter client-side
 	    // For now, we'll set a simple filter and rely on client-side filtering for the 'to' date
-	    const existingOr = api.searchParams.get('or');
-	    if (existingOr) {
-	      // If we already have a 'from' filter, we can't easily add 'to' filter server-side
-	      // We'll rely on client-side filtering for the 'to' date when both filters are present
-	      // For now, just ensure we don't exclude events that might match
+	    // For 'to' filter, if 'from' is also set, skip server-side filtering
+	    // PostgREST has issues with complex 'or' filters when both dates are set
+	    // We'll rely on client-side filtering for the 'to' date when both filters are present
+	    const existingStartDate = api.searchParams.get('start_date');
+	    if (existingStartDate) {
+	      // If we already have a 'from' filter, skip 'to' filter server-side
+	      // Client-side filtering will handle the 'to' date
+	      // This avoids PostgREST 400 errors from malformed 'or' filters
 	    } else {
-	      // Only to filter: include events that start or end on/before the to date
-	      const toOrFilter = `or(start_date.lte.${adjustedTo},end_date.lte.${adjustedTo},and(start_date.is.null,end_date.is.null))`;
-	      api.searchParams.set('or', toOrFilter);
+	      // Only 'to' filter (no 'from'): use simple end_date filter
+	      // Don't use complex 'or' filter - just filter by end_date
+	      api.searchParams.set('end_date', `lte.${adjustedTo}`);
 	    }
 	  }
 	  
@@ -433,11 +436,20 @@
 
   function filterEventsByKeywords(events, selectedKeywords) {
     if (!selectedKeywords || selectedKeywords.length === 0) return events;
+    // Normalize selected keywords to lowercase for consistent comparison
+    const normalizedSelected = selectedKeywords.map(kw => (kw || '').toLowerCase().trim()).filter(kw => kw);
     return events.filter(ev => {
       if (!ev.keywords || ev.keywords.length === 0) return false;
+      // Normalize event keywords to lowercase for consistent comparison
+      const normalizedEventKeywords = ev.keywords.map(kw => (kw || '').toLowerCase().trim()).filter(kw => kw);
       // AND logic: event must have ALL selected keywords
-      return selectedKeywords.every(selectedKw => ev.keywords.includes(selectedKw));
+      return normalizedSelected.every(selectedKw => normalizedEventKeywords.includes(selectedKw));
     });
+  }
+
+  function filterEventsBySignature(events, showSignatureEventsOnly) {
+    if (!showSignatureEventsOnly) return events;
+    return events.filter(ev => ev.is_signature_event === true);
   }
 
   function filterEventsByDateRange(events, fromDate, toDate) {
@@ -1102,18 +1114,48 @@
   }
 
   async function renderEvents(mount, rows, state) {
-    const { layout = LAYOUTS.LIST, selectedKeywords = [], fromDate = null, toDate = null, groupBy = 'day', showImages = false } = state;
+    const { layout = LAYOUTS.LIST, selectedKeywords = [], fromDate = null, toDate = null, groupBy = 'day', showImages = false, showSignatureEventsOnly = false } = state;
     
     // Store state on mount for handlers
     mount._currentState = state;
     
-    // Apply filters
-    let filteredRows = filterEventsByKeywords(rows, selectedKeywords);
-    filteredRows = filterEventsByDateRange(filteredRows, fromDate, toDate);
+    // Use the rows parameter (most recent data) if it has events, otherwise fall back to mount._allRows
+    // Always prefer the rows parameter since it's the most recent data passed to renderEvents
+    // Update mount._allRows to keep it in sync for event handlers
+    const allAvailableRows = rows && rows.length > 0 ? rows : (mount._allRows || []);
     
-    // Get keywords only from events that are actually loaded
-    // This ensures we only show keywords that are used by at least one event
-    const allKeywords = getAllKeywords(rows);
+    // Keep mount._allRows in sync if rows is provided and different
+    if (rows && rows.length > 0 && rows !== mount._allRows) {
+      mount._allRows = rows;
+    }
+    
+    // Apply all filters to get the final set of displayed events
+    const dateFilteredRows = filterEventsByDateRange(allAvailableRows, fromDate, toDate);
+    let filteredRows = filterEventsByKeywords(dateFilteredRows, selectedKeywords);
+    filteredRows = filterEventsBySignature(filteredRows, showSignatureEventsOnly);
+    
+    // Get keywords only from events that match the date filters (not keyword filters)
+    // This allows users to see what keywords are available to filter by for the selected date range
+    // If we used filteredRows (after keyword filtering), users would only see keywords that co-occur
+    // with already-selected keywords, which would be confusing
+    const allKeywords = getAllKeywords(dateFilteredRows);
+    
+    // Debug logging to help diagnose keyword cloud updates
+    console.log('🔍 Keyword cloud update:', {
+      rowsParamLength: rows.length,
+      allAvailableRowsLength: allAvailableRows.length,
+      dateFilteredRowsLength: dateFilteredRows.length,
+      filteredRowsLength: filteredRows.length,
+      allKeywordsCount: allKeywords.length,
+      allKeywords: allKeywords,
+      fromDate,
+      toDate,
+      hasMountAllRows: !!mount._allRows,
+      mountAllRowsLength: mount._allRows ? mount._allRows.length : 0,
+      sampleEventKeywords: dateFilteredRows.length > 0 && dateFilteredRows[0].keywords ? dateFilteredRows[0].keywords : 'no keywords',
+      sampleEventName: dateFilteredRows.length > 0 ? dateFilteredRows[0].name : 'no events',
+      eventsWithKeywords: dateFilteredRows.filter(ev => ev.keywords && ev.keywords.length > 0).length
+    });
     
     // Render controls
     let controlsHTML = '<div class="ssa-controls">';
@@ -1139,12 +1181,13 @@
       controlsHTML += '</div>';
     }
     
-    // Display options (Show Images and Dark Mode)
+    // Display options (Show Images, Signature Events, and Dark Mode)
     const isDarkMode = document.body && document.body.classList.contains('dark-mode');
     controlsHTML += '<div class="ssa-display-options-wrapper">';
     controlsHTML += '<label class="ssa-control-label">Display Options:</label>';
     controlsHTML += '<div class="ssa-display-options-switcher">';
     controlsHTML += `<button class="ssa-show-images-toggle ${showImages ? 'ssa-active' : ''}" id="ssa-show-images-btn" title="Toggle image display">🖼️ Show Images</button>`;
+    controlsHTML += `<button class="ssa-signature-events-toggle ${showSignatureEventsOnly ? 'ssa-active' : ''}" id="ssa-signature-events-btn" title="Show only signature events">⭐ Signature Events Only</button>`;
     controlsHTML += '<button class="ssa-dark-mode-toggle" title="Toggle dark mode">' + (isDarkMode ? '☀️ Light Mode' : '🌙 Dark Mode') + '</button>';
     controlsHTML += '</div>';
     controlsHTML += '</div>';
@@ -1184,6 +1227,10 @@
     
     mount.innerHTML = controlsHTML + eventsHTML;
     
+    // Verify keyword cloud was rendered
+    const keywordCloud = mount.querySelector('.ssa-keyword-filters');
+    console.log('✅ Keyword cloud rendered:', keywordCloud ? 'YES' : 'NO', keywordCloud ? `(${keywordCloud.querySelectorAll('.ssa-keyword-btn').length} buttons)` : '');
+    
     // Initialize dark mode toggle (wrap in try-catch to prevent breaking event loading)
     try {
       initDarkModeToggle();
@@ -1192,7 +1239,10 @@
     }
     
     // Attach event handlers
-    attachEventHandlers(mount, rows, state);
+    // Use mount._allRows if available (contains all fetched events), otherwise use the rows parameter
+    // This ensures event handlers have access to all events for filtering
+    const allRowsForHandlers = mount._allRows || rows;
+    attachEventHandlers(mount, allRowsForHandlers, state);
     
     // Inject styles if not already present
     injectStyles();
@@ -1218,7 +1268,10 @@
     // Keyword filter buttons
     mount.querySelectorAll('.ssa-keyword-btn').forEach(btn => {
       btn.addEventListener('click', async function() {
-        const keyword = this.dataset.keyword;
+        // Normalize keyword to lowercase for consistent storage and comparison
+        const keyword = (this.dataset.keyword || '').toLowerCase().trim();
+        if (!keyword) return;
+        
         const isCurrentlySelected = state.selectedKeywords.includes(keyword);
         
         // Immediately toggle the active class for instant visual feedback
@@ -1270,7 +1323,7 @@
     
     if (clearDatesBtn) {
       clearDatesBtn.addEventListener('click', async function() {
-        const newState = { ...state, fromDate: null, toDate: null, selectedKeywords: [] };
+        const newState = { ...state, fromDate: null, toDate: null, selectedKeywords: [], showSignatureEventsOnly: false };
         // Reload events to show all
         if (mount._widgetOpts) {
           reloadEvents(mount, newState, mount._widgetOpts);
@@ -1292,21 +1345,38 @@
       });
     }
     
+    // Signature events toggle button
+    const signatureEventsBtn = mount.querySelector('#ssa-signature-events-btn');
+    if (signatureEventsBtn) {
+      signatureEventsBtn.addEventListener('click', async function() {
+        const newShowSignatureEventsOnly = !state.showSignatureEventsOnly;
+        const newState = { ...state, showSignatureEventsOnly: newShowSignatureEventsOnly };
+        // Re-render events with updated signature event filter (no need to reload from server)
+        await renderEvents(mount, rows, newState);
+      });
+    }
+    
     // Weekend button handlers
     const weekendBtn = mount.querySelector('.ssa-weekend-btn:not(.ssa-next-weekend-btn)');
     if (weekendBtn) {
       weekendBtn.addEventListener('click', async function() {
         const weekend = getUpcomingWeekend();
         const newState = { ...state, fromDate: weekend.from, toDate: weekend.to };
+        console.log('📅 This Weekend clicked:', { weekend, newState, hasWidgetOpts: !!mount._widgetOpts });
         // Update the input values
         if (fromInput) fromInput.value = weekend.from;
         if (toInput) toInput.value = weekend.to;
         // Reload events with weekend filter
         if (mount._widgetOpts) {
+          console.log('🔄 Calling reloadEvents');
           reloadEvents(mount, newState, mount._widgetOpts);
         } else {
           // Fallback: filter client-side if opts not available
-          await renderEvents(mount, rows, newState);
+          // Use mount._allRows to ensure we have all events for filtering
+          console.log('⚠️ No widgetOpts, using client-side filtering');
+          const allRows = mount._allRows || rows;
+          console.log('📊 Using rows:', { allRowsLength: allRows.length, mountAllRowsLength: mount._allRows ? mount._allRows.length : 0 });
+          await renderEvents(mount, allRows, newState);
         }
       });
     }
@@ -1325,7 +1395,9 @@
           reloadEvents(mount, newState, mount._widgetOpts);
         } else {
           // Fallback: filter client-side if opts not available
-          await renderEvents(mount, rows, newState);
+          // Use mount._allRows to ensure we have all events for filtering
+          const allRows = mount._allRows || rows;
+          await renderEvents(mount, allRows, newState);
         }
       });
     }
@@ -1334,7 +1406,8 @@
     if (state.layout === LAYOUTS.LIST) {
       mount.querySelectorAll('.ssa-keyword-tag-clickable').forEach(tag => {
         tag.addEventListener('click', async function() {
-          const keyword = this.dataset.keyword;
+          // Normalize keyword to lowercase for consistent storage and comparison
+          const keyword = (this.dataset.keyword || '').toLowerCase().trim();
           if (!keyword) return;
           
           // Toggle keyword in selected keywords
@@ -1351,7 +1424,8 @@
     if (state.layout === LAYOUTS.GRID) {
       mount.querySelectorAll('.ssa-tag-clickable').forEach(tag => {
         tag.addEventListener('click', async function() {
-          const keyword = this.dataset.keyword;
+          // Normalize keyword to lowercase for consistent storage and comparison
+          const keyword = (this.dataset.keyword || '').toLowerCase().trim();
           if (!keyword) return;
           
           // Toggle keyword in selected keywords
@@ -1952,7 +2026,8 @@
                   
                   const state = mount._currentState;
                   const rows = mount._allRows || [];
-                  const keyword = this.dataset.keyword;
+                  // Normalize keyword to lowercase for consistent storage and comparison
+                  const keyword = (this.dataset.keyword || '').toLowerCase().trim();
                   if (!keyword) return;
                   
                   // Toggle keyword in selected keywords
@@ -2500,6 +2575,14 @@
       body.dark-mode .ssa-show-images-toggle:hover{background:#4b5563;border-color:#6b7280}
       body.dark-mode .ssa-show-images-toggle.ssa-active{background:transparent!important;border-color:#3b82f6!important;color:#3b82f6!important}
       body.dark-mode .ssa-show-images-toggle.ssa-active:hover{background:transparent!important;border-color:#60a5fa!important;color:#60a5fa!important}
+      .ssa-signature-events-toggle{padding:8px 12px;border:1px solid #d1d5db;border-radius:6px;background:#fff;color:#374151;cursor:pointer;font-size:0.875rem;font-weight:500;transition:all 0.2s;white-space:nowrap}
+      .ssa-signature-events-toggle:hover{background:#f9fafb;border-color:#9ca3af}
+      .ssa-signature-events-toggle.ssa-active{background:#3b82f6;border-color:#3b82f6;color:#fff}
+      .ssa-signature-events-toggle.ssa-active:hover{background:#2563eb;border-color:#2563eb}
+      body.dark-mode .ssa-signature-events-toggle{background:#374151;border-color:#4b5563;color:#f9fafb}
+      body.dark-mode .ssa-signature-events-toggle:hover{background:#4b5563;border-color:#6b7280}
+      body.dark-mode .ssa-signature-events-toggle.ssa-active{background:transparent!important;border-color:#3b82f6!important;color:#3b82f6!important}
+      body.dark-mode .ssa-signature-events-toggle.ssa-active:hover{background:transparent!important;border-color:#60a5fa!important;color:#60a5fa!important}
       .ssa-keyword-filters{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;justify-content:center}
       .ssa-keyword-btn{padding:8px 16px;border:2px solid #d1d5db;border-radius:20px;background:#fff!important;color:#374151!important;cursor:pointer;font-size:0.875rem;font-weight:500;transition:all 0.2s}
       .ssa-keyword-btn:hover{background:#f9fafb!important;border-color:#9ca3af!important;color:#374151!important}
@@ -2561,7 +2644,7 @@
       .ssa-keywords-inline{display:inline-flex;flex-wrap:wrap;gap:4px;margin-left:8px}
       .ssa-tag{display:inline-block;padding:2px 8px;background:#f3f4f6;border-radius:12px;font-size:0.75rem;color:#6b7280}
       .ssa-event-keywords{margin-top:8px;display:flex;flex-wrap:wrap;gap:6px}
-      .ssa-keyword-tag-clickable{display:inline-block;padding:8px 16px;border:2px solid #d1d5db;border-radius:20px;background:#fff!important;color:#374151!important;cursor:pointer;font-size:0.875rem;font-weight:500;transition:all 0.2s}
+      .ssa-keyword-tag-clickable{display:inline-block;padding:8px 16px;border:2px solid #d1d5db;border-radius:20px;background:#fff!important;color:#374151!important;cursor:pointer;font-size:0.875rem;font-weight:500;line-height:1;transition:all 0.2s}
       .ssa-keyword-tag-clickable:hover{background:#f9fafb!important;border-color:#9ca3af!important}
       .ssa-keyword-tag-clickable.ssa-keyword-tag-active{background:#fff!important;border-color:#3b82f6!important;color:#3b82f6!important}
       .ssa-keyword-tag-clickable.ssa-keyword-tag-active:hover{background:#f0f9ff!important;border-color:#2563eb!important;color:#2563eb!important}
@@ -2605,7 +2688,7 @@
       .ssa-title{margin:0;font-size:1.05rem;line-height:1.3;color:#1f2937;font-weight:600;flex:1;display:inline-flex;align-items:center;gap:4px}
       .ssa-meta{margin:.35rem 0;color:#374151;font-weight:500}
       .ssa-keywords{margin:.5rem 0;display:flex;flex-wrap:wrap;gap:4px}
-      .ssa-tag-clickable{display:inline-block;padding:8px 16px;border:2px solid #d1d5db;border-radius:20px;background:#fff!important;color:#374151!important;cursor:pointer;font-size:0.875rem;font-weight:500;transition:all 0.2s}
+      .ssa-tag-clickable{display:inline-block;padding:8px 16px;border:2px solid #d1d5db;border-radius:20px;background:#fff!important;color:#374151!important;cursor:pointer;font-size:0.875rem;font-weight:500;line-height:1;transition:all 0.2s}
       .ssa-tag-clickable:hover{background:#f9fafb!important;border-color:#9ca3af!important}
       .ssa-tag-clickable.ssa-tag-active{background:#fff!important;border-color:#3b82f6!important;color:#3b82f6!important}
       .ssa-tag-clickable.ssa-tag-active:hover{background:#f0f9ff!important;border-color:#2563eb!important;color:#2563eb!important}
@@ -2727,17 +2810,21 @@
     }
     
     try {
+      // ALWAYS fetch ALL events (no date filters) to ensure we have complete data for keyword extraction
+      // Client-side filtering will handle date ranges - this avoids API filter complexity issues
+      console.log('🔄 reloadEvents: Fetching ALL events (no date filters)');
       const fetchOpts = {
         url: opts.url,
         key: opts.key,
-        from: state.fromDate || null,
-        to: state.toDate || null,
+        from: null,  // Explicitly null - fetch all events
+        to: null,    // Explicitly null - fetch all events
         limit: opts.limit || 200
       };
-      const key = `ssa_events:${opts.url}:${fetchOpts.from || 'all'}:${fetchOpts.to || ''}:${opts.limit||200}`;
+      const key = `ssa_events:${opts.url}:all:${opts.limit||200}`;
       const rows = await fetchEvents(fetchOpts);
       mount._allRows = rows; // Store for fallback
       sessionStorage.setItem(key, JSON.stringify(rows));
+      console.log('✅ reloadEvents: Fetched', rows.length, 'events for keyword cloud');
       await renderEvents(mount, rows, state);
     } catch (e) {
       console.error('Error reloading events:', e);
@@ -2755,13 +2842,17 @@
     const mount = document.querySelector(opts.mount);
     if (!mount) return;
     
+    // Normalize initial keywords to lowercase for consistent comparison
+    const normalizedKeywords = (opts.selectedKeywords || []).map(kw => (kw || '').toLowerCase().trim()).filter(kw => kw);
+    
     // Initialize state - default fromDate to today
     const state = {
       layout: opts.layout || LAYOUTS.LIST,
-      selectedKeywords: opts.selectedKeywords || [],
+      selectedKeywords: normalizedKeywords,
       fromDate: opts.fromDate !== undefined ? opts.fromDate : todayISO(),
       toDate: opts.toDate || null,
       showImages: opts.showImages !== undefined ? opts.showImages : false,
+      showSignatureEventsOnly: opts.showSignatureEventsOnly !== undefined ? opts.showSignatureEventsOnly : false,
       groupBy: opts.groupBy || 'day'
     };
     

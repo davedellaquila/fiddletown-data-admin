@@ -17,6 +17,7 @@ struct EventsView: View {
     @State private var showingEditDialog: Bool = false
     @State private var fromDate: String?
     @State private var toDate: String?
+    @State private var showSignatureEventsOnly: Bool = false
     
     let darkMode: Bool
     let sidebarCollapsed: Bool
@@ -50,9 +51,19 @@ struct EventsView: View {
                         Button("Clear") {
                             fromDate = nil
                             toDate = nil
+                            showSignatureEventsOnly = false
                         }
                     }
                     .padding(.horizontal)
+                    
+                    // Signature Events Filter Toggle
+                    Toggle("Signature Events Only", isOn: $showSignatureEventsOnly)
+                        .padding(.horizontal)
+                        .onChange(of: showSignatureEventsOnly) {
+                            Task {
+                                await load()
+                            }
+                        }
                 }
                 .padding(.vertical, 8)
                 
@@ -118,7 +129,8 @@ struct EventsView: View {
             events = try await supabaseService.fetchEvents(
                 searchTerm: searchTerm.isEmpty ? nil : searchTerm,
                 fromDate: fromDate,
-                toDate: toDate
+                toDate: toDate,
+                signatureEventsOnly: showSignatureEventsOnly
             )
         } catch {
             print("Error loading events: \(error)")
@@ -149,7 +161,8 @@ struct EventsView: View {
             createdAt: now,
             updatedAt: now,
             deletedAt: nil,
-            keywords: nil
+            keywords: nil,
+            isSignatureEvent: false
         )
         showingEditDialog = true
     }
@@ -285,6 +298,13 @@ struct EventEditView: View {
                     TextField("Website URL", text: Binding(
                         get: { event.websiteUrl ?? "" },
                         set: { event.websiteUrl = $0.isEmpty ? nil : $0 }
+                    ))
+                }
+                
+                Section("Options") {
+                    Toggle("Signature Event", isOn: Binding(
+                        get: { event.isSignatureEvent ?? false },
+                        set: { event.isSignatureEvent = $0 }
                     ))
                 }
             }
