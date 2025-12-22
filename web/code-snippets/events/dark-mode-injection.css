@@ -1,0 +1,335 @@
+/* Squarespace Dark Mode Injection - Add this to Page Header Code Injection */
+/* This CSS will make dark mode affect the entire Squarespace page when body.dark-mode or html.dark-mode is present */
+
+html.dark-mode,
+html body.dark-mode,
+body.dark-mode {
+  background: #111827 !important;
+  color: #f9fafb !important;
+}
+
+html.dark-mode body,
+html body.dark-mode body,
+body.dark-mode {
+  background: #111827 !important;
+  color: #f9fafb !important;
+}
+
+/* Squarespace page structure */
+html.dark-mode #siteWrapper,
+html body.dark-mode #siteWrapper,
+body.dark-mode #siteWrapper {
+  background: #111827 !important;
+  color: #f9fafb !important;
+}
+
+html.dark-mode #site,
+html body.dark-mode #site,
+body.dark-mode #site {
+  background: #111827 !important;
+  color: #f9fafb !important;
+}
+
+html.dark-mode #mainContent,
+html body.dark-mode #mainContent,
+body.dark-mode #mainContent {
+  background: #111827 !important;
+  color: #f9fafb !important;
+}
+
+html.dark-mode #content,
+html body.dark-mode #content,
+body.dark-mode #content {
+  background: #111827 !important;
+  color: #f9fafb !important;
+}
+
+html.dark-mode .Main-content,
+html body.dark-mode .Main-content,
+body.dark-mode .Main-content {
+  background: #111827 !important;
+  color: #f9fafb !important;
+}
+
+html.dark-mode .Main,
+html body.dark-mode .Main,
+body.dark-mode .Main {
+  background: #111827 !important;
+  color: #f9fafb !important;
+}
+
+html.dark-mode .Main-inner,
+html body.dark-mode .Main-inner,
+body.dark-mode .Main-inner {
+  background: #111827 !important;
+  color: #f9fafb !important;
+}
+
+html.dark-mode .Content,
+html body.dark-mode .Content,
+body.dark-mode .Content {
+  background: #111827 !important;
+  color: #f9fafb !important;
+}
+
+html.dark-mode .Content-inner,
+html body.dark-mode .Content-inner,
+body.dark-mode .Content-inner {
+  background: #111827 !important;
+  color: #f9fafb !important;
+}
+
+html.dark-mode .page,
+html body.dark-mode .page,
+body.dark-mode .page {
+  background: #111827 !important;
+  color: #f9fafb !important;
+}
+
+html.dark-mode .page-content,
+html body.dark-mode .page-content,
+body.dark-mode .page-content {
+  background: #111827 !important;
+  color: #f9fafb !important;
+}
+
+html.dark-mode .sqs-layout,
+html body.dark-mode .sqs-layout,
+body.dark-mode .sqs-layout {
+  background: #111827 !important;
+  color: #f9fafb !important;
+}
+
+html.dark-mode .sqs-wrapper,
+html body.dark-mode .sqs-wrapper,
+body.dark-mode .sqs-wrapper {
+  background: #111827 !important;
+  color: #f9fafb !important;
+}
+
+html.dark-mode .sqs-container,
+html body.dark-mode .sqs-container,
+body.dark-mode .sqs-container {
+  background: #111827 !important;
+  color: #f9fafb !important;
+}
+
+html.dark-mode .Site,
+html body.dark-mode .Site,
+body.dark-mode .Site {
+  background: #111827 !important;
+  color: #f9fafb !important;
+}
+
+html.dark-mode .Site-inner,
+html body.dark-mode .Site-inner,
+body.dark-mode .Site-inner {
+  background: #111827 !important;
+  color: #f9fafb !important;
+}
+
+/* Squarespace blocks - make transparent so page background shows through */
+html.dark-mode .sqs-row,
+html body.dark-mode .sqs-row,
+body.dark-mode .sqs-row {
+  background: transparent !important;
+}
+
+html.dark-mode .sqs-col,
+html body.dark-mode .sqs-col,
+body.dark-mode .sqs-col {
+  background: transparent !important;
+}
+
+html.dark-mode .sqs-block,
+html body.dark-mode .sqs-block,
+body.dark-mode .sqs-block {
+  background: transparent !important;
+}
+
+html.dark-mode .sqs-block-content,
+html body.dark-mode .sqs-block-content,
+body.dark-mode .sqs-block-content {
+  background: transparent !important;
+}
+
+/* Squarespace Header & Footer */
+html.dark-mode .Header,
+html body.dark-mode .Header,
+body.dark-mode .Header {
+  background: #111827 !important;
+  color: #f9fafb !important;
+  border-color: #374151 !important;
+}
+
+html.dark-mode .Header-inner,
+html body.dark-mode .Header-inner,
+body.dark-mode .Header-inner {
+  background: #111827 !important;
+  color: #f9fafb !important;
+}
+
+html.dark-mode .Header-nav,
+html body.dark-mode .Header-nav,
+body.dark-mode .Header-nav {
+  background: transparent !important;
+}
+
+html.dark-mode .Header-nav-item,
+html body.dark-mode .Header-nav-item,
+body.dark-mode .Header-nav-item {
+  background: transparent !important;
+}
+
+html.dark-mode .Header-nav-item a,
+html body.dark-mode .Header-nav-item a,
+body.dark-mode .Header-nav-item a {
+  color: #f9fafb !important;
+}
+
+html.dark-mode .Header-nav-item a:hover,
+html body.dark-mode .Header-nav-item a:hover,
+body.dark-mode .Header-nav-item a:hover {
+  color: #60a5fa !important;
+}
+
+html.dark-mode .Header-logo,
+html body.dark-mode .Header-logo,
+body.dark-mode .Header-logo {
+  background: transparent !important;
+}
+
+html.dark-mode .Footer,
+html body.dark-mode .Footer,
+body.dark-mode .Footer {
+  background: #111827 !important;
+  color: #f9fafb !important;
+  border-color: #374151 !important;
+}
+
+html.dark-mode .Footer-inner,
+html body.dark-mode .Footer-inner,
+body.dark-mode .Footer-inner {
+  background: #111827 !important;
+  color: #f9fafb !important;
+}
+
+html.dark-mode .Footer-nav,
+html body.dark-mode .Footer-nav,
+body.dark-mode .Footer-nav {
+  background: transparent !important;
+}
+
+html.dark-mode .Footer-nav-item,
+html body.dark-mode .Footer-nav-item,
+body.dark-mode .Footer-nav-item {
+  background: transparent !important;
+}
+
+html.dark-mode .Footer-nav-item a,
+html body.dark-mode .Footer-nav-item a,
+body.dark-mode .Footer-nav-item a {
+  color: #f9fafb !important;
+}
+
+html.dark-mode .Footer-nav-item a:hover,
+html body.dark-mode .Footer-nav-item a:hover,
+body.dark-mode .Footer-nav-item a:hover {
+  color: #60a5fa !important;
+}
+
+/* Event List Headers - Fix readability */
+html.dark-mode .ssa-day-header,
+html body.dark-mode .ssa-day-header,
+body.dark-mode .ssa-day-header {
+  color: #f9fafb !important;
+}
+
+html.dark-mode .ssa-day-header *,
+html body.dark-mode .ssa-day-header *,
+body.dark-mode .ssa-day-header * {
+  color: #f9fafb !important;
+}
+
+html.dark-mode #events-list .ssa-day-header,
+html body.dark-mode #events-list .ssa-day-header,
+body.dark-mode #events-list .ssa-day-header {
+  color: #f9fafb !important;
+}
+
+html.dark-mode #events-list .ssa-day-header *,
+html body.dark-mode #events-list .ssa-day-header *,
+body.dark-mode #events-list .ssa-day-header * {
+  color: #f9fafb !important;
+}
+
+html.dark-mode h3.ssa-day-header,
+html body.dark-mode h3.ssa-day-header,
+body.dark-mode h3.ssa-day-header {
+  color: #f9fafb !important;
+}
+
+html.dark-mode h3.ssa-day-header *,
+html body.dark-mode h3.ssa-day-header *,
+body.dark-mode h3.ssa-day-header * {
+  color: #f9fafb !important;
+}
+
+html.dark-mode .ssa-month-header,
+html body.dark-mode .ssa-month-header,
+body.dark-mode .ssa-month-header {
+  color: #f9fafb !important;
+}
+
+html.dark-mode .ssa-calendar-month-header,
+html body.dark-mode .ssa-calendar-month-header,
+body.dark-mode .ssa-calendar-month-header {
+  color: #f9fafb !important;
+}
+
+/* Typography */
+html.dark-mode h1,
+html body.dark-mode h1,
+body.dark-mode h1,
+html.dark-mode h2,
+html body.dark-mode h2,
+body.dark-mode h2,
+html.dark-mode h3,
+html body.dark-mode h3,
+body.dark-mode h3,
+html.dark-mode h4,
+html body.dark-mode h4,
+body.dark-mode h4,
+html.dark-mode h5,
+html body.dark-mode h5,
+body.dark-mode h5,
+html.dark-mode h6,
+html body.dark-mode h6,
+body.dark-mode h6 {
+  color: #f9fafb !important;
+}
+
+html.dark-mode p,
+html body.dark-mode p,
+body.dark-mode p {
+  color: #e5e7eb !important;
+}
+
+html.dark-mode a,
+html body.dark-mode a,
+body.dark-mode a {
+  color: #60a5fa !important;
+}
+
+html.dark-mode a:hover,
+html body.dark-mode a:hover,
+body.dark-mode a:hover {
+  color: #93c5fd !important;
+}
+
+/* Inherit colors for all elements */
+html.dark-mode *,
+html body.dark-mode * {
+  color: inherit;
+}
+
