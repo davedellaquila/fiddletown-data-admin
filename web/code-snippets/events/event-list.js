@@ -272,16 +272,15 @@
 
   function formatEventDate(dateString) {
     if (!dateString) return '';
-    // Parse date string as local date to avoid timezone issues
-    // Date strings like "2025-12-05" are interpreted as UTC, which can shift the day
-    // Parse manually to ensure we use the exact date specified
-    const parts = dateString.split('-');
-    if (parts.length !== 3) {
+    // Parse date in local timezone to avoid timezone shifts
+    // Date strings like "2025-12-20" should be parsed as local dates, not UTC
+    const date = parseLocalDate(dateString);
+    if (!date) {
       // Fallback to Date constructor if format is unexpected
-      const date = new Date(dateString);
-      const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
-      const monthName = date.toLocaleDateString('en-US', { month: 'short' });
-      const day = date.getDate();
+      const fallbackDate = new Date(dateString);
+      const dayName = fallbackDate.toLocaleDateString('en-US', { weekday: 'short' });
+      const monthName = fallbackDate.toLocaleDateString('en-US', { month: 'short' });
+      const day = fallbackDate.getDate();
       const ordinalSuffix = (day) => {
         if (day > 3 && day < 21) return 'th';
         switch (day % 10) {
@@ -294,11 +293,6 @@
       return `${dayName}, ${monthName} ${day}${ordinalSuffix(day)}`;
     }
     
-    const year = parseInt(parts[0], 10);
-    const month = parseInt(parts[1], 10) - 1; // Month is 0-indexed
-    const day = parseInt(parts[2], 10);
-    const date = new Date(year, month, day); // Create date in local timezone
-    
     // Get abbreviated day name
     const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
     
@@ -306,6 +300,7 @@
     const monthName = date.toLocaleDateString('en-US', { month: 'short' });
     
     // Get day number and add ordinal suffix
+    const day = date.getDate();
     const ordinalSuffix = (day) => {
       if (day > 3 && day < 21) return 'th';
       switch (day % 10) {
@@ -321,17 +316,13 @@
 
   function getMonthName(dateString) {
     if (!dateString) return 'TBA';
-    // Parse date string as local date to avoid timezone issues
-    const parts = dateString.split('-');
-    if (parts.length === 3) {
-      const year = parseInt(parts[0], 10);
-      const month = parseInt(parts[1], 10) - 1; // Month is 0-indexed
-      const day = parseInt(parts[2], 10);
-      const date = new Date(year, month, day); // Create date in local timezone
-      return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    // Parse date in local timezone to avoid timezone shifts
+    const date = parseLocalDate(dateString);
+    if (!date) {
+      // Fallback to Date constructor if format is unexpected
+      const fallbackDate = new Date(dateString);
+      return fallbackDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
     }
-    // Fallback to Date constructor if format is unexpected
-    const date = new Date(dateString);
     return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
   }
 
@@ -492,6 +483,42 @@
     };
   }
 
+  // Calculate current week dates (Monday to Sunday of the week containing today)
+  function getUpcomingWeek() {
+    const today = new Date();
+    const dayOfWeek = today.getDay(); // 0 = Sunday, 6 = Saturday
+    
+    // Calculate days back to Monday of the current week
+    // If today is Sunday (0), Monday is 6 days ago
+    // If today is Monday (1), Monday is today (0 days ago)
+    // If today is Tuesday-Saturday (2-6), Monday is (dayOfWeek - 1) days ago
+    let daysBackToMonday;
+    if (dayOfWeek === 0) {
+      daysBackToMonday = 6; // Monday is 6 days ago (last Monday)
+    } else {
+      daysBackToMonday = dayOfWeek - 1; // Days back to Monday of current week
+    }
+    
+    const monday = new Date(today);
+    monday.setDate(today.getDate() - daysBackToMonday);
+    
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6); // Sunday is 6 days after Monday
+    
+    // Format dates as YYYY-MM-DD using local time to avoid timezone issues
+    function formatLocalDate(date) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+    
+    return {
+      from: formatLocalDate(monday),
+      to: formatLocalDate(sunday)
+    };
+  }
+
   async function fetchAllKeywords({ url, key }) {
     try {
       const kwApi = new URL(url + '/rest/v1/keywords');
@@ -542,42 +569,61 @@
       const startDate = normalizeDateString(ev.start_date);
       const endDate = normalizeDateString(ev.end_date);
       
-      // If fromDate is set, include events that:
-      // 1. Start on or after fromDate, OR
-      // 2. End on or after fromDate (events that span across fromDate), OR
-      // 3. Have no dates (undated events)
-      if (normalizedFromDate) {
-        if (!startDate && !endDate) {
-          // Undated event - include it
-          return true;
+      // Undated events: include them if no filters are set, otherwise exclude
+      if (!startDate && !endDate) {
+        return !normalizedFromDate && !normalizedToDate;
+      }
+      
+      // Proper date range overlap logic:
+      // An event overlaps with [fromDate, toDate] if:
+      // event.start_date <= toDate AND event.end_date >= fromDate
+      
+      // Handle single-day events (no end_date)
+      if (startDate && !endDate) {
+        const eventDate = startDate;
+        // Event overlaps if it falls within the range
+        if (normalizedFromDate && normalizedToDate) {
+          return eventDate >= normalizedFromDate && eventDate <= normalizedToDate;
+        } else if (normalizedFromDate) {
+          return eventDate >= normalizedFromDate;
+        } else if (normalizedToDate) {
+          return eventDate <= normalizedToDate;
         }
-        // Include if starts on or after fromDate
-        if (startDate && startDate >= normalizedFromDate) {
-          return true;
-        }
-        // Include if ends on or after fromDate (spans across fromDate)
-        // This handles events like: start=12/20, end=12/21, filter from=12/21
-        if (endDate && endDate >= normalizedFromDate) {
-          return true;
-        }
-        // If event has startDate but no endDate, treat as single-day event
-        // Include only if it starts on fromDate
-        if (startDate && !endDate) {
-          return startDate === normalizedFromDate;
-        }
-        // Exclude events that both start and end before fromDate
-        if (startDate && endDate && startDate < normalizedFromDate && endDate < normalizedFromDate) {
-          return false;
-        }
-        // If we get here, the event should be included (safety net)
         return true;
       }
       
-      // If toDate is set, exclude events that start after toDate
-      if (normalizedToDate && startDate && startDate > normalizedToDate) {
-        return false;
+      // Handle events with end_date but no start_date (shouldn't happen, but handle it)
+      if (!startDate && endDate) {
+        const eventDate = endDate;
+        if (normalizedFromDate && normalizedToDate) {
+          return eventDate >= normalizedFromDate && eventDate <= normalizedToDate;
+        } else if (normalizedFromDate) {
+          return eventDate >= normalizedFromDate;
+        } else if (normalizedToDate) {
+          return eventDate <= normalizedToDate;
+        }
+        return true;
       }
       
+      // Handle events with both start_date and end_date
+      if (startDate && endDate) {
+        // Event overlaps with [fromDate, toDate] if:
+        // event.start_date <= toDate AND event.end_date >= fromDate
+        if (normalizedFromDate && normalizedToDate) {
+          // Both filters set: check for overlap
+          const overlaps = startDate <= normalizedToDate && endDate >= normalizedFromDate;
+          return overlaps;
+        } else if (normalizedFromDate) {
+          // Only fromDate: event must end on or after fromDate
+          return endDate >= normalizedFromDate;
+        } else if (normalizedToDate) {
+          // Only toDate: event must start on or before toDate
+          return startDate <= normalizedToDate;
+        }
+        return true;
+      }
+      
+      // Fallback: include if we can't determine
       return true;
     });
   }
@@ -1138,10 +1184,50 @@
     
     // Render controls
     let controlsHTML = '<div class="ssa-controls">';
+
+    // Date range filters (prominent section)
+    controlsHTML += '<div class="ssa-date-filters-section">';
+    controlsHTML += '<div class="ssa-date-filters">';
+    controlsHTML += `<button class="ssa-weekend-btn ssa-this-week-btn" title="Set date range to current week (Monday to Sunday)">📆 This Week</button>`;
+    controlsHTML += `<button class="ssa-weekend-btn ssa-this-weekend-btn" title="Set date range to upcoming weekend">📅 This Weekend</button>`;
+    controlsHTML += `<button class="ssa-weekend-btn ssa-next-weekend-btn" title="Set date range to next weekend">📅 Next Weekend</button>`;
+    controlsHTML += '<div class="ssa-date-inputs-row">';
+    controlsHTML += `<label>From: <input type="date" class="ssa-date-input" id="ssa-from-date" value="${fromDate || ''}"></label>`;
+    controlsHTML += `<label>To: <input type="date" class="ssa-date-input" id="ssa-to-date" value="${toDate || ''}"></label>`;
+    controlsHTML += '</div>';
+    controlsHTML += `<button class="ssa-clear-dates" title="Clear all filters">Clear</button>`;
+    controlsHTML += '</div>';
+    controlsHTML += '</div>';
     
-    // Layout switcher
+    // Display options (Show Images, Signature Events, and Dark Mode)
+    const isDarkMode = document.body && document.body.classList.contains('dark-mode');
+    controlsHTML += '<div class="ssa-display-options-section">';
+    controlsHTML += '<div class="ssa-display-options-wrapper">';
+    controlsHTML += '<div class="ssa-display-options-switcher">';
+    controlsHTML += `<button class="ssa-show-images-toggle ${showImages ? 'ssa-active' : ''}" id="ssa-show-images-btn" title="Toggle image display">🖼️ Show Images</button>`;
+    controlsHTML += `<button class="ssa-signature-events-toggle ${showSignatureEventsOnly ? 'ssa-active' : ''}" id="ssa-signature-events-btn" title="Show only signature events">⭐ Signature Events Only</button>`;
+    controlsHTML += '<button class="ssa-dark-mode-toggle" title="Toggle dark mode">' + (isDarkMode ? '☀️ Light Mode' : '🌙 Dark Mode') + '</button>';
+    controlsHTML += '</div>';
+    controlsHTML += '</div>';
+    controlsHTML += '</div>';
+    
+    // Keyword filters - display all keywords from the system
+    if (allKeywords.length > 0) {
+      controlsHTML += '<div class="ssa-keyword-filters-section">';
+      controlsHTML += '<div class="ssa-keyword-filters">';
+      allKeywords.forEach(kw => {
+        const isSelected = selectedKeywords.includes(kw);
+        controlsHTML += `<button class="ssa-keyword-btn ${isSelected ? 'ssa-keyword-active' : ''}" data-keyword="${kw}">${kw}</button>`;
+      });
+      controlsHTML += '</div>';
+      controlsHTML += '</div>';
+    }
+    
+    // View controls section: View Types + Group By (moved below keyword filters)
+    controlsHTML += '<div class="ssa-view-controls-section">';
+    
     controlsHTML += '<div class="ssa-layout-switcher-wrapper">';
-    controlsHTML += '<label class="ssa-control-label">View Types:</label>';
+    controlsHTML += '<label class="ssa-control-label">View:</label>';
     controlsHTML += '<div class="ssa-layout-switcher">';
     controlsHTML += `<button class="ssa-layout-btn ${layout === LAYOUTS.LIST ? 'ssa-active' : ''}" data-layout="${LAYOUTS.LIST}" title="List view">📋</button>`;
     controlsHTML += `<button class="ssa-layout-btn ${layout === LAYOUTS.GRID ? 'ssa-active' : ''}" data-layout="${LAYOUTS.GRID}" title="Grid view">⊞</button>`;
@@ -1152,45 +1238,14 @@
     // Grouping switcher (only show for list layout)
     if (layout === LAYOUTS.LIST) {
       controlsHTML += '<div class="ssa-group-switcher-wrapper">';
-      controlsHTML += '<label class="ssa-control-label">Group By:</label>';
+      controlsHTML += '<label class="ssa-control-label">Group:</label>';
       controlsHTML += '<div class="ssa-group-switcher">';
       controlsHTML += `<button class="ssa-group-btn ${groupBy === 'day' ? 'ssa-active' : ''}" data-group="day" title="Group by day">📆 Day</button>`;
       controlsHTML += `<button class="ssa-group-btn ${groupBy === 'month' ? 'ssa-active' : ''}" data-group="month" title="Group by month">📅 Month</button>`;
       controlsHTML += '</div>';
       controlsHTML += '</div>';
     }
-    
-    // Display options (Show Images, Signature Events, and Dark Mode)
-    const isDarkMode = document.body && document.body.classList.contains('dark-mode');
-    controlsHTML += '<div class="ssa-display-options-wrapper">';
-    controlsHTML += '<label class="ssa-control-label">Display Options:</label>';
-    controlsHTML += '<div class="ssa-display-options-switcher">';
-    controlsHTML += `<button class="ssa-show-images-toggle ${showImages ? 'ssa-active' : ''}" id="ssa-show-images-btn" title="Toggle image display">🖼️ Show Images</button>`;
-    controlsHTML += `<button class="ssa-signature-events-toggle ${showSignatureEventsOnly ? 'ssa-active' : ''}" id="ssa-signature-events-btn" title="Show only signature events">⭐ Signature Events Only</button>`;
-    controlsHTML += '<button class="ssa-dark-mode-toggle" title="Toggle dark mode">' + (isDarkMode ? '☀️ Light Mode' : '🌙 Dark Mode') + '</button>';
     controlsHTML += '</div>';
-    controlsHTML += '</div>';
-    
-    // Date range filters
-    controlsHTML += '<div class="ssa-date-filters">';
-    controlsHTML += `<button class="ssa-weekend-btn" title="Set date range to upcoming weekend">📅 This Weekend</button>`;
-    controlsHTML += `<button class="ssa-weekend-btn ssa-next-weekend-btn" title="Set date range to next weekend">📅 Next Weekend</button>`;
-    controlsHTML += '<div class="ssa-date-inputs-row">';
-    controlsHTML += `<label>From: <input type="date" class="ssa-date-input" id="ssa-from-date" value="${fromDate || ''}"></label>`;
-    controlsHTML += `<label>To: <input type="date" class="ssa-date-input" id="ssa-to-date" value="${toDate || ''}"></label>`;
-    controlsHTML += '</div>';
-    controlsHTML += `<button class="ssa-clear-dates" title="Clear all filters">Clear</button>`;
-    controlsHTML += '</div>';
-    
-    // Keyword filters - display all keywords from the system
-    if (allKeywords.length > 0) {
-      controlsHTML += '<div class="ssa-keyword-filters">';
-      allKeywords.forEach(kw => {
-        const isSelected = selectedKeywords.includes(kw);
-        controlsHTML += `<button class="ssa-keyword-btn ${isSelected ? 'ssa-keyword-active' : ''}" data-keyword="${kw}">${kw}</button>`;
-      });
-      controlsHTML += '</div>';
-    }
     
     controlsHTML += '</div>';
     
@@ -1326,7 +1381,7 @@
     }
     
     // Weekend button handlers
-    const weekendBtn = mount.querySelector('.ssa-weekend-btn:not(.ssa-next-weekend-btn)');
+    const weekendBtn = mount.querySelector('.ssa-this-weekend-btn');
     if (weekendBtn) {
       weekendBtn.addEventListener('click', async function() {
         const weekend = getUpcomingWeekend();
@@ -1357,6 +1412,24 @@
         // This ensures keyword cloud updates correctly
         const allRows = mount._allRows || rows;
         console.log('📅 Next Weekend: Using client-side filtering with', allRows.length, 'events');
+        await renderEvents(mount, allRows, newState);
+      });
+    }
+    
+    // This Week button handler
+    const thisWeekBtn = mount.querySelector('.ssa-this-week-btn');
+    if (thisWeekBtn) {
+      thisWeekBtn.addEventListener('click', async function() {
+        const week = getUpcomingWeek();
+        const newState = { ...state, fromDate: week.from, toDate: week.to };
+        console.log('📆 This Week clicked:', { week, newState });
+        // Update the input values
+        if (fromInput) fromInput.value = week.from;
+        if (toInput) toInput.value = week.to;
+        // Use client-side filtering instead of reloadEvents to avoid cache issues
+        // This ensures keyword cloud updates correctly
+        const allRows = mount._allRows || rows;
+        console.log('📆 This Week: Using client-side filtering with', allRows.length, 'events');
         await renderEvents(mount, allRows, newState);
       });
     }
@@ -1779,7 +1852,7 @@
             // Make location a clickable link for directions
             const locationLink = document.createElement('span');
             locationLink.textContent = location;
-            locationLink.style.cssText = 'color: #3b82f6; text-decoration: none; cursor: pointer;';
+            locationLink.style.cssText = 'color: #0f172a !important; text-decoration: none; cursor: pointer;';
             locationLink.addEventListener('mouseenter', function() {
               this.style.textDecoration = 'underline';
             });
@@ -2376,46 +2449,65 @@
     const css = document.createElement('style');
     css.id = 'ssa-styles-events';
     css.textContent = `
-      .ssa-controls{display:flex;flex-direction:column;gap:16px;margin-bottom:24px;padding-bottom:20px;border-bottom:1px solid #e5e7eb;align-items:center}
-      .ssa-layout-switcher-wrapper{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center}
-      .ssa-group-switcher-wrapper{display:flex;align-items:center;gap:8px;justify-content:center}
-      .ssa-display-options-wrapper{display:flex;align-items:center;gap:8px;justify-content:center}
-      .ssa-control-label{font-size:0.875rem;font-weight:500;color:#374151;white-space:nowrap}
+      .ssa-controls{display:flex;flex-direction:column;gap:20px;margin-bottom:32px;padding:24px;background:#f9fafb;border-radius:12px;border:1px solid #e5e7eb}
+      body.dark-mode .ssa-controls{background:#1f2937!important;border-color:#374151!important}
+      .ssa-view-controls-section{display:flex;flex-wrap:wrap;gap:20px;align-items:center;justify-content:center;padding:16px;background:#fff;border-radius:8px;border:1px solid #e5e7eb}
+      body.dark-mode .ssa-view-controls-section{background:#111827!important;border-color:#374151!important}
+      .ssa-layout-switcher-wrapper{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+      .ssa-group-switcher-wrapper{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+      .ssa-layout-switcher-wrapper ~ .ssa-group-switcher-wrapper{padding-left:20px;border-left:1px solid #e5e7eb}
+      body.dark-mode .ssa-layout-switcher-wrapper ~ .ssa-group-switcher-wrapper{border-left-color:#374151!important}
+      .ssa-control-label{font-size:0.875rem;font-weight:600;color:#374151;white-space:nowrap;text-transform:uppercase;letter-spacing:0.5px}
       body.dark-mode .ssa-control-label{color:#f9fafb!important}
-      .ssa-show-images-toggle{padding:8px 12px;border:1px solid #d1d5db;border-radius:6px;background:#fff;color:#374151;cursor:pointer;font-size:0.875rem;font-weight:500;transition:all 0.2s;white-space:nowrap}
-      .ssa-show-images-toggle:hover{background:#f9fafb;border-color:#9ca3af}
-      .ssa-show-images-toggle.ssa-active{background:#3b82f6;border-color:#3b82f6;color:#fff}
+      .ssa-layout-switcher{display:flex;gap:6px}
+      .ssa-layout-btn{padding:10px 14px;border:1px solid #d1d5db;border-radius:8px;background:#fff;color:#374151;cursor:pointer;font-size:1.2rem;transition:all 0.2s;box-shadow:0 1px 2px rgba(0,0,0,0.05)}
+      .ssa-layout-btn:hover{background:#f9fafb;border-color:#9ca3af;transform:translateY(-1px);box-shadow:0 2px 4px rgba(0,0,0,0.1)}
+      .ssa-layout-btn.ssa-active{background:#3b82f6;border-color:#3b82f6;color:#fff;box-shadow:0 2px 4px rgba(59,130,246,0.3)}
+      body.dark-mode .ssa-layout-btn{background:#374151!important;border-color:#4b5563!important;color:#f9fafb!important}
+      body.dark-mode .ssa-layout-btn:hover{background:#4b5563!important;border-color:#6b7280!important}
+      body.dark-mode .ssa-layout-btn.ssa-active{background:transparent!important;border-color:#3b82f6!important;color:#3b82f6!important}
+      body.dark-mode .ssa-layout-btn.ssa-active:hover{background:transparent!important;border-color:#60a5fa!important;color:#60a5fa!important}
+      .ssa-group-switcher{display:flex;gap:6px}
+      .ssa-group-btn{padding:8px 16px;border:1px solid #d1d5db;border-radius:8px;background:#fff!important;color:#374151!important;cursor:pointer;font-size:0.875rem;font-weight:500;transition:all 0.2s;box-shadow:0 1px 2px rgba(0,0,0,0.05)}
+      .ssa-group-btn:hover{background:#f9fafb!important;border-color:#9ca3af;transform:translateY(-1px);box-shadow:0 2px 4px rgba(0,0,0,0.1)}
+      .ssa-group-btn.ssa-active{background:#3b82f6!important;border-color:#3b82f6!important;color:#fff!important;box-shadow:0 2px 4px rgba(59,130,246,0.3)}
+      body.dark-mode .ssa-group-btn{background:#374151!important;border-color:#4b5563!important;color:#f9fafb!important}
+      body.dark-mode .ssa-group-btn:hover{background:#4b5563!important;border-color:#6b7280!important}
+      body.dark-mode .ssa-group-btn.ssa-active{background:transparent!important;border-color:#3b82f6!important;color:#3b82f6!important}
+      body.dark-mode .ssa-group-btn.ssa-active:hover{background:transparent!important;border-color:#60a5fa!important;color:#60a5fa!important}
+      .ssa-date-filters-section{display:flex;flex-direction:column;gap:12px;padding:16px;background:#fff;border-radius:8px;border:1px solid #e5e7eb}
+      body.dark-mode .ssa-date-filters-section{background:#111827!important;border-color:#374151!important}
+      .ssa-date-filters{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:center}
+      .ssa-date-inputs-row{display:flex;gap:12px;align-items:center}
+      .ssa-date-filters label{display:flex;align-items:center;gap:6px;font-size:0.875rem;color:#374151;font-weight:500}
+      .ssa-date-input{padding:8px 12px;border:1px solid #d1d5db;border-radius:6px;font-size:0.875rem;background:#fff;transition:all 0.2s}
+      .ssa-date-input:focus{outline:none;border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,0.1)}
+      .ssa-clear-dates{padding:8px 16px;border:1px solid #d1d5db;border-radius:6px;background:#fff!important;color:#374151!important;cursor:pointer;font-size:0.875rem;font-weight:500;transition:all 0.2s;box-shadow:0 1px 2px rgba(0,0,0,0.05)}
+      .ssa-clear-dates:hover{background:#f9fafb!important;transform:translateY(-1px);box-shadow:0 2px 4px rgba(0,0,0,0.1)}
+      .ssa-weekend-btn{padding:8px 16px;border:1px solid #d1d5db;border-radius:6px;background:#fff!important;color:#374151!important;cursor:pointer;font-size:0.875rem;font-weight:500;white-space:nowrap;transition:all 0.2s;box-shadow:0 1px 2px rgba(0,0,0,0.05)}
+      .ssa-weekend-btn:hover{background:#f9fafb!important;border-color:#9ca3af;transform:translateY(-1px);box-shadow:0 2px 4px rgba(0,0,0,0.1)}
+      .ssa-display-options-section{display:flex;flex-direction:column;gap:12px;padding:16px;background:#fff;border-radius:8px;border:1px solid #e5e7eb}
+      body.dark-mode .ssa-display-options-section{background:#111827!important;border-color:#374151!important}
+      .ssa-display-options-wrapper{display:flex;align-items:center;justify-content:center}
+      .ssa-display-options-switcher{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+      .ssa-show-images-toggle{padding:8px 16px;border:1px solid #d1d5db;border-radius:6px;background:#fff;color:#374151;cursor:pointer;font-size:0.875rem;font-weight:500;transition:all 0.2s;white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,0.05)}
+      .ssa-show-images-toggle:hover{background:#f9fafb;border-color:#9ca3af;transform:translateY(-1px);box-shadow:0 2px 4px rgba(0,0,0,0.1)}
+      .ssa-show-images-toggle.ssa-active{background:#3b82f6;border-color:#3b82f6;color:#fff;box-shadow:0 2px 4px rgba(59,130,246,0.3)}
       .ssa-show-images-toggle.ssa-active:hover{background:#2563eb;border-color:#2563eb}
       body.dark-mode .ssa-show-images-toggle{background:#374151;border-color:#4b5563;color:#f9fafb}
       body.dark-mode .ssa-show-images-toggle:hover{background:#4b5563;border-color:#6b7280}
       body.dark-mode .ssa-show-images-toggle.ssa-active{background:transparent!important;border-color:#3b82f6!important;color:#3b82f6!important}
       body.dark-mode .ssa-show-images-toggle.ssa-active:hover{background:transparent!important;border-color:#60a5fa!important;color:#60a5fa!important}
-      .ssa-signature-events-toggle{padding:8px 12px;border:1px solid #d1d5db;border-radius:6px;background:#fff;color:#374151;cursor:pointer;font-size:0.875rem;font-weight:500;transition:all 0.2s;white-space:nowrap}
-      .ssa-signature-events-toggle:hover{background:#f9fafb;border-color:#9ca3af}
-      .ssa-signature-events-toggle.ssa-active{background:#3b82f6;border-color:#3b82f6;color:#fff}
+      .ssa-signature-events-toggle{padding:8px 16px;border:1px solid #d1d5db;border-radius:6px;background:#fff;color:#374151;cursor:pointer;font-size:0.875rem;font-weight:500;transition:all 0.2s;white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,0.05)}
+      .ssa-signature-events-toggle:hover{background:#f9fafb;border-color:#9ca3af;transform:translateY(-1px);box-shadow:0 2px 4px rgba(0,0,0,0.1)}
+      .ssa-signature-events-toggle.ssa-active{background:#3b82f6;border-color:#3b82f6;color:#fff;box-shadow:0 2px 4px rgba(59,130,246,0.3)}
       .ssa-signature-events-toggle.ssa-active:hover{background:#2563eb;border-color:#2563eb}
       body.dark-mode .ssa-signature-events-toggle{background:#374151;border-color:#4b5563;color:#f9fafb}
       body.dark-mode .ssa-signature-events-toggle:hover{background:#4b5563;border-color:#6b7280}
       body.dark-mode .ssa-signature-events-toggle.ssa-active{background:transparent!important;border-color:#3b82f6!important;color:#3b82f6!important}
       body.dark-mode .ssa-signature-events-toggle.ssa-active:hover{background:transparent!important;border-color:#60a5fa!important;color:#60a5fa!important}
-      .ssa-layout-switcher{display:flex;gap:4px}
-      .ssa-layout-btn{padding:8px 12px;border:1px solid #d1d5db;border-radius:6px;background:#fff;color:#374151;cursor:pointer;font-size:1.2rem;transition:all 0.2s}
-      .ssa-layout-btn:hover{background:#f9fafb;border-color:#9ca3af}
-      .ssa-layout-btn.ssa-active{background:#3b82f6;border-color:#3b82f6;color:#fff}
-      body.dark-mode .ssa-layout-btn.ssa-active{background:transparent!important;border-color:#3b82f6!important;color:#3b82f6!important}
-      body.dark-mode .ssa-layout-btn.ssa-active:hover{background:transparent!important;border-color:#60a5fa!important;color:#60a5fa!important}
-      .ssa-group-switcher{display:flex;gap:4px}
-      .ssa-group-btn{padding:8px 12px;border:1px solid #d1d5db;border-radius:6px;background:#fff!important;color:#374151!important;cursor:pointer;font-size:0.875rem;font-weight:500;transition:all 0.2s}
-      .ssa-group-btn:hover{background:#f9fafb!important;border-color:#9ca3af}
-      .ssa-group-btn.ssa-active{background:#3b82f6!important;border-color:#3b82f6!important;color:#fff!important}
-      body.dark-mode .ssa-group-btn.ssa-active{background:transparent!important;border-color:#3b82f6!important;color:#3b82f6!important}
-      body.dark-mode .ssa-group-btn.ssa-active:hover{background:transparent!important;border-color:#60a5fa!important;color:#60a5fa!important}
-      .ssa-display-options-switcher{display:flex;gap:16px}
-      .ssa-date-filters{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:center}
-      .ssa-date-inputs-row{display:flex;gap:12px;align-items:center}
-      .ssa-date-filters label{display:flex;align-items:center;gap:6px;font-size:0.875rem;color:#374151}
-      .ssa-dark-mode-toggle{padding:8px 12px;border:1px solid #d1d5db;border-radius:6px;background:#fff;color:#374151;cursor:pointer;font-size:0.875rem;font-weight:500;transition:all 0.2s;white-space:nowrap}
-      .ssa-dark-mode-toggle:hover{background:#f9fafb;border-color:#9ca3af}
+      .ssa-dark-mode-toggle{padding:8px 16px;border:1px solid #d1d5db;border-radius:6px;background:#fff;color:#374151;cursor:pointer;font-size:0.875rem;font-weight:500;transition:all 0.2s;white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,0.05)}
+      .ssa-dark-mode-toggle:hover{background:#f9fafb;border-color:#9ca3af;transform:translateY(-1px);box-shadow:0 2px 4px rgba(0,0,0,0.1)}
       body.dark-mode .ssa-dark-mode-toggle{background:#374151;border-color:#4b5563;color:#f9fafb}
       body.dark-mode .ssa-dark-mode-toggle:hover{background:#4b5563;border-color:#6b7280}
       body.dark-mode{background:#111827!important;color:#f9fafb!important}
@@ -2424,12 +2516,9 @@
       body.dark-mode #events-list *{color:inherit}
       body.dark-mode .Main-content{background:#111827!important}
       body.dark-mode .sqs-block{background:transparent!important}
-      .ssa-date-input{padding:6px 10px;border:1px solid #d1d5db;border-radius:4px;font-size:0.875rem}
-      .ssa-clear-dates{padding:6px 12px;border:1px solid #d1d5db;border-radius:4px;background:#fff!important;color:#374151!important;cursor:pointer;font-size:0.875rem}
-      .ssa-clear-dates:hover{background:#f9fafb!important}
-      .ssa-weekend-btn{padding:6px 12px;border:1px solid #d1d5db;border-radius:4px;background:#fff!important;color:#374151!important;cursor:pointer;font-size:0.875rem;font-weight:500;white-space:nowrap}
-      .ssa-weekend-btn:hover{background:#f9fafb!important;border-color:#9ca3af}
-      .ssa-keyword-filters{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;justify-content:center}
+      .ssa-keyword-filters-section{display:flex;flex-direction:column;gap:12px;padding:16px;background:#fff;border-radius:8px;border:1px solid #e5e7eb}
+      body.dark-mode .ssa-keyword-filters-section{background:#111827!important;border-color:#374151!important}
+      .ssa-keyword-filters{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
       .ssa-keyword-btn{padding:8px 16px;border:2px solid #d1d5db;border-radius:20px;background:#fff!important;color:#374151!important;cursor:pointer;font-size:0.875rem;font-weight:500;transition:all 0.2s}
       .ssa-keyword-btn:hover{background:#f9fafb!important;border-color:#9ca3af!important;color:#374151!important}
       .ssa-keyword-active{background:#fff!important;border-color:#3b82f6!important;color:#3b82f6!important}
@@ -2493,8 +2582,10 @@
       body.dark-mode .ssa-info-popover::before{border-top-color:#4b5563!important}
       .ssa-link-icon{display:inline-flex;align-items:center;justify-content:center;font-size:0.875rem;opacity:0.7;transition:opacity 0.2s;margin-left:4px}
       .ssa-link-icon:hover{opacity:1}
-      .ssa-location{cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:2px;color:#3b82f6;transition:color 0.2s}
-      .ssa-location:hover{color:#2563eb;text-decoration-style:solid}
+      .ssa-location{cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:2px;color:#0f172a!important;transition:color 0.2s}
+      .ssa-location:hover{color:#0f172a!important;text-decoration-style:solid}
+      .ssa-card .ssa-location,.ssa-meta .ssa-location{color:#0f172a!important}
+      .ssa-card .ssa-location:hover,.ssa-meta .ssa-location:hover{color:#0f172a!important}
       .ssa-map-popover{width:400px;height:300px;padding:0;background:#fff;border:1px solid #d1d5db;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);overflow:hidden;pointer-events:auto;position:fixed;z-index:10003}
       .ssa-map-popover::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border:6px solid transparent;border-top-color:#fff;z-index:1}
       .ssa-map-popover::before{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border:7px solid transparent;border-top-color:#d1d5db;margin-top:-1px;z-index:0}
@@ -2543,7 +2634,8 @@
       .ssa-card-image-icon:active{opacity:0.7}
       .ssa-card-icon-thumb{width:100%;height:100%;object-fit:cover;display:block}
       .ssa-title{margin:0;font-size:1.05rem;line-height:1.3;color:#1f2937;font-weight:600;flex:1;display:inline-flex;align-items:center;gap:4px}
-      .ssa-meta{margin:.35rem 0;color:#374151;font-weight:500}
+      .ssa-meta{margin:.35rem 0;color:#000000!important;font-weight:500}
+      .ssa-meta .ssa-location{color:#0f172a!important}
       .ssa-keywords{margin:.5rem 0;display:flex;flex-wrap:wrap;gap:4px}
       .ssa-tag-clickable{display:inline-block;padding:8px 16px;border:2px solid #d1d5db;border-radius:20px;background:#fff;color:#374151;cursor:pointer;font-size:0.875rem;font-weight:500;line-height:1;transition:all 0.2s}
       .ssa-tag-clickable:hover{background:#f9fafb;border-color:#9ca3af}
@@ -2589,20 +2681,28 @@
       @media(max-width:768px){
         #events-list{padding:0 12px;box-sizing:border-box;max-width:100%;overflow-x:hidden}
         *{box-sizing:border-box}
-        .ssa-controls{padding-bottom:16px;gap:12px;padding-left:0;padding-right:0}
-        .ssa-layout-switcher-wrapper{flex-direction:column;align-items:flex-start;gap:6px}
-        .ssa-group-switcher-wrapper{flex-direction:column;align-items:flex-start;gap:6px}
-        .ssa-display-options-wrapper{flex-direction:column;align-items:flex-start;gap:6px}
-        .ssa-control-label{font-size:0.9rem}
-        .ssa-layout-btn{padding:10px 14px;font-size:1.1rem;min-height:44px}
-        .ssa-group-switcher{gap:6px}
-        .ssa-group-btn{padding:10px 14px;font-size:0.9rem;min-height:44px}
-        .ssa-date-filters{flex-direction:column;align-items:stretch;gap:8px}
-        .ssa-date-inputs-row{display:flex;flex-direction:row;gap:8px;width:100%}
-        .ssa-date-filters label{flex-direction:row;align-items:center;gap:6px;font-size:0.9rem;flex:1}
-        .ssa-date-input{flex:1;padding:10px;font-size:1rem;min-height:44px}
+        .ssa-controls{padding:16px;gap:16px;margin:0 -12px 24px}
+        .ssa-view-controls-section{padding:12px;flex-direction:column;gap:12px}
+        .ssa-layout-switcher-wrapper{flex-direction:column;align-items:flex-start;gap:8px;width:100%}
+        .ssa-group-switcher-wrapper{flex-direction:column;align-items:flex-start;gap:8px;width:100%}
+        .ssa-layout-switcher-wrapper ~ .ssa-group-switcher-wrapper{border-top:1px solid #e5e7eb;padding-top:12px;margin-top:12px;border-left:none;padding-left:0}
+        body.dark-mode .ssa-layout-switcher-wrapper ~ .ssa-group-switcher-wrapper{border-top-color:#374151!important}
+        .ssa-display-options-section{padding:12px}
+        .ssa-display-options-wrapper{flex-direction:column;align-items:stretch;gap:8px}
+        .ssa-display-options-switcher{flex-direction:column;gap:8px;width:100%}
+        .ssa-date-filters-section{padding:12px}
+        .ssa-date-filters{flex-direction:column;align-items:stretch;gap:10px}
+        .ssa-date-inputs-row{display:flex;flex-direction:column;gap:10px;width:100%}
+        .ssa-date-filters label{flex-direction:column;align-items:flex-start;gap:6px;font-size:0.9rem;width:100%}
+        .ssa-date-input{width:100%;padding:10px;font-size:1rem;min-height:44px}
         .ssa-clear-dates{width:100%;padding:10px;font-size:0.9rem;min-height:44px}
         .ssa-weekend-btn{width:100%;padding:10px;font-size:0.9rem;min-height:44px}
+        .ssa-keyword-filters-section{padding:12px}
+        .ssa-control-label{font-size:0.8rem}
+        .ssa-layout-btn{padding:10px 14px;font-size:1.1rem;min-height:44px}
+        .ssa-group-switcher{gap:6px;width:100%}
+        .ssa-group-btn{padding:10px 14px;font-size:0.9rem;min-height:44px;flex:1}
+        .ssa-show-images-toggle,.ssa-signature-events-toggle,.ssa-dark-mode-toggle{width:100%;padding:10px;font-size:0.9rem;min-height:44px}
         .ssa-keyword-filters{gap:6px}
         .ssa-keyword-btn{padding:10px 14px;font-size:0.9rem;min-height:44px;border-radius:22px}
         .ssa-month-header{font-size:1.1rem;margin:20px 0 10px}

@@ -60,7 +60,15 @@ export default function App() {
   const [justSent, setJustSent] = useState<boolean>(false) // Visual feedback for sent state
   
   // View navigation - which admin module is currently active
-  const [view, setView] = useState<View>('locations')
+  // Restore last selected view from localStorage, default to 'locations'
+  const [view, setView] = useState<View>(() => {
+    const saved = localStorage.getItem('selectedView')
+    // Validate that saved value is a valid View type
+    if (saved && ['locations', 'events', 'routes', 'ocr-test'].includes(saved)) {
+      return saved as View
+    }
+    return 'locations'
+  })
   
   // UI preferences - persisted to localStorage for user convenience
   // Dark mode preference
@@ -209,6 +217,15 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('sidebarCollapsed', JSON.stringify(sidebarCollapsed))
   }, [sidebarCollapsed])
+
+  /**
+   * Persist selected view/module to localStorage
+   * 
+   * Remembers which admin module was last viewed between page reloads
+   */
+  useEffect(() => {
+    localStorage.setItem('selectedView', view)
+  }, [view])
 
   /**
    * Toggle dark mode on/off

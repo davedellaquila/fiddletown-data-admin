@@ -1445,6 +1445,7 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
               console.log('Parsed event data:', parsed)
               
               // Update the editing state with parsed data and image URL
+              // Always update image_url and ocr_text
               const updates: Partial<EventRow> = {
                 image_url: data.publicUrl,
                 ocr_text: text,
@@ -1460,44 +1461,45 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
                 }
               }
               
-              // Always apply parsed dates/times when they exist (OCR should override existing values)
-              console.log('Parsed data:', parsed)
-              console.log('Current editing state:', { 
-                start_date: editing.start_date, 
-                end_date: editing.end_date,
-                start_time: editing.start_time,
-                end_time: editing.end_time
-              })
-              
-              if (parsed.start_date) {
+              // Only update fields if they are currently empty AND a value was parsed
+              // Dates and times
+              if (parsed.start_date && (!editing.start_date || editing.start_date === '')) {
                 updates.start_date = parsed.start_date
                 console.log('Setting start_date to:', parsed.start_date)
               }
-              if (parsed.end_date) {
+              if (parsed.end_date && (!editing.end_date || editing.end_date === '')) {
                 updates.end_date = parsed.end_date
                 console.log('Setting end_date to:', parsed.end_date)
               }
-              if (parsed.start_time) {
+              if (parsed.start_time && (!editing.start_time || editing.start_time === '')) {
                 updates.start_time = parsed.start_time
                 console.log('Setting start_time to:', parsed.start_time)
               }
-              if (parsed.end_time) {
+              if (parsed.end_time && (!editing.end_time || editing.end_time === '')) {
                 updates.end_time = parsed.end_time
                 console.log('Setting end_time to:', parsed.end_time)
               }
               
-              // Also apply location, host_org, website_url, etc. if parsed
-              if (parsed.location) {
+              // String fields - only update if empty
+              if (parsed.location && (!editing.location || editing.location.trim() === '')) {
                 updates.location = parsed.location
                 console.log('Setting location to:', parsed.location)
               }
-              if (parsed.host_org) {
+              if (parsed.host_org && (!editing.host_org || editing.host_org.trim() === '')) {
                 updates.host_org = parsed.host_org
                 console.log('Setting host_org to:', parsed.host_org)
               }
-              if (parsed.website_url) {
+              if (parsed.website_url && (!editing.website_url || editing.website_url.trim() === '')) {
                 updates.website_url = parsed.website_url
                 console.log('Setting website_url to:', parsed.website_url)
+              }
+              if (parsed.recurrence && (!editing.recurrence || editing.recurrence.trim() === '')) {
+                updates.recurrence = parsed.recurrence
+                console.log('Setting recurrence to:', parsed.recurrence)
+              }
+              if (parsed.description && (!editing.description || editing.description.trim() === '')) {
+                updates.description = parsed.description
+                console.log('Setting description to:', parsed.description)
               }
               
               console.log('Final updates to apply:', updates)
@@ -1543,7 +1545,7 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
         }}
         ref={toolbarRef}
       >
-        {loading && (
+        {/* {loading && (
           <div style={{
             marginBottom: 8,
             fontSize: 12,
@@ -1551,7 +1553,7 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
           }}>
             Loading events…
           </div>
-        )}
+        )} */}
         {error && (
           <div style={{
             marginBottom: 8,
@@ -3198,49 +3200,62 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
                 </div>
               </div>
 
-              {/* Signature Event - At the top */}
+              {/* Signature Event and Status - At the top */}
               <div style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: '12px',
-                padding: '12px',
-                background: darkMode ? '#374151' : '#f3f4f6',
-                borderRadius: '8px',
-                marginBottom: '16px',
-                border: `1px solid ${darkMode ? '#4b5563' : '#e5e7eb'}`
+                display: 'grid', 
+                gridTemplateColumns: '1fr 1fr',
+                gap: '16px',
+                marginBottom: '16px'
               }}>
-                <input
-                  type="checkbox"
-                  id="is_signature_event_top"
-                  checked={editing?.is_signature_event === true}
-                  onChange={(e) => setEditing({...editing!, is_signature_event: e.target.checked})}
-                  style={{
-                    accentColor: darkMode ? '#3b82f6' : '#3b82f6',
-                    cursor: 'pointer',
-                    width: '20px',
-                    height: '20px',
-                    margin: 0
-                  }}
-                />
-                <label
-                  htmlFor="is_signature_event_top"
-                  style={{
-                    color: darkMode ? '#f9fafb' : '#374151',
-                    fontSize: '16px',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    flex: 1
-                  }}
-                >
-                  ⭐ Signature Event
-                </label>
-                <span style={{ 
-                  color: darkMode ? '#d1d5db' : '#6b7280',
-                  fontSize: '13px',
-                  fontWeight: '400'
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '12px',
+                  padding: '12px',
+                  background: darkMode ? '#374151' : '#f3f4f6',
+                  borderRadius: '8px',
+                  border: `1px solid ${darkMode ? '#4b5563' : '#e5e7eb'}`
                 }}>
-                  {editing?.is_signature_event ? 'This event is marked as a signature event' : 'Mark this event as a signature event'}
-                </span>
+                  <input
+                    type="checkbox"
+                    id="is_signature_event_top"
+                    checked={editing?.is_signature_event === true}
+                    onChange={(e) => setEditing({...editing!, is_signature_event: e.target.checked})}
+                    style={{
+                      accentColor: darkMode ? '#3b82f6' : '#3b82f6',
+                      cursor: 'pointer',
+                      width: '20px',
+                      height: '20px',
+                      margin: 0
+                    }}
+                  />
+                  <label
+                    htmlFor="is_signature_event_top"
+                    style={{
+                      color: darkMode ? '#f9fafb' : '#374151',
+                      fontSize: '16px',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      flex: 1
+                    }}
+                  >
+                    ⭐ Signature Event
+                  </label>
+                </div>
+                <FormField
+                  label="Status"
+                  name="status"
+                  value={editing?.status || 'draft'}
+                  onChange={(value) => setEditing({...editing!, status: value as any})}
+                  type="select"
+                  options={[
+                    { value: 'draft', label: '📝 Draft' },
+                    { value: 'published', label: '✅ Published' },
+                    { value: 'archived', label: '📦 Archived' }
+                  ]}
+                  editingId={editing?.id?.toString()}
+                  darkMode={darkMode}
+                />
               </div>
 
               {/* Event Name and Slug */}
@@ -3498,32 +3513,16 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
                 />
               </div>
 
-              {/* Status and Sort Order */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                <FormField
-                  label="Status"
-                  name="status"
-                  value={editing?.status || 'draft'}
-                  onChange={(value) => setEditing({...editing!, status: value as any})}
-                  type="select"
-                  options={[
-                    { value: 'draft', label: '📝 Draft' },
-                    { value: 'published', label: '✅ Published' },
-                    { value: 'archived', label: '📦 Archived' }
-                  ]}
-                  editingId={editing?.id?.toString()}
-                  darkMode={darkMode}
-                />
-                <FormField
-                  label="Sort Order"
-                  name="sort_order"
-                  value={editing?.sort_order ?? 1000}
-                  onChange={(value) => setEditing({...editing!, sort_order: value as number})}
-                  type="number"
-                  editingId={editing?.id?.toString()}
-                  darkMode={darkMode}
-                />
-              </div>
+              {/* Sort Order */}
+              <FormField
+                label="Sort Order"
+                name="sort_order"
+                value={editing?.sort_order ?? 1000}
+                onChange={(value) => setEditing({...editing!, sort_order: value as number})}
+                type="number"
+                editingId={editing?.id?.toString()}
+                darkMode={darkMode}
+              />
 
               {/* OCR Text Display Section */}
               {editing?.ocr_text && (
