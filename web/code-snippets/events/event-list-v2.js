@@ -1207,7 +1207,7 @@
     controlsHTML += '<div class="ssa-display-options-switcher">';
     controlsHTML += `<button class="ssa-show-images-toggle ${showImages ? 'ssa-active' : ''}" id="ssa-show-images-btn" title="Toggle image display">🖼️ Show Images</button>`;
     controlsHTML += `<button class="ssa-signature-events-toggle ${showSignatureEventsOnly ? 'ssa-active' : ''}" id="ssa-signature-events-btn" title="Show only signature events">⭐ Signature Events Only</button>`;
-    controlsHTML += '<button class="ssa-dark-mode-toggle" title="Toggle dark mode">' + (isDarkMode ? '☀️ Light Mode' : '🌙 Dark Mode') + '</button>';
+    controlsHTML += '<button class="ssa-dark-mode-toggle" title="Toggle dark mode">' + (isDarkMode ? '☀️' : '🌙') + '</button>';
     controlsHTML += '</div>';
     controlsHTML += '</div>';
     
@@ -2920,7 +2920,7 @@
     const button = document.querySelector('.ssa-dark-mode-toggle');
     
     if (button) {
-      button.textContent = isDark ? '☀️ Light Mode' : '🌙 Dark Mode';
+      button.textContent = isDark ? '☀️' : '🌙';
     }
     
     localStorage.setItem('ssa-dark-mode', isDark ? 'true' : 'false');
@@ -2936,7 +2936,7 @@
       const savedDarkMode = localStorage.getItem('ssa-dark-mode');
       if (savedDarkMode === 'true') {
         document.body.classList.add('dark-mode');
-        button.textContent = '☀️ Light Mode';
+        button.textContent = '☀️';
       }
     }
   }
