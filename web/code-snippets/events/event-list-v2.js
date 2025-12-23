@@ -1149,9 +1149,39 @@
     // Render controls
     let controlsHTML = '<div class="ssa-controls">';
     
-    // Layout switcher
+    // Date range filters (prominent section)
+    controlsHTML += '<div class="ssa-date-filters-section">';
+    controlsHTML += '<div class="ssa-date-filters">';
+    controlsHTML += `<button class="ssa-weekend-btn ssa-this-week-btn" title="Set date range to current week (Monday to Sunday)">📆 This Week</button>`;
+    controlsHTML += `<button class="ssa-weekend-btn ssa-this-weekend-btn" title="Set date range to upcoming weekend">📅 This Weekend</button>`;
+    controlsHTML += `<button class="ssa-weekend-btn ssa-next-weekend-btn" title="Set date range to next weekend">📅 Next Weekend</button>`;
+    controlsHTML += '<div class="ssa-date-inputs-row">';
+    controlsHTML += `<label>From: <input type="date" class="ssa-date-input" id="ssa-from-date" value="${fromDate || ''}"></label>`;
+    controlsHTML += `<label>To: <input type="date" class="ssa-date-input" id="ssa-to-date" value="${toDate || ''}"></label>`;
+    controlsHTML += '</div>';
+    controlsHTML += `<button class="ssa-clear-dates" title="Clear all filters">Clear</button>`;
+    controlsHTML += '</div>';
+    controlsHTML += '</div>';
+    
+    // Keyword filters - display all keywords from the system
+    if (allKeywords.length > 0) {
+      controlsHTML += '<div class="ssa-keyword-filters-section">';
+      controlsHTML += '<div class="ssa-keyword-filters">';
+      allKeywords.forEach(kw => {
+        const isSelected = selectedKeywords.includes(kw);
+        controlsHTML += `<button class="ssa-keyword-btn ${isSelected ? 'ssa-keyword-active' : ''}" data-keyword="${kw}">${kw}</button>`;
+      });
+      controlsHTML += '</div>';
+      controlsHTML += '</div>';
+    }
+    
+    // View controls section: View Types + Group By + Display Options (moved below keyword filters)
+    controlsHTML += '<div class="ssa-view-controls-section">';
+    
+    // Left side: View Types and Group By
+    controlsHTML += '<div class="ssa-view-controls-left">';
     controlsHTML += '<div class="ssa-layout-switcher-wrapper">';
-    controlsHTML += '<label class="ssa-control-label">View Types:</label>';
+    controlsHTML += '<label class="ssa-control-label">View:</label>';
     controlsHTML += '<div class="ssa-layout-switcher">';
     controlsHTML += `<button class="ssa-layout-btn ${layout === LAYOUTS.LIST ? 'ssa-active' : ''}" data-layout="${LAYOUTS.LIST}" title="List view">📋</button>`;
     controlsHTML += `<button class="ssa-layout-btn ${layout === LAYOUTS.GRID ? 'ssa-active' : ''}" data-layout="${LAYOUTS.GRID}" title="Grid view">⊞</button>`;
@@ -1162,18 +1192,18 @@
     // Grouping switcher (only show for list layout)
     if (layout === LAYOUTS.LIST) {
       controlsHTML += '<div class="ssa-group-switcher-wrapper">';
-      controlsHTML += '<label class="ssa-control-label">Group By:</label>';
+      controlsHTML += '<label class="ssa-control-label">Group:</label>';
       controlsHTML += '<div class="ssa-group-switcher">';
       controlsHTML += `<button class="ssa-group-btn ${groupBy === 'day' ? 'ssa-active' : ''}" data-group="day" title="Group by day">📆 Day</button>`;
       controlsHTML += `<button class="ssa-group-btn ${groupBy === 'month' ? 'ssa-active' : ''}" data-group="month" title="Group by month">📅 Month</button>`;
       controlsHTML += '</div>';
       controlsHTML += '</div>';
     }
+    controlsHTML += '</div>';
     
-    // Display options (Show Images, Signature Events, and Dark Mode)
+    // Right side: Display Options (Show Images, Signature Events, Dark Mode)
     const isDarkMode = document.body && document.body.classList.contains('dark-mode');
     controlsHTML += '<div class="ssa-display-options-wrapper">';
-    controlsHTML += '<label class="ssa-control-label">Display Options:</label>';
     controlsHTML += '<div class="ssa-display-options-switcher">';
     controlsHTML += `<button class="ssa-show-images-toggle ${showImages ? 'ssa-active' : ''}" id="ssa-show-images-btn" title="Toggle image display">🖼️ Show Images</button>`;
     controlsHTML += `<button class="ssa-signature-events-toggle ${showSignatureEventsOnly ? 'ssa-active' : ''}" id="ssa-signature-events-btn" title="Show only signature events">⭐ Signature Events Only</button>`;
@@ -1181,26 +1211,7 @@
     controlsHTML += '</div>';
     controlsHTML += '</div>';
     
-    // Date range filters
-    controlsHTML += '<div class="ssa-date-filters">';
-    controlsHTML += `<button class="ssa-weekend-btn ssa-this-weekend-btn" title="Set date range to upcoming weekend">📅 This Weekend</button>`;
-    controlsHTML += `<button class="ssa-weekend-btn ssa-next-weekend-btn" title="Set date range to next weekend">📅 Next Weekend</button>`;
-    controlsHTML += '<div class="ssa-date-inputs-row">';
-    controlsHTML += `<label>From: <input type="date" class="ssa-date-input" id="ssa-from-date" value="${fromDate || ''}"></label>`;
-    controlsHTML += `<label>To: <input type="date" class="ssa-date-input" id="ssa-to-date" value="${toDate || ''}"></label>`;
     controlsHTML += '</div>';
-    controlsHTML += `<button class="ssa-clear-dates" title="Clear all filters">Clear</button>`;
-    controlsHTML += '</div>';
-    
-    // Keyword filters - display all keywords from the system
-    if (allKeywords.length > 0) {
-      controlsHTML += '<div class="ssa-keyword-filters">';
-      allKeywords.forEach(kw => {
-        const isSelected = selectedKeywords.includes(kw);
-        controlsHTML += `<button class="ssa-keyword-btn ${isSelected ? 'ssa-keyword-active' : ''}" data-keyword="${kw}">${kw}</button>`;
-      });
-      controlsHTML += '</div>';
-    }
     
     controlsHTML += '</div>';
     
@@ -2388,11 +2399,22 @@
     const css = document.createElement('style');
     css.id = 'ssa-styles-events';
     css.textContent = `
-      .ssa-controls{display:flex;flex-direction:column;gap:16px;margin-bottom:24px;padding-bottom:20px;border-bottom:1px solid #e5e7eb;align-items:center}
-      .ssa-layout-switcher-wrapper{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center}
-      .ssa-group-switcher-wrapper{display:flex;align-items:center;gap:8px;justify-content:center}
-      .ssa-display-options-wrapper{display:flex;align-items:center;gap:8px;justify-content:center}
-      .ssa-control-label{font-size:0.875rem;font-weight:500;color:#374151;white-space:nowrap}
+      .ssa-controls{display:flex;flex-direction:column;gap:20px;margin-bottom:32px;padding:24px;background:#f9fafb;border-radius:12px;border:1px solid #e5e7eb}
+      body.dark-mode .ssa-controls{background:#1f2937!important;border-color:#374151!important}
+      .ssa-date-filters-section{display:flex;flex-direction:column;gap:12px;padding:16px;background:#fff;border-radius:8px;border:1px solid #e5e7eb}
+      body.dark-mode .ssa-date-filters-section{background:#111827!important;border-color:#374151!important}
+      .ssa-keyword-filters-section{display:flex;flex-direction:column;gap:12px;padding:16px;background:#fff;border-radius:8px;border:1px solid #e5e7eb}
+      body.dark-mode .ssa-keyword-filters-section{background:#111827!important;border-color:#374151!important}
+      .ssa-view-controls-section{display:flex;flex-wrap:wrap;gap:20px;align-items:center;justify-content:space-between;padding:16px;background:#fff;border-radius:8px;border:1px solid #e5e7eb}
+      body.dark-mode .ssa-view-controls-section{background:#111827!important;border-color:#374151!important}
+      .ssa-view-controls-left{display:flex;flex-wrap:wrap;gap:20px;align-items:center;flex:1}
+      .ssa-layout-switcher-wrapper{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+      .ssa-group-switcher-wrapper{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+      .ssa-layout-switcher-wrapper ~ .ssa-group-switcher-wrapper{padding-left:20px;border-left:1px solid #e5e7eb}
+      body.dark-mode .ssa-layout-switcher-wrapper ~ .ssa-group-switcher-wrapper{border-left-color:#374151!important}
+      .ssa-display-options-wrapper{display:flex;align-items:center;justify-content:flex-end;flex-shrink:0}
+      .ssa-display-options-switcher{display:flex;flex-wrap:wrap;gap:10px;justify-content:flex-end}
+      .ssa-control-label{font-size:0.875rem;font-weight:600;color:#374151;white-space:nowrap;text-transform:uppercase;letter-spacing:0.5px}
       body.dark-mode .ssa-control-label{color:#f9fafb!important}
       .ssa-show-images-toggle{padding:8px 12px;border:1px solid #d1d5db;border-radius:6px;background:#fff;color:#374151;cursor:pointer;font-size:0.875rem;font-weight:500;transition:all 0.2s;white-space:nowrap}
       .ssa-show-images-toggle:hover{background:#f9fafb;border-color:#9ca3af}
@@ -2422,7 +2444,6 @@
       .ssa-group-btn.ssa-active{background:#3b82f6!important;border-color:#3b82f6!important;color:#fff!important}
       body.dark-mode .ssa-group-btn.ssa-active{background:transparent!important;border-color:#3b82f6!important;color:#3b82f6!important}
       body.dark-mode .ssa-group-btn.ssa-active:hover{background:transparent!important;border-color:#60a5fa!important;color:#60a5fa!important}
-      .ssa-display-options-switcher{display:flex;gap:16px}
       .ssa-date-filters{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:center}
       .ssa-date-inputs-row{display:flex;gap:12px;align-items:center}
       .ssa-date-filters label{display:flex;align-items:center;gap:6px;font-size:0.875rem;color:#374151}
@@ -2604,10 +2625,17 @@
       @media(max-width:768px){
         #events-list{padding:0 12px;box-sizing:border-box;max-width:100%;overflow-x:hidden}
         *{box-sizing:border-box}
-        .ssa-controls{padding-bottom:16px;gap:12px;padding-left:0;padding-right:0}
-        .ssa-layout-switcher-wrapper{flex-direction:column;align-items:flex-start;gap:6px}
-        .ssa-group-switcher-wrapper{flex-direction:column;align-items:flex-start;gap:6px}
-        .ssa-display-options-wrapper{flex-direction:column;align-items:flex-start;gap:6px}
+        .ssa-controls{padding:10px;gap:12px}
+        .ssa-date-filters-section{padding:10px}
+        .ssa-keyword-filters-section{padding:10px}
+        .ssa-view-controls-section{padding:10px;flex-direction:row;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between}
+        .ssa-view-controls-left{flex-direction:row;flex-wrap:wrap;gap:8px;flex:1;min-width:0}
+        .ssa-layout-switcher-wrapper{flex-direction:row;align-items:center;gap:6px;flex:1;min-width:0}
+        .ssa-group-switcher-wrapper{flex-direction:row;align-items:center;gap:6px;flex:1;min-width:0}
+        .ssa-layout-switcher-wrapper ~ .ssa-group-switcher-wrapper{border-left:1px solid #e5e7eb;padding-left:8px;margin-left:0;border-top:none;padding-top:0;margin-top:0}
+        body.dark-mode .ssa-layout-switcher-wrapper ~ .ssa-group-switcher-wrapper{border-left-color:#374151!important}
+        .ssa-display-options-wrapper{flex-shrink:0;justify-content:flex-end}
+        .ssa-display-options-switcher{flex-direction:row;flex-wrap:wrap;gap:6px;justify-content:flex-end}
         .ssa-control-label{font-size:0.9rem}
         .ssa-layout-btn{padding:10px 14px;font-size:1.1rem;min-height:44px}
         .ssa-group-switcher{gap:6px}
