@@ -233,33 +233,8 @@ export default function AutoSaveEditDialog<T extends Record<string, any>>({
             />
           </div>
 
-          {/* Save and Close buttons - Right aligned */}
+          {/* Cancel and Save buttons - Right aligned (Cancel left, Save right) */}
           <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-            <button 
-              onClick={() => saveFunction()}
-              disabled={busy}
-              style={{
-                background: 'none',
-                border: 'none',
-                fontSize: '24px',
-                cursor: busy ? 'not-allowed' : 'pointer',
-                color: busy ? '#9ca3af' : '#10b981',
-                padding: '4px',
-                borderRadius: '4px',
-                transition: 'background-color 0.2s ease'
-              }}
-              onMouseEnter={(e) => {
-                if (!busy) {
-                  e.currentTarget.style.backgroundColor = darkMode ? '#374151' : '#f3f4f6'
-                }
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent'
-              }}
-              title="Save changes (⌘↵ / Ctrl↵)"
-            >
-              ✓
-            </button>
             <button 
               onClick={handleClose}
               disabled={busy}
@@ -284,6 +259,31 @@ export default function AutoSaveEditDialog<T extends Record<string, any>>({
               title="Close dialog (ESC)"
             >
               ✕
+            </button>
+            <button 
+              onClick={() => saveFunction()}
+              disabled={busy}
+              style={{
+                background: 'none',
+                border: 'none',
+                fontSize: '24px',
+                cursor: busy ? 'not-allowed' : 'pointer',
+                color: busy ? '#9ca3af' : '#10b981',
+                padding: '4px',
+                borderRadius: '4px',
+                transition: 'background-color 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                if (!busy) {
+                  e.currentTarget.style.backgroundColor = darkMode ? '#374151' : '#f3f4f6'
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent'
+              }}
+              title="Save changes (⌘↵ / Ctrl↵)"
+            >
+              ✓
             </button>
           </div>
         </div>

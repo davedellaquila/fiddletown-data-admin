@@ -1,0 +1,22 @@
+Subject: Request to Restore Paused Project - Willing to Upgrade to Paid Plan
+
+Hello Supabase Support Team,
+
+I have a Supabase project that has been paused for over 90 days and cannot be restored through the dashboard. I'm writing to inquire about restoration options, as I'm willing to upgrade to a paid plan if that would enable restoration.
+
+Project Details:
+- Project Name: fiddletown-calendar
+- Date Paused: June 23, 2024
+- Status: Paused for over 90 days (dashboard restoration unavailable)
+
+I understand that projects paused for over 90 days cannot be restored through the dashboard, but I wanted to check if:
+1. Upgrading to a paid plan would enable restoration of this project
+2. Your support team could assist with restoring the project directly
+3. There are any other options available to restore this project without having to create a new project and restore from backup
+
+I'm ready to upgrade to a paid plan if that would help restore this project. The dashboard indicates that all data is still intact, which is encouraging.
+
+Thank you for your time and assistance. Please let me know what options are available.
+
+Best regards,
+[Your Name]
