@@ -954,7 +954,7 @@
     return LAYOUTS.LIST;
   }
 
-  function renderActiveFilters(state) {
+  function renderActiveFilters(state, extraClass = '') {
     const chips = [];
     (state.selectedKeywords || []).forEach(kw => {
       chips.push(`<button class="ssa-active-filter-chip" data-chip-type="keyword" data-keyword="${kw}">${kw}<span aria-hidden="true">×</span></button>`);
@@ -966,7 +966,7 @@
       chips.push(`<button class="ssa-active-filter-chip" data-chip-type="to">To ${formatFilterDateLabel(state.toDate)}<span aria-hidden="true">×</span></button>`);
     }
     if (!chips.length) return '';
-    return `<div class="ssa-active-filters"><span>Showing:</span>${chips.join('')}</div>`;
+    return `<div class="ssa-active-filters${extraClass ? ` ${extraClass}` : ''}"><span>Showing:</span>${chips.join('')}</div>`;
   }
 
   function renderGridLayout(events, state) {
@@ -1339,6 +1339,9 @@
     
     controlsHTML += '</section>';
 
+    const activeFiltersHTML = renderActiveFilters(state);
+    const stickyActiveFiltersHTML = renderActiveFilters(state, 'ssa-sticky-active-filters');
+
     let stickyControlsHTML = '<section class="ssa-sticky-filter-bar" aria-label="Sticky event filters">';
     stickyControlsHTML += '<div class="ssa-sticky-date-row">';
     stickyControlsHTML += `<input type="date" class="ssa-date-input ssa-sticky-date-input ssa-from-date-input" aria-label="From date" value="${fromDate || ''}">`;
@@ -1360,9 +1363,9 @@
       stickyControlsHTML += `<span class="ssa-sticky-supplement">${getLayoutSupplementLabel(layout, groupBy)}</span>`;
     }
     stickyControlsHTML += '</div>';
+    stickyControlsHTML += stickyActiveFiltersHTML;
     stickyControlsHTML += '</section>';
-    
-    const activeFiltersHTML = renderActiveFilters(state);
+
     const resultsHTML = `
       <section class="ssa-results-summary" aria-label="Event results summary">
         <span>Events</span>
@@ -4069,6 +4072,10 @@
         #events-list .ssa-sticky-filter-bar .ssa-clear-dates,#events-list .ssa-sticky-filter-bar .ssa-date-clear-btn{width:42px;min-width:42px;height:40px;padding:0;border-color:transparent!important;background:transparent!important}
         #events-list .ssa-sticky-filter-bar .ssa-date-clear-btn{height:42px}
         #events-list .ssa-sticky-filter-bar .ssa-clear-dates::before,#events-list .ssa-sticky-filter-bar .ssa-date-clear-btn::before{width:22px;height:22px}
+        #events-list .ssa-sticky-active-filters{margin:0!important;padding:2px 0 0;display:flex;align-items:center;gap:8px;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;font-size:12px;scrollbar-width:none}
+        #events-list .ssa-sticky-active-filters::-webkit-scrollbar{display:none}
+        #events-list .ssa-sticky-active-filters > span{flex:0 0 auto;margin:0;color:var(--ssa-muted)!important;font-size:12px;font-weight:800;line-height:1.1;text-transform:none;letter-spacing:0}
+        #events-list .ssa-sticky-active-filters .ssa-active-filter-chip{flex:0 0 auto;height:32px;padding:0 10px;gap:6px;font-size:12px;white-space:nowrap}
         #events-list .ssa-active-filters,#events-list .ssa-results-summary,#events-list .ssa-events-footnote{margin-left:0;margin-right:0;font-size:14px}
         #events-list .ssa-active-filters{margin-bottom:22px}
         #events-list .ssa-active-filter-chip{height:38px;font-size:14px;padding:0 12px}
