@@ -3824,8 +3824,8 @@
         #events-list{padding:22px 10px}
         #events-list .ssa-page-intro h1{font-size:29px}
         #events-list .ssa-controls{padding:18px 14px}
-        #events-list .ssa-date-inputs-row{grid-template-columns:1fr}
-        #events-list .ssa-date-input{font-size:16px}
+        #events-list .ssa-date-inputs-row{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+        #events-list .ssa-date-input{height:46px;font-size:13.5px;padding:0 8px}
         #events-list .ssa-date-filters{grid-template-columns:repeat(3,minmax(0,1fr)) 38px;gap:7px}
         #events-list .ssa-weekend-btn{height:44px;font-size:10.5px;padding:0 3px}
         #events-list .ssa-clear-dates{width:38px;height:44px}
