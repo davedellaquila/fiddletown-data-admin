@@ -3767,6 +3767,15 @@
         #events-list .ssa-event-content{grid-template-columns:112px minmax(0,1fr) minmax(260px,auto)}
         #events-list .ssa-event-keywords{grid-column:3;grid-row:1;align-self:start;justify-content:flex-end;margin:0}
       }
+      @media(min-width:960px){
+        #events-list .ssa-date-filters{display:grid;grid-template-columns:230px 230px max-content max-content;gap:14px 16px;align-items:end;justify-content:start}
+        #events-list .ssa-date-inputs-row{display:contents}
+        #events-list .ssa-date-filters label{width:230px}
+        #events-list .ssa-date-input{width:100%}
+        #events-list .ssa-this-week-btn{grid-column:1}
+        #events-list .ssa-clear-dates{grid-column:2}
+        #events-list .ssa-weekend-btn,#events-list .ssa-clear-dates{height:58px}
+      }
       @media(max-width:820px){
         #events-list{padding:22px 12px}
         #events-list .ssa-page-intro{padding:0;margin:0 0 18px}
