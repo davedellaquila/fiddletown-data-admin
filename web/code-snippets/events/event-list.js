@@ -3809,10 +3809,12 @@
         #events-list .ssa-controls{padding:18px 14px}
         #events-list .ssa-date-inputs-row{grid-template-columns:1fr}
         #events-list .ssa-date-input{font-size:16px}
-        #events-list .ssa-layout-switcher{grid-template-columns:repeat(2,minmax(0,1fr))}
-        #events-list .ssa-layout-btn[data-layout="calendar"]{grid-column:1/-1}
+        #events-list .ssa-layout-switcher{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+        #events-list .ssa-layout-btn{height:44px;padding:0 8px;font-size:13px;white-space:nowrap}
       }
       @media(max-width:360px){
+        #events-list .ssa-layout-switcher{gap:6px}
+        #events-list .ssa-layout-btn{font-size:12px;padding:0 6px}
         #events-list .ssa-display-options-switcher,#events-list .ssa-date-filters,#events-list .ssa-group-switcher{grid-template-columns:1fr}
         #events-list .ssa-keyword-btn{flex-basis:100%}
       }
