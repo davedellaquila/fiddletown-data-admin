@@ -912,7 +912,7 @@
     }
 
     const selectedKeywords = state?.selectedKeywords || [];
-    const showImages = state?.showImages || false;
+    const showImages = state?.showImages !== undefined ? state.showImages : true;
     const cards = events.map(ev => {
       const hasImageUrl = ev.image_url && ev.image_url.trim();
       const showImage = hasImageUrl && showImages;
@@ -1165,7 +1165,7 @@
   }
 
   async function renderEvents(mount, rows, state) {
-    const { layout = LAYOUTS.LIST, selectedKeywords = [], fromDate = null, toDate = null, groupBy = 'day', showImages = false, showSignatureEventsOnly = false } = state;
+    const { layout = LAYOUTS.LIST, selectedKeywords = [], fromDate = null, toDate = null, groupBy = 'day', showImages = true, showSignatureEventsOnly = false } = state;
     
     // Store state on mount for handlers
     mount._currentState = state;
@@ -1269,7 +1269,6 @@
     // Right side: Display Options (Show Images, Signature Events)
     controlsHTML += '<div class="ssa-display-options-wrapper">';
     controlsHTML += '<div class="ssa-display-options-switcher">';
-    controlsHTML += `<button class="ssa-show-images-toggle ${showImages ? 'ssa-active' : ''}" id="ssa-show-images-btn" title="Toggle image display">Show images</button>`;
     controlsHTML += `<button class="ssa-signature-events-toggle ${showSignatureEventsOnly ? 'ssa-active' : ''}" id="ssa-signature-events-btn" title="Show only signature events">Signature only</button>`;
     controlsHTML += '</div>';
     controlsHTML += '</div>';
@@ -3724,6 +3723,7 @@
       #events-list .ssa-layout-switcher-wrapper,#events-list .ssa-group-switcher-wrapper{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
       #events-list .ssa-layout-switcher-wrapper ~ .ssa-group-switcher-wrapper{padding-left:0;border-left:0}
       #events-list .ssa-layout-switcher,#events-list .ssa-group-switcher,#events-list .ssa-display-options-switcher,#events-list .ssa-keyword-filters{display:flex;gap:12px;flex-wrap:wrap}
+      #events-list .ssa-display-options-switcher .ssa-signature-events-toggle:only-child{min-width:180px}
       #events-list .ssa-display-options-wrapper{margin-left:auto}
       #events-list .ssa-keyword-filters-section .ssa-control-label{margin-bottom:12px}
       #events-list .ssa-keyword-btn{border-radius:10px}
@@ -3794,6 +3794,7 @@
         #events-list .ssa-group-switcher{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;width:100%}
         #events-list .ssa-display-options-wrapper{margin-left:0;width:100%}
         #events-list .ssa-display-options-switcher{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;width:100%}
+        #events-list .ssa-display-options-switcher .ssa-signature-events-toggle:only-child{grid-column:1/-1;min-width:0}
         #events-list .ssa-dark-mode-toggle{width:auto;min-width:84px;height:34px;padding:0 9px 0 7px;font-size:12px}
         #events-list .ssa-theme-icon{width:18px;height:18px}
         #events-list .ssa-keyword-filters{display:flex;flex-wrap:wrap;gap:10px;overflow:visible;padding-bottom:0}
@@ -3897,7 +3898,7 @@
       selectedKeywords: normalizedKeywords,
       fromDate: opts.fromDate !== undefined ? opts.fromDate : todayISO(),
       toDate: opts.toDate || null,
-      showImages: opts.showImages !== undefined ? opts.showImages : false,
+      showImages: opts.showImages !== undefined ? opts.showImages : true,
       showSignatureEventsOnly: opts.showSignatureEventsOnly !== undefined ? opts.showSignatureEventsOnly : false,
       groupBy: opts.groupBy || 'day'
     };
