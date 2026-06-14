@@ -894,6 +894,24 @@
     return `List view · grouped by ${groupBy || 'day'}`;
   }
 
+  function getLayoutButtonLabel(layout) {
+    if (layout === LAYOUTS.GRID) return 'Grid view';
+    if (layout === LAYOUTS.CALENDAR) return 'Calendar view';
+    return 'List view';
+  }
+
+  function getLayoutSupplementLabel(layout, groupBy) {
+    if (layout === LAYOUTS.GRID) return '3 columns';
+    if (layout === LAYOUTS.CALENDAR) return 'Calendar';
+    return `Grouped by ${groupBy || 'day'}`;
+  }
+
+  function getNextLayout(layout) {
+    if (layout === LAYOUTS.LIST) return LAYOUTS.GRID;
+    if (layout === LAYOUTS.GRID) return LAYOUTS.CALENDAR;
+    return LAYOUTS.LIST;
+  }
+
   function renderActiveFilters(state) {
     const chips = [];
     (state.selectedKeywords || []).forEach(kw => {
@@ -1302,17 +1320,15 @@
     stickyControlsHTML += `<button class="ssa-weekend-btn ssa-this-week-btn" title="Set date range to current week (Monday to Sunday)">This Week</button>`;
     stickyControlsHTML += `<button class="ssa-clear-dates" title="Clear all filters" aria-label="Clear all filters">Clear</button>`;
     stickyControlsHTML += '</div>';
-    stickyControlsHTML += '<div class="ssa-sticky-layout-row">';
-    stickyControlsHTML += `<button class="ssa-layout-btn ${layout === LAYOUTS.LIST ? 'ssa-active' : ''}" data-layout="${LAYOUTS.LIST}" title="List view">List</button>`;
-    stickyControlsHTML += `<button class="ssa-layout-btn ${layout === LAYOUTS.GRID ? 'ssa-active' : ''}" data-layout="${LAYOUTS.GRID}" title="Grid view">Grid</button>`;
-    stickyControlsHTML += `<button class="ssa-layout-btn ${layout === LAYOUTS.CALENDAR ? 'ssa-active' : ''}" data-layout="${LAYOUTS.CALENDAR}" title="Calendar view">Calendar</button>`;
-    stickyControlsHTML += '</div>';
+    stickyControlsHTML += '<div class="ssa-sticky-summary-row">';
+    stickyControlsHTML += `<span class="ssa-sticky-count">${filteredRows.length} ${filteredRows.length === 1 ? 'event' : 'events'}</span>`;
+    stickyControlsHTML += `<button class="ssa-sticky-summary-btn ssa-sticky-layout-cycle" data-layout="${layout}" title="Change view">${getLayoutButtonLabel(layout)}</button>`;
     if (layout === LAYOUTS.LIST) {
-      stickyControlsHTML += '<div class="ssa-sticky-group-row">';
-      stickyControlsHTML += `<button class="ssa-group-btn ${groupBy === 'day' ? 'ssa-active' : ''}" data-group="day" title="Group by day">Day</button>`;
-      stickyControlsHTML += `<button class="ssa-group-btn ${groupBy === 'month' ? 'ssa-active' : ''}" data-group="month" title="Group by month">Month</button>`;
-      stickyControlsHTML += '</div>';
+      stickyControlsHTML += `<button class="ssa-sticky-summary-btn ssa-sticky-group-cycle" data-group="${groupBy || 'day'}" title="Change grouping">${getLayoutSupplementLabel(layout, groupBy)}</button>`;
+    } else {
+      stickyControlsHTML += `<span class="ssa-sticky-supplement">${getLayoutSupplementLabel(layout, groupBy)}</span>`;
     }
+    stickyControlsHTML += '</div>';
     stickyControlsHTML += '</section>';
     
     const activeFiltersHTML = renderActiveFilters(state);
@@ -1370,6 +1386,20 @@
     mount.querySelectorAll('.ssa-group-btn').forEach(btn => {
       btn.addEventListener('click', async function() {
         const newGroupBy = this.dataset.group;
+        await renderEvents(mount, rows, { ...state, groupBy: newGroupBy });
+      });
+    });
+
+    mount.querySelectorAll('.ssa-sticky-layout-cycle').forEach(btn => {
+      btn.addEventListener('click', async function() {
+        const newLayout = getNextLayout(state.layout || LAYOUTS.LIST);
+        await renderEvents(mount, rows, { ...state, layout: newLayout });
+      });
+    });
+
+    mount.querySelectorAll('.ssa-sticky-group-cycle').forEach(btn => {
+      btn.addEventListener('click', async function() {
+        const newGroupBy = (state.groupBy || 'day') === 'day' ? 'month' : 'day';
         await renderEvents(mount, rows, { ...state, groupBy: newGroupBy });
       });
     });
@@ -3850,10 +3880,13 @@
         #events-list .ssa-sticky-filter-bar{position:sticky;top:0;z-index:40;margin:0 0 18px;padding:10px;display:flex;flex-direction:column;gap:8px;background:color-mix(in srgb,var(--ssa-surface) 94%,transparent)!important;border:1px solid var(--ssa-border-soft)!important;border-radius:9px;box-shadow:0 12px 26px rgba(15,23,42,.12);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
         #events-list .ssa-sticky-date-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 42px;gap:8px;align-items:center;width:100%}
         #events-list .ssa-sticky-preset-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) 42px;gap:8px;width:100%}
-        #events-list .ssa-sticky-layout-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;width:100%}
-        #events-list .ssa-sticky-group-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;width:100%}
+        #events-list .ssa-sticky-summary-row{display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1fr) minmax(0,1.15fr);gap:8px;width:100%;align-items:center}
+        #events-list .ssa-sticky-count,#events-list .ssa-sticky-supplement,#events-list .ssa-sticky-summary-btn{height:40px;min-width:0;padding:0 8px;display:inline-flex;align-items:center;justify-content:center;background:var(--ssa-surface)!important;border:1px solid var(--ssa-border-soft)!important;border-radius:8px;color:var(--ssa-muted)!important;font-size:12px;font-weight:800;line-height:1.15;text-align:center;white-space:nowrap}
+        #events-list .ssa-sticky-summary-btn{cursor:pointer}
+        #events-list .ssa-sticky-summary-btn:hover,#events-list .ssa-sticky-summary-btn:focus-visible{border-color:var(--ssa-accent-soft)!important;color:var(--ssa-accent)!important;background:rgba(169,51,38,.035)!important}
+        #events-list .ssa-sticky-layout-cycle,#events-list .ssa-sticky-group-cycle{background:rgba(169,51,38,.06)!important;border-color:var(--ssa-accent-soft)!important;color:var(--ssa-accent)!important}
         #events-list .ssa-sticky-filter-bar .ssa-sticky-date-input{height:42px;font-size:13px;padding:0 8px;border-radius:8px}
-        #events-list .ssa-sticky-filter-bar .ssa-weekend-btn,#events-list .ssa-sticky-filter-bar .ssa-layout-btn,#events-list .ssa-sticky-filter-bar .ssa-group-btn{height:40px;font-size:12px;padding:0 6px;white-space:nowrap}
+        #events-list .ssa-sticky-filter-bar .ssa-weekend-btn{height:40px;font-size:12px;padding:0 6px;white-space:nowrap}
         #events-list .ssa-sticky-filter-bar .ssa-clear-dates,#events-list .ssa-sticky-filter-bar .ssa-date-clear-btn{width:42px;min-width:42px;height:40px;padding:0;border-color:transparent!important;background:transparent!important}
         #events-list .ssa-sticky-filter-bar .ssa-date-clear-btn{height:42px}
         #events-list .ssa-sticky-filter-bar .ssa-clear-dates::before,#events-list .ssa-sticky-filter-bar .ssa-date-clear-btn::before{width:22px;height:22px}
