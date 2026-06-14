@@ -1238,8 +1238,8 @@
     controlsHTML += '<div class="ssa-date-filters-section">';
     controlsHTML += '<div class="ssa-date-filters">';
     controlsHTML += '<div class="ssa-date-inputs-row">';
-    controlsHTML += `<label><span>From</span><input type="date" class="ssa-date-input" id="ssa-from-date" value="${fromDate || ''}"></label>`;
-    controlsHTML += `<label><span>To</span><input type="date" class="ssa-date-input" id="ssa-to-date" value="${toDate || ''}" placeholder="Open"></label>`;
+    controlsHTML += `<label><span>From</span><input type="date" class="ssa-date-input ssa-from-date-input" id="ssa-from-date" value="${fromDate || ''}"></label>`;
+    controlsHTML += `<label><span>To</span><input type="date" class="ssa-date-input ssa-to-date-input" id="ssa-to-date" value="${toDate || ''}" placeholder="Open"></label>`;
     controlsHTML += `<button class="ssa-date-clear-btn ssa-clear-to-date" title="Clear To date" aria-label="Clear To date"></button>`;
     controlsHTML += '</div>';
     controlsHTML += `<button class="ssa-weekend-btn ssa-this-weekend-btn" title="Set date range to upcoming weekend">This Weekend</button>`;
@@ -1289,6 +1289,31 @@
     }
     
     controlsHTML += '</section>';
+
+    let stickyControlsHTML = '<section class="ssa-sticky-filter-bar" aria-label="Sticky event filters">';
+    stickyControlsHTML += '<div class="ssa-sticky-date-row">';
+    stickyControlsHTML += `<input type="date" class="ssa-date-input ssa-sticky-date-input ssa-from-date-input" aria-label="From date" value="${fromDate || ''}">`;
+    stickyControlsHTML += `<input type="date" class="ssa-date-input ssa-sticky-date-input ssa-to-date-input" aria-label="To date" value="${toDate || ''}" placeholder="Open">`;
+    stickyControlsHTML += `<button class="ssa-date-clear-btn ssa-clear-to-date" title="Clear To date" aria-label="Clear To date"></button>`;
+    stickyControlsHTML += '</div>';
+    stickyControlsHTML += '<div class="ssa-sticky-preset-row">';
+    stickyControlsHTML += `<button class="ssa-weekend-btn ssa-this-weekend-btn" title="Set date range to upcoming weekend">This Weekend</button>`;
+    stickyControlsHTML += `<button class="ssa-weekend-btn ssa-next-weekend-btn" title="Set date range to next weekend">Next Weekend</button>`;
+    stickyControlsHTML += `<button class="ssa-weekend-btn ssa-this-week-btn" title="Set date range to current week (Monday to Sunday)">This Week</button>`;
+    stickyControlsHTML += `<button class="ssa-clear-dates" title="Clear all filters" aria-label="Clear all filters">Clear</button>`;
+    stickyControlsHTML += '</div>';
+    stickyControlsHTML += '<div class="ssa-sticky-layout-row">';
+    stickyControlsHTML += `<button class="ssa-layout-btn ${layout === LAYOUTS.LIST ? 'ssa-active' : ''}" data-layout="${LAYOUTS.LIST}" title="List view">List</button>`;
+    stickyControlsHTML += `<button class="ssa-layout-btn ${layout === LAYOUTS.GRID ? 'ssa-active' : ''}" data-layout="${LAYOUTS.GRID}" title="Grid view">Grid</button>`;
+    stickyControlsHTML += `<button class="ssa-layout-btn ${layout === LAYOUTS.CALENDAR ? 'ssa-active' : ''}" data-layout="${LAYOUTS.CALENDAR}" title="Calendar view">Calendar</button>`;
+    stickyControlsHTML += '</div>';
+    if (layout === LAYOUTS.LIST) {
+      stickyControlsHTML += '<div class="ssa-sticky-group-row">';
+      stickyControlsHTML += `<button class="ssa-group-btn ${groupBy === 'day' ? 'ssa-active' : ''}" data-group="day" title="Group by day">Day</button>`;
+      stickyControlsHTML += `<button class="ssa-group-btn ${groupBy === 'month' ? 'ssa-active' : ''}" data-group="month" title="Group by month">Month</button>`;
+      stickyControlsHTML += '</div>';
+    }
+    stickyControlsHTML += '</section>';
     
     const activeFiltersHTML = renderActiveFilters(state);
     const resultsHTML = `
@@ -1309,7 +1334,7 @@
       eventsHTML = renderCalendarLayout(filteredRows, state);
     }
     
-    mount.innerHTML = pageHeaderHTML + controlsHTML + activeFiltersHTML + resultsHTML + eventsHTML + footerHTML;
+    mount.innerHTML = pageHeaderHTML + controlsHTML + stickyControlsHTML + activeFiltersHTML + resultsHTML + eventsHTML + footerHTML;
     
     // Verify keyword cloud was rendered
     const keywordCloud = mount.querySelector('.ssa-keyword-filters');
@@ -1394,15 +1419,18 @@
     });
     
     // Date inputs
-    const fromInput = mount.querySelector('#ssa-from-date');
-    const toInput = mount.querySelector('#ssa-to-date');
-    const clearToDateBtn = mount.querySelector('.ssa-clear-to-date');
-    const clearDatesBtn = mount.querySelector('.ssa-clear-dates');
+    const fromInputs = Array.from(mount.querySelectorAll('.ssa-from-date-input'));
+    const toInputs = Array.from(mount.querySelectorAll('.ssa-to-date-input'));
+    const fromInput = fromInputs[0];
+    const toInput = toInputs[0];
+    const setFromInputs = value => fromInputs.forEach(input => { input.value = value || ''; });
+    const setToInputs = value => toInputs.forEach(input => { input.value = value || ''; });
     
-    if (fromInput) {
-      fromInput.addEventListener('change', async function() {
+    fromInputs.forEach(input => {
+      input.addEventListener('change', async function() {
         const newFromDate = this.value || null;
         const newState = { ...state, fromDate: newFromDate };
+        setFromInputs(newFromDate);
         // Reload events if date filter changed
         if (mount._widgetOpts) {
           reloadEvents(mount, newState, mount._widgetOpts);
@@ -1411,12 +1439,13 @@
           await renderEvents(mount, rows, newState);
         }
       });
-    }
+    });
     
-    if (toInput) {
-      toInput.addEventListener('change', async function() {
+    toInputs.forEach(input => {
+      input.addEventListener('change', async function() {
         const newToDate = this.value || null;
         const newState = { ...state, toDate: newToDate };
+        setToInputs(newToDate);
         // Reload events if date filter changed
         if (mount._widgetOpts) {
           reloadEvents(mount, newState, mount._widgetOpts);
@@ -1425,24 +1454,24 @@
           await renderEvents(mount, rows, newState);
         }
       });
-    }
+    });
     
-    if (clearToDateBtn) {
+    mount.querySelectorAll('.ssa-clear-to-date').forEach(clearToDateBtn => {
       clearToDateBtn.addEventListener('click', async function() {
         const newState = { ...state, toDate: null };
-        if (toInput) toInput.value = '';
+        setToInputs('');
         if (mount._widgetOpts) {
           reloadEvents(mount, newState, mount._widgetOpts);
         } else {
           await renderEvents(mount, rows, newState);
         }
       });
-    }
+    });
     
-    if (clearDatesBtn) {
+    mount.querySelectorAll('.ssa-clear-dates').forEach(clearDatesBtn => {
       clearDatesBtn.addEventListener('click', async function() {
         const newState = { ...state, toDate: null, selectedKeywords: [] };
-        if (toInput) toInput.value = '';
+        setToInputs('');
         // Reload events to show all
         if (mount._widgetOpts) {
           reloadEvents(mount, newState, mount._widgetOpts);
@@ -1451,7 +1480,7 @@
           await renderEvents(mount, rows, newState);
         }
       });
-    }
+    });
     
     // Image display toggle checkbox
     const showImagesBtn = mount.querySelector('#ssa-show-images-btn');
@@ -1464,15 +1493,14 @@
       });
     }
     // Weekend button handlers
-    const weekendBtn = mount.querySelector('.ssa-this-weekend-btn');
-    if (weekendBtn) {
+    mount.querySelectorAll('.ssa-this-weekend-btn').forEach(weekendBtn => {
       weekendBtn.addEventListener('click', async function() {
         const weekend = getUpcomingWeekend();
         const newState = { ...state, fromDate: weekend.from, toDate: weekend.to };
         console.log('📅 This Weekend clicked:', { weekend, newState, hasWidgetOpts: !!mount._widgetOpts });
         // Update the input values
-        if (fromInput) fromInput.value = weekend.from;
-        if (toInput) toInput.value = weekend.to;
+        setFromInputs(weekend.from);
+        setToInputs(weekend.to);
         // Reload events with weekend filter
         if (mount._widgetOpts) {
           console.log('🔄 Calling reloadEvents');
@@ -1486,19 +1514,18 @@
           await renderEvents(mount, allRows, newState);
         }
       });
-    }
+    });
     
     // Next weekend button handler
-    const nextWeekendBtn = mount.querySelector('.ssa-next-weekend-btn');
-    if (nextWeekendBtn) {
+    mount.querySelectorAll('.ssa-next-weekend-btn').forEach(nextWeekendBtn => {
       nextWeekendBtn.addEventListener('click', async function() {
         const weekend = getNextWeekend();
         console.log('📅 Next Weekend clicked:', { weekend, calculatedDates: weekend });
         const newState = { ...state, fromDate: weekend.from, toDate: weekend.to };
         console.log('📅 Next Weekend state:', { newState, fromDate: newState.fromDate, toDate: newState.toDate });
         // Update the input values
-        if (fromInput) fromInput.value = weekend.from;
-        if (toInput) toInput.value = weekend.to;
+        setFromInputs(weekend.from);
+        setToInputs(weekend.to);
         // Reload events with next weekend filter
         if (mount._widgetOpts) {
           console.log('🔄 Calling reloadEvents for Next Weekend');
@@ -1512,18 +1539,17 @@
           await renderEvents(mount, allRows, newState);
         }
       });
-    }
+    });
     
     // This Week button handler
-    const thisWeekBtn = mount.querySelector('.ssa-this-week-btn');
-    if (thisWeekBtn) {
+    mount.querySelectorAll('.ssa-this-week-btn').forEach(thisWeekBtn => {
       thisWeekBtn.addEventListener('click', async function() {
         const week = getUpcomingWeek();
         const newState = { ...state, fromDate: week.from, toDate: week.to };
         console.log('📆 This Week clicked:', { week, newState, hasWidgetOpts: !!mount._widgetOpts });
         // Update the input values
-        if (fromInput) fromInput.value = week.from;
-        if (toInput) toInput.value = week.to;
+        setFromInputs(week.from);
+        setToInputs(week.to);
         // Reload events with week filter
         if (mount._widgetOpts) {
           console.log('🔄 Calling reloadEvents');
@@ -1537,7 +1563,7 @@
           await renderEvents(mount, allRows, newState);
         }
       });
-    }
+    });
     
     // Keyword tag clicks in list view
     if (state.layout === LAYOUTS.LIST) {
@@ -3728,6 +3754,7 @@
       #events-list .ssa-display-options-wrapper{margin-left:auto}
       #events-list .ssa-keyword-filters-section .ssa-control-label{margin-bottom:12px}
       #events-list .ssa-keyword-btn{border-radius:10px}
+      #events-list .ssa-sticky-filter-bar{display:none}
       #events-list .ssa-active-filters{max-width:1600px;margin:0 auto 38px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;color:var(--ssa-muted)!important;font-size:21px;font-weight:600}
       #events-list .ssa-active-filter-chip{height:46px;padding:0 16px;display:inline-flex;gap:10px;align-items:center;background:rgba(169,51,38,.04)!important;border:1px solid var(--ssa-accent-soft)!important;border-radius:999px;color:var(--ssa-accent)!important;font-size:17px;font-weight:800}
       #events-list .ssa-results-summary{max-width:1600px;margin:0 auto 26px;color:var(--ssa-muted)!important}
@@ -3786,7 +3813,7 @@
         #events-list .ssa-clear-dates:active::before{transform:rotate(90deg) scale(.92)}
       }
       @media(max-width:820px){
-        #events-list{padding:22px 12px}
+        #events-list{padding:22px 12px;overflow-x:visible}
         #events-list .ssa-page-intro{padding:0;margin:0 0 18px}
         #events-list .ssa-page-intro h1{font-size:30px;line-height:1.08;margin-bottom:10px}
         #events-list .ssa-page-intro p{font-size:16px;line-height:1.35;max-width:330px}
@@ -3820,6 +3847,16 @@
         #events-list .ssa-theme-icon{width:18px;height:18px}
         #events-list .ssa-keyword-filters{display:flex;flex-wrap:wrap;gap:10px;overflow:visible;padding-bottom:0}
         #events-list .ssa-keyword-btn{width:auto;min-width:0;flex:1 1 calc(50% - 10px);padding:0 12px}
+        #events-list .ssa-sticky-filter-bar{position:sticky;top:0;z-index:40;margin:0 0 18px;padding:10px;display:flex;flex-direction:column;gap:8px;background:color-mix(in srgb,var(--ssa-surface) 94%,transparent)!important;border:1px solid var(--ssa-border-soft)!important;border-radius:9px;box-shadow:0 12px 26px rgba(15,23,42,.12);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+        #events-list .ssa-sticky-date-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 42px;gap:8px;align-items:center;width:100%}
+        #events-list .ssa-sticky-preset-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) 42px;gap:8px;width:100%}
+        #events-list .ssa-sticky-layout-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;width:100%}
+        #events-list .ssa-sticky-group-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;width:100%}
+        #events-list .ssa-sticky-filter-bar .ssa-sticky-date-input{height:42px;font-size:13px;padding:0 8px;border-radius:8px}
+        #events-list .ssa-sticky-filter-bar .ssa-weekend-btn,#events-list .ssa-sticky-filter-bar .ssa-layout-btn,#events-list .ssa-sticky-filter-bar .ssa-group-btn{height:40px;font-size:12px;padding:0 6px;white-space:nowrap}
+        #events-list .ssa-sticky-filter-bar .ssa-clear-dates,#events-list .ssa-sticky-filter-bar .ssa-date-clear-btn{width:42px;min-width:42px;height:40px;padding:0;border-color:transparent!important;background:transparent!important}
+        #events-list .ssa-sticky-filter-bar .ssa-date-clear-btn{height:42px}
+        #events-list .ssa-sticky-filter-bar .ssa-clear-dates::before,#events-list .ssa-sticky-filter-bar .ssa-date-clear-btn::before{width:22px;height:22px}
         #events-list .ssa-active-filters,#events-list .ssa-results-summary,#events-list .ssa-events-footnote{margin-left:0;margin-right:0;font-size:14px}
         #events-list .ssa-active-filters{margin-bottom:22px}
         #events-list .ssa-active-filter-chip{height:38px;font-size:14px;padding:0 12px}
