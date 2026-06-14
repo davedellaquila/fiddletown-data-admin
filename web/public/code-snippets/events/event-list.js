@@ -1,10 +1,4 @@
-// Event List Widget - Development Version
-// This file can be edited and tested locally, then the code from event-list.html can be copied to Squarespace
-// VERSION: 20250101-client-side-filtering - Weekend buttons use client-side filtering, no API calls
-
 (function() {
-  // Version check - log to console to verify new code is loaded
-  console.log('✅✅✅ event-list.js VERSION 20250101-client-side-filtering LOADED ✅✅✅');
   function todayISO() { const d=new Date(); d.setHours(0,0,0,0); return d.toISOString().slice(0,10); }
   
   // Normalize date string to YYYY-MM-DD format for consistent date-only comparisons
@@ -26,6 +20,32 @@
     }
     return datePart; // Fallback to original if parsing fails
   }
+  
+  // Adjust date for PostgREST query to account for timezone boundaries
+  // PostgREST may interpret date strings as UTC midnight, causing off-by-one errors
+  // This function adjusts the date to ensure correct comparison
+  function adjustDateForQuery(dateStr, isStartDate) {
+    if (!dateStr) return null;
+    const normalized = normalizeDateString(dateStr);
+    if (!normalized) return null;
+    
+    // Parse the date in local timezone to avoid UTC conversion issues
+    const [year, month, day] = normalized.split('-').map(Number);
+    const localDate = new Date(year, month - 1, day);
+    
+    // For start date: we want events >= this date, so use the date as-is
+    // For end date: we want events <= this date, so we need to include the full day
+    // Add one day to the end date to ensure we include events on that date
+    if (!isStartDate) {
+      localDate.setDate(localDate.getDate() + 1);
+    }
+    
+    // Format back to YYYY-MM-DD
+    const adjustedYear = localDate.getFullYear();
+    const adjustedMonth = String(localDate.getMonth() + 1).padStart(2, '0');
+    const adjustedDay = String(localDate.getDate()).padStart(2, '0');
+    return `${adjustedYear}-${adjustedMonth}-${adjustedDay}`;
+  }
 
   // Layout types
   const LAYOUTS = {
@@ -35,144 +55,33 @@
   };
 
   async function fetchEvents({ url, key, from = null, to = null, limit = 200 }) {
-      // DEBUG: Log what we're receiving
-      console.log('=== fetchEvents DEBUG ===');
-      console.log('fetchEvents called with:', { from, to, fromType: typeof from, toType: typeof to });
-      console.log('from value:', from, 'from is truthy:', !!from, 'from === null:', from === null, 'from === undefined:', from === undefined);
-      console.log('to value:', to, 'to is truthy:', !!to, 'to === null:', to === null, 'to === undefined:', to === undefined);
-      
       const api = new URL(url + '/rest/v1/events');
       api.searchParams.set('select','id,name,slug,host_org,start_date,end_date,start_time,end_time,location,website_url,image_url,recurrence,sort_order,description,is_signature_event');
       api.searchParams.set('order','start_date.asc,name.asc');
       api.searchParams.set('limit', String(limit));
 
-	  // CRITICAL: If both from and to are null/undefined/empty, skip ALL date filtering
-	  // This ensures we fetch all events for keyword extraction
-	  const hasFrom = from && from !== null && from !== undefined && from !== '';
-	  const hasTo = to && to !== null && to !== undefined && to !== '';
-	  
-	  if (!hasFrom && !hasTo) {
-	    console.log('✅✅✅ No date filters - fetching ALL events - skipping all filter construction');
-	    // Don't build any filters - just fetch everything and return
-	    const res = await fetch(api, { headers: { apikey: key, Authorization: 'Bearer ' + key, Accept: 'application/json' }});
-	    if (!res.ok) throw new Error('Fetch failed: ' + res.status);
-	    const events = await res.json();
-	    
-	    // Fetch keywords for all events
-	    if (events && events.length > 0) {
-	      const eventIds = events.map(e => e.id).filter(id => id);
-	      if (eventIds.length > 0) {
-	        // Fetch event_keywords relationships
-	        const relApi = new URL(url + '/rest/v1/event_keywords');
-	        relApi.searchParams.set('select', 'event_id,keyword_id');
-	        const inFilter = eventIds.join(',');
-	        relApi.searchParams.set('event_id', `in.(${inFilter})`);
-	        
-	        const relRes = await fetch(relApi, { headers: { apikey: key, Authorization: 'Bearer ' + key, Accept: 'application/json' }});
-	        if (relRes.ok) {
-	          const relations = await relRes.json();
-	          const keywordIds = [...new Set(relations.map(r => r.keyword_id))];
-	          
-	          if (keywordIds.length > 0) {
-	            // Fetch keyword names
-	            const kwApi = new URL(url + '/rest/v1/keywords');
-	            kwApi.searchParams.set('select', 'id,name');
-	            const kwInFilter = keywordIds.join(',');
-	            kwApi.searchParams.set('id', `in.(${kwInFilter})`);
-	            
-	            const kwRes = await fetch(kwApi, { headers: { apikey: key, Authorization: 'Bearer ' + key, Accept: 'application/json' }});
-	            if (kwRes.ok) {
-	              const keywords = await kwRes.json();
-	              const keywordMap = new Map(keywords.map(kw => [kw.id, kw.name.toLowerCase()]));
-	              
-	              // Attach keywords to events
-	              const keywordsByEventId = new Map();
-	              relations.forEach(rel => {
-	                const kwName = keywordMap.get(rel.keyword_id);
-	                if (kwName) {
-	                  if (!keywordsByEventId.has(rel.event_id)) {
-	                    keywordsByEventId.set(rel.event_id, []);
-	                  }
-	                  keywordsByEventId.get(rel.event_id).push(kwName);
-	                }
-	              });
-	              
-	              events.forEach(ev => {
-	                ev.keywords = keywordsByEventId.get(ev.id) || [];
-	              });
-	            }
-	          }
-	        }
-	      }
-	    }
-	    
-	    console.log('✅✅✅ Fetched', events.length, 'events with keywords (no date filters)');
-	    return events;
-	  }
-	  
 	  // Show upcoming events if FROM is set.
 	  // Include rows where:
-	  //  - start_date >= from (events starting on or after the selected date)
-	  //  - OR (both dates are null) (undated events)
-	  // Note: We exclude events that start before 'from' even if they span across it
+	  //  - start_date >= from (events starting on or after the selected date), OR
+	  //  - end_date >= from (events that span across the selected date), OR
+	  //  - (both dates are null) (undated events)
+	  // Handle date filters - PostgREST DATE column comparison appears to have an off-by-one issue
+	  // When comparing date strings, it seems to interpret them as one day earlier
+	  // Solution: Adjust dates to compensate for PostgREST's interpretation
 	  
-	  console.log('⚠️⚠️⚠️ Date filters detected - building filters (this should NOT happen in reloadEvents!)');
-	  console.log('Checking date filters - from:', from, 'to:', to, 'from truthy:', !!from, 'to truthy:', !!to);
-	  
-	  // Build filters with proper PostgREST syntax
-	  // Try using gt (greater than) with the day before for FROM
-	  // This avoids timezone interpretation issues with gte
-	  
-	  let adjustedFrom = null;
-	  let adjustedTo = null;
-	  let fromOperator = 'gte';
-	  
-	  // Explicitly check for null/undefined/empty string to avoid truthy issues
-	  if (from && from !== null && from !== undefined && from !== '') {
-	    const fromDateStr = normalizeDateString(from);
-	    const [year, month, day] = fromDateStr.split('-').map(Number);
-	    const fromDate = new Date(year, month - 1, day);
-	    // Use gt (greater than) with the day before: User selects Dec 5 -> use gt.2025-12-04
-	    // This includes events starting Dec 5 and later, avoiding timezone issues
-	    fromDate.setDate(fromDate.getDate() - 1); // Subtract 1 day: Dec 5 -> Dec 4
-	    adjustedFrom = `${fromDate.getFullYear()}-${String(fromDate.getMonth() + 1).padStart(2, '0')}-${String(fromDate.getDate()).padStart(2, '0')}`;
-	    fromOperator = 'gt'; // Use gt instead of gte
-	    console.log('FROM date - user selected:', fromDateStr, 'using gt with:', adjustedFrom);
-	  }
-	  
-	  // Explicitly check for null/undefined/empty string to avoid truthy issues
-	  if (to && to !== null && to !== undefined && to !== '') {
-	    const toDateStr = normalizeDateString(to);
-	    const [year, month, day] = toDateStr.split('-').map(Number);
-	    const toDate = new Date(year, month - 1, day);
-	    // Add 1 day and use lte: User selects Dec 7 -> use lte.2025-12-08
-	    // This includes events ending Dec 7 and earlier
-	    toDate.setDate(toDate.getDate() + 1); // Add 1 day: Dec 7 -> Dec 8
-	    adjustedTo = `${toDate.getFullYear()}-${String(toDate.getMonth() + 1).padStart(2, '0')}-${String(toDate.getDate()).padStart(2, '0')}`;
-	    console.log('TO date - user selected:', toDateStr, 'using lte with:', adjustedTo);
-	  }
-	  
-	  // Build the combined filter with proper column names
-	  // IMPORTANT: If both from and to are null, skip ALL server-side filtering
-	  // This ensures we fetch all events for keyword extraction
-	  if (!from && !to) {
-	    // No date filters - fetch all events
-	    console.log('✅ Skipping all date filters - fetching all events');
-	    // Don't set any date filters - fetch everything
-	  } else if (adjustedFrom && adjustedTo) {
-	    // Both filters: Skip complex 'or' filter - use simple start_date filter
-	    // Client-side filtering will handle the 'to' date to avoid PostgREST 400 errors
-	    // Fetch events starting from adjustedFrom (broad range to catch spanning events)
-	    console.log('⚠️ Both dates set - using simple start_date filter, client-side will handle to date');
-	    api.searchParams.set('start_date', `${fromOperator}.${adjustedFrom}`);
-	    // Don't set 'to' filter server-side - client-side filtering will handle it
-	  } else if (adjustedFrom) {
-	    // Only from filter: events that start > from OR end >= from OR undated events
-	    // This ensures we fetch events that span across the filter date
-	    // Strategy: Fetch a broad range of events to ensure we get all events that might span the filter date
+	  if (from) {
+	    // Normalize date string to ensure YYYY-MM-DD format
 	    const fromDateStr = normalizeDateString(from);
 	    
-	    // Fetch events starting up to 60 days before the filter date (to catch long-spanning events)
+	    // Strategy: Fetch a broad range of events to ensure we get all events that might span the filter date
+	    // We'll fetch events that:
+	    // 1. Start up to 60 days before the filter date (to catch long-spanning events), OR
+	    // 2. End on or after the filter date (to catch events ending on/after the filter date), OR
+	    // 3. Are undated (both dates null)
+	    // The client-side filter will then correctly filter to only events that end on/after the filter date
+	    // This approach avoids PostgREST date interpretation issues by being very permissive server-side
+	    
+	    // Fetch events starting up to 60 days before the filter date
 	    const [startYear, startMonth, startDay] = fromDateStr.split('-').map(Number);
 	    const startDateForQuery = new Date(startYear, startMonth - 1, startDay);
 	    startDateForQuery.setDate(startDateForQuery.getDate() - 60); // Fetch events starting up to 60 days before filter date
@@ -180,6 +89,7 @@
 	    
 	    // Also fetch events ending on or after the filter date
 	    // To account for PostgREST's date interpretation, subtract one day from the filter date
+	    // This ensures we fetch events ending on the filter date itself
 	    const [endYear, endMonth, endDay] = fromDateStr.split('-').map(Number);
 	    const endDateForQuery = new Date(endYear, endMonth - 1, endDay);
 	    endDateForQuery.setDate(endDateForQuery.getDate() - 1); // Subtract one day to be more permissive
@@ -191,21 +101,45 @@
 	    // Use start_date filter directly (simpler, avoids or() syntax issues)
 	    // For undated events, we'll handle them client-side since we can't easily combine with or()
 	    api.searchParams.set('start_date', `gte.${adjustedFromStartBefore}`);
-	  } else if (adjustedTo) {
-	    // Only to filter: events that end <= to OR (end_date IS NULL AND start_date <= to) OR undated events
-	    const orFilter = `or(end_date.lte.${adjustedTo},and(end_date.is.null,start_date.lte.${adjustedTo}),and(start_date.is.null,end_date.is.null))`;
-	    console.log('Setting TO OR filter:', orFilter);
-	    api.searchParams.set('or', orFilter);
+	  }
+	  
+	  if (to) {
+	    // Normalize date string
+	    const toDateStr = normalizeDateString(to);
+	    
+	    // Since events one day BEFORE the end date are the last ones showing,
+	    // PostgREST is interpreting dates as one day earlier
+	    // To fix: Add two days to the to date, then use lte (less than or equal)
+	    // This way: lte.2025-12-09 will be interpreted as lte.2025-12-08, which includes Dec 7th
+	    const [year, month, day] = toDateStr.split('-').map(Number);
+	    const endDate = new Date(year, month - 1, day);
+	    endDate.setDate(endDate.getDate() + 2); // Add 2 days: 1 for timezone shift + 1 for inclusion
+	    const adjustedTo = `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}`;
+	    
+	    // For 'to' filter, we need to combine with existing 'or' filter if 'from' is also set
+	    // Include events that:
+	    // 1. Start on or before the to date, OR
+	    // 2. End on or before the to date (events that span across the to date), OR
+	    // 3. Are undated
+	    // Note: PostgREST doesn't easily support combining AND/OR filters, so we'll filter client-side
+	    // For now, we'll set a simple filter and rely on client-side filtering for the 'to' date
+	    // For 'to' filter, if 'from' is also set, skip server-side filtering
+	    // PostgREST has issues with complex 'or' filters when both dates are set
+	    // We'll rely on client-side filtering for the 'to' date when both filters are present
+	    const existingStartDate = api.searchParams.get('start_date');
+	    if (existingStartDate) {
+	      // If we already have a 'from' filter, skip 'to' filter server-side
+	      // Client-side filtering will handle the 'to' date
+	      // This avoids PostgREST 400 errors from malformed 'or' filters
+	    } else {
+	      // Only 'to' filter (no 'from'): use simple end_date filter
+	      // Don't use complex 'or' filter - just filter by end_date
+	      api.searchParams.set('end_date', `lte.${adjustedTo}`);
+	    }
 	  }
 	  
 	  console.debug('Events API URL:', api.toString());
-	  console.debug('Date filters - from:', from, 'to:', to, 'normalized from:', from ? normalizeDateString(from) : null, 'normalized to:', to ? normalizeDateString(to) : null);
-	  console.log('Final API URL params:', {
-	    or: api.searchParams.get('or'),
-	    start_date: api.searchParams.get('start_date'),
-	    allParams: Array.from(api.searchParams.entries())
-	  });
-	  console.log('=== END fetchEvents DEBUG ===');
+	  console.debug('Date filter params:', { from, to, fromDateStr: from ? normalizeDateString(from) : null });
 
       const res = await fetch(api, { headers: { apikey: key, Authorization: 'Bearer ' + key, Accept: 'application/json' }});
       if (!res.ok) throw new Error('Fetch failed: ' + res.status);
@@ -275,23 +209,7 @@
     // Parse date in local timezone to avoid timezone shifts
     // Date strings like "2025-12-20" should be parsed as local dates, not UTC
     const date = parseLocalDate(dateString);
-    if (!date) {
-      // Fallback to Date constructor if format is unexpected
-      const fallbackDate = new Date(dateString);
-      const dayName = fallbackDate.toLocaleDateString('en-US', { weekday: 'short' });
-      const monthName = fallbackDate.toLocaleDateString('en-US', { month: 'short' });
-      const day = fallbackDate.getDate();
-      const ordinalSuffix = (day) => {
-        if (day > 3 && day < 21) return 'th';
-        switch (day % 10) {
-          case 1: return 'st';
-          case 2: return 'nd';
-          case 3: return 'rd';
-          default: return 'th';
-        }
-      };
-      return `${dayName}, ${monthName} ${day}${ordinalSuffix(day)}`;
-    }
+    if (!date) return '';
     
     // Get abbreviated day name
     const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
@@ -318,11 +236,7 @@
     if (!dateString) return 'TBA';
     // Parse date in local timezone to avoid timezone shifts
     const date = parseLocalDate(dateString);
-    if (!date) {
-      // Fallback to Date constructor if format is unexpected
-      const fallbackDate = new Date(dateString);
-      return fallbackDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-    }
+    if (!date) return 'TBA';
     return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
   }
 
@@ -546,16 +460,33 @@
 
   function filterEventsByKeywords(events, selectedKeywords) {
     if (!selectedKeywords || selectedKeywords.length === 0) return events;
+    // Normalize selected keywords to lowercase for consistent comparison
+    const normalizedSelected = selectedKeywords.map(kw => (kw || '').toLowerCase().trim()).filter(kw => kw);
     return events.filter(ev => {
       if (!ev.keywords || ev.keywords.length === 0) return false;
+      // Normalize event keywords to lowercase for consistent comparison
+      const normalizedEventKeywords = ev.keywords.map(kw => (kw || '').toLowerCase().trim()).filter(kw => kw);
       // AND logic: event must have ALL selected keywords
-      return selectedKeywords.every(selectedKw => ev.keywords.includes(selectedKw));
+      return normalizedSelected.every(selectedKw => normalizedEventKeywords.includes(selectedKw));
     });
   }
 
   function filterEventsBySignature(events, showSignatureEventsOnly) {
-    if (!showSignatureEventsOnly) return events;
-    return events.filter(ev => ev.is_signature_event === true);
+    // FIXED: The filter was inverted - when showSignatureEventsOnly is true, show ONLY signature events
+    // When showSignatureEventsOnly is false, show ALL events
+    if (!showSignatureEventsOnly) {
+      // When toggle is OFF (showSignatureEventsOnly is false), show all events
+      return events;
+    }
+    // When toggle is ON (showSignatureEventsOnly is true), filter to show only signature events
+    return events.filter(ev => {
+      // Check if event is a signature event (handle boolean, string, and number types)
+      const isSignature = ev.is_signature_event === true || 
+                         ev.is_signature_event === 'true' || 
+                         ev.is_signature_event === 1 ||
+                         (typeof ev.is_signature_event === 'string' && ev.is_signature_event.toLowerCase() === 'true');
+      return isSignature;
+    });
   }
 
   function filterEventsByDateRange(events, fromDate, toDate) {
@@ -564,6 +495,14 @@
     // Normalize date strings to YYYY-MM-DD format for consistent date-only comparison
     const normalizedFromDate = normalizeDateString(fromDate);
     const normalizedToDate = normalizeDateString(toDate);
+    
+    console.log('🔍 filterEventsByDateRange called:', {
+      fromDate,
+      toDate,
+      normalizedFromDate,
+      normalizedToDate,
+      totalEvents: events.length
+    });
     
     return events.filter(ev => {
       const startDate = normalizeDateString(ev.start_date);
@@ -611,7 +550,34 @@
         // event.start_date <= toDate AND event.end_date >= fromDate
         if (normalizedFromDate && normalizedToDate) {
           // Both filters set: check for overlap
-          const overlaps = startDate <= normalizedToDate && endDate >= normalizedFromDate;
+          const check1 = startDate <= normalizedToDate;
+          const check2 = endDate >= normalizedFromDate;
+          const overlaps = check1 && check2;
+          // Debug logging for troubleshooting
+          if (!overlaps && ev.name && (ev.name.toLowerCase().includes('irish') || ev.name.toLowerCase().includes('dancing'))) {
+            console.log('🔍 Date overlap check (EXCLUDED):', {
+              eventName: ev.name,
+              startDate,
+              endDate,
+              normalizedFromDate,
+              normalizedToDate,
+              check1: `${startDate} <= ${normalizedToDate}`,
+              check1Result: check1,
+              check2: `${endDate} >= ${normalizedFromDate}`,
+              check2Result: check2,
+              overlaps
+            });
+          }
+          if (overlaps && ev.name && (ev.name.toLowerCase().includes('irish') || ev.name.toLowerCase().includes('dancing'))) {
+            console.log('✅ Date overlap check (INCLUDED):', {
+              eventName: ev.name,
+              startDate,
+              endDate,
+              normalizedFromDate,
+              normalizedToDate,
+              overlaps
+            });
+          }
           return overlaps;
         } else if (normalizedFromDate) {
           // Only fromDate: event must end on or after fromDate
@@ -742,15 +708,19 @@
       
       // Filter day groups to only include days within the date range
       if (fromDate || toDate) {
+        // Normalize date strings for comparison
+        const normalizedFromDate = normalizeDateString(fromDate);
+        const normalizedToDate = normalizeDateString(toDate);
+        
         groups = groups.filter(dayKey => {
           if (dayKey === 'TBA') {
             // Include TBA only if no fromDate is set (or if explicitly allowed)
-            return !fromDate;
+            return !normalizedFromDate;
           }
           
-          // Check if the day falls within the date range
-          if (fromDate && dayKey < fromDate) return false;
-          if (toDate && dayKey > toDate) return false;
+          // Check if the day falls within the date range (dayKey is already YYYY-MM-DD format)
+          if (normalizedFromDate && dayKey < normalizedFromDate) return false;
+          if (normalizedToDate && dayKey > normalizedToDate) return false;
           return true;
         });
       }
@@ -932,20 +902,29 @@
       return `
       <article class="ssa-card" ${showImage ? `data-has-image="true"` : ''} ${imageStyle}>
         <div class="ssa-card-content">
-          <header class="ssa-card-head">
-            ${showImage ? `<div class="ssa-card-image-icon" data-event-id="${eventId}" data-image-url="${imageUrl}" title="Click to preview image"><img src="${imageUrl}" alt="${ev.name}" class="ssa-card-icon-thumb" /></div>` : ''}
-            <h3 class="ssa-title">
-              <span class="ssa-icon-group">
-                ${hasDescription || hasWebsiteUrl ? (() => {
-                  const descriptionAttr = hasDescription ? `data-description="${ev.description.replace(/"/g, '&quot;').replace(/'/g, '&#39;')}"` : '';
-                  const urlAttr = hasWebsiteUrl ? `data-website-url="${eventUrl}"` : '';
-                  const titleText = hasDescription ? 'Hover to view description' : 'Click to open event website';
-                  return `<span class="ssa-info-icon" data-event-id="${eventId}" ${descriptionAttr} ${urlAttr} title="${titleText}"></span>`;
-                })() : ''}
-                ${hasImageUrl ? `<span class="ssa-image-icon-btn" data-event-id="${eventId}" data-image-url="${imageUrl}" title="Tap to view image">🖼️</span>` : ''}
+        <header class="ssa-card-head">
+          ${showImage ? `<div class="ssa-card-image-icon" data-event-id="${eventId}" data-image-url="${imageUrl}" title="Click to preview image"><img src="${imageUrl}" alt="${ev.name}" class="ssa-card-icon-thumb" /></div>` : ''}
+          <h3 class="ssa-title">
+            <span class="ssa-icon-group">
+              ${hasDescription || hasWebsiteUrl ? (() => {
+                const descriptionAttr = hasDescription ? `data-description="${ev.description.replace(/"/g, '&quot;').replace(/'/g, '&#39;')}"` : '';
+                const urlAttr = hasWebsiteUrl ? `data-website-url="${eventUrl}"` : '';
+                const titleText = hasDescription ? 'Hover to view description' : 'Click to open event website';
+                return `<span class="ssa-info-icon" data-event-id="${eventId}" ${descriptionAttr} ${urlAttr} title="${titleText}"></span>`;
+              })() : ''}
+              ${hasImageUrl ? `<span class="ssa-image-icon-btn" data-event-id="${eventId}" data-image-url="${imageUrl}" title="Tap to view image">🖼️</span>` : ''}
                 ${ev.location ? `<span class="ssa-location-icon-btn" data-location="${ev.location.replace(/"/g, '&quot;').replace(/'/g, '&#39;')}" title="Tap to view map">📍</span>` : ''}
               </span>
-              ${ev.website_url ? `<a href="${ev.website_url.replace(/"/g, '&quot;').replace(/'/g, '&#39;')}" class="ssa-event-link" target="_blank" rel="noopener">${ev.name}</a>` : `<span class="ssa-event-name">${ev.name}</span>`}
+              ${ev.website_url ? (() => {
+                let url = ev.website_url.trim();
+                // Normalize URL: if it doesn't start with http:// or https://, prepend https://
+                if (!url.match(/^https?:\/\//i)) {
+                  url = 'https://' + url;
+                }
+                // Escape for HTML
+                url = url.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+                return `<a href="${url}" class="ssa-event-link" target="_blank" rel="noopener">${ev.name}</a>`;
+              })() : `<span class="ssa-event-name">${ev.name}</span>`}
             </h3>
           </header>
           ${(() => {
@@ -1033,12 +1012,16 @@
         
         // Check if this day falls within the date range filter
         if (fromDate || toDate) {
-          const dayDateStr = dateKey;
-          if (fromDate && dayDateStr < fromDate) {
+          // Normalize date strings for comparison
+          const normalizedFromDate = normalizeDateString(fromDate);
+          const normalizedToDate = normalizeDateString(toDate);
+          const dayDateStr = dateKey; // dateKey is already YYYY-MM-DD format
+          
+          if (normalizedFromDate && dayDateStr < normalizedFromDate) {
             currentDate.setDate(currentDate.getDate() + 1);
             continue;
           }
-          if (toDate && dayDateStr > toDate) {
+          if (normalizedToDate && dayDateStr > normalizedToDate) {
             currentDate.setDate(currentDate.getDate() + 1);
             continue;
           }
@@ -1085,6 +1068,7 @@
       // Check if this day is outside the date filter range (only when both fromDate and toDate are set)
       let isOutOfRange = false;
       if (fromDate && toDate) {
+        // Normalize date strings for comparison
         const normalizedFromDate = normalizeDateString(fromDate);
         const normalizedToDate = normalizeDateString(toDate);
         if (normalizedFromDate && normalizedToDate) {
@@ -1095,10 +1079,14 @@
       // Filter dayEvents to only include events for days within the date range
       let dayEvents = eventsByDay[day] || [];
       if (fromDate || toDate) {
+        // Normalize date strings for comparison
+        const normalizedFromDate = normalizeDateString(fromDate);
+        const normalizedToDate = normalizeDateString(toDate);
+        
         dayEvents = dayEvents.filter(event => {
-          const eventDateStr = event._dateKey || dateKey;
-          if (fromDate && eventDateStr < fromDate) return false;
-          if (toDate && eventDateStr > toDate) return false;
+          const eventDateStr = event._dateKey || dateKey; // Already YYYY-MM-DD format
+          if (normalizedFromDate && eventDateStr < normalizedFromDate) return false;
+          if (normalizedToDate && eventDateStr > normalizedToDate) return false;
           return true;
         });
       }
@@ -1150,37 +1138,46 @@
   async function renderEvents(mount, rows, state) {
     const { layout = LAYOUTS.LIST, selectedKeywords = [], fromDate = null, toDate = null, groupBy = 'day', showImages = false, showSignatureEventsOnly = false } = state;
     
-    // DEBUG: Show date filters being used
-    console.log('=== EVENT LIST DEBUG ===');
-    console.log('From Date Filter:', fromDate);
-    console.log('To Date Filter:', toDate);
-    console.log('Total Events Before Filtering:', rows.length);
-    console.log('First 3 Events Start Dates:', rows.slice(0, 3).map(e => e.start_date));
-    
     // Store state on mount for handlers
     mount._currentState = state;
     
-    // Apply date filter first to determine which keywords to show in the cloud
-    const dateFilteredRows = filterEventsByDateRange(rows, fromDate, toDate);
+    // Use the rows parameter (most recent data) if it has events, otherwise fall back to mount._allRows
+    // Always prefer the rows parameter since it's the most recent data passed to renderEvents
+    // Update mount._allRows to keep it in sync for event handlers
+    const allAvailableRows = rows && rows.length > 0 ? rows : (mount._allRows || []);
     
-    // Get keywords only from events that match the date filters
-    // This ensures the keyword cloud only shows keywords from events matching the current date range
-    const allKeywords = getAllKeywords(dateFilteredRows);
+    // Keep mount._allRows in sync if rows is provided and different
+    if (rows && rows.length > 0 && rows !== mount._allRows) {
+      mount._allRows = rows;
+    }
     
-    // Then apply keyword and signature filters for display
+    // Apply all filters to get the final set of displayed events
+    const dateFilteredRows = filterEventsByDateRange(allAvailableRows, fromDate, toDate);
     let filteredRows = filterEventsByKeywords(dateFilteredRows, selectedKeywords);
     filteredRows = filterEventsBySignature(filteredRows, showSignatureEventsOnly);
     
-    // DEBUG: Show filtered results
-    console.log('Total Events After Filtering:', filteredRows.length);
-    console.log('First 3 Filtered Events Start Dates:', filteredRows.slice(0, 3).map(e => e.start_date));
-    console.log('=== END DEBUG ===');
-    console.log('🔑 Keyword cloud: Extracted', allKeywords.length, 'keywords from', dateFilteredRows.length, 'date-filtered events');
+    // Get keywords only from events that match the date filters (not keyword filters)
+    // This allows users to see what keywords are available to filter by for the selected date range
+    // If we used filteredRows (after keyword filtering), users would only see keywords that co-occur
+    // with already-selected keywords, which would be confusing
+    const allKeywords = getAllKeywords(dateFilteredRows);
     
-    // If no keywords found, log for debugging
-    if (allKeywords.length === 0) {
-      console.debug('No keywords found to display');
-    }
+    // Debug logging to help diagnose keyword cloud updates
+    console.log('🔍 Keyword cloud update:', {
+      rowsParamLength: rows.length,
+      allAvailableRowsLength: allAvailableRows.length,
+      dateFilteredRowsLength: dateFilteredRows.length,
+      filteredRowsLength: filteredRows.length,
+      allKeywordsCount: allKeywords.length,
+      allKeywords: allKeywords,
+      fromDate,
+      toDate,
+      hasMountAllRows: !!mount._allRows,
+      mountAllRowsLength: mount._allRows ? mount._allRows.length : 0,
+      sampleEventKeywords: dateFilteredRows.length > 0 && dateFilteredRows[0].keywords ? dateFilteredRows[0].keywords : 'no keywords',
+      sampleEventName: dateFilteredRows.length > 0 ? dateFilteredRows[0].name : 'no events',
+      eventsWithKeywords: dateFilteredRows.filter(ev => ev.keywords && ev.keywords.length > 0).length
+    });
     
     // Render controls
     let controlsHTML = '<div class="ssa-controls">';
@@ -1199,18 +1196,6 @@
     controlsHTML += '</div>';
     controlsHTML += '</div>';
     
-    // Display options (Show Images, Signature Events, and Dark Mode)
-    const isDarkMode = document.body && document.body.classList.contains('dark-mode');
-    controlsHTML += '<div class="ssa-display-options-section">';
-    controlsHTML += '<div class="ssa-display-options-wrapper">';
-    controlsHTML += '<div class="ssa-display-options-switcher">';
-    controlsHTML += `<button class="ssa-show-images-toggle ${showImages ? 'ssa-active' : ''}" id="ssa-show-images-btn" title="Toggle image display">🖼️ Show Images</button>`;
-    controlsHTML += `<button class="ssa-signature-events-toggle ${showSignatureEventsOnly ? 'ssa-active' : ''}" id="ssa-signature-events-btn" title="Show only signature events">⭐ Signature Events Only</button>`;
-    controlsHTML += '<button class="ssa-dark-mode-toggle" title="Toggle dark mode">' + (isDarkMode ? '☀️ Light Mode' : '🌙 Dark Mode') + '</button>';
-    controlsHTML += '</div>';
-    controlsHTML += '</div>';
-    controlsHTML += '</div>';
-    
     // Keyword filters - display all keywords from the system
     if (allKeywords.length > 0) {
       controlsHTML += '<div class="ssa-keyword-filters-section">';
@@ -1223,9 +1208,11 @@
       controlsHTML += '</div>';
     }
     
-    // View controls section: View Types + Group By (moved below keyword filters)
+    // View controls section: View Types + Group By + Display Options (moved below keyword filters)
     controlsHTML += '<div class="ssa-view-controls-section">';
     
+    // Left side: View Types and Group By
+    controlsHTML += '<div class="ssa-view-controls-left">';
     controlsHTML += '<div class="ssa-layout-switcher-wrapper">';
     controlsHTML += '<label class="ssa-control-label">View:</label>';
     controlsHTML += '<div class="ssa-layout-switcher">';
@@ -1247,7 +1234,22 @@
     }
     controlsHTML += '</div>';
     
+    // Right side: Display Options (Show Images, Signature Events, Dark Mode)
+    const isDarkMode = document.body && document.body.classList.contains('dark-mode');
+    controlsHTML += '<div class="ssa-display-options-wrapper">';
+    controlsHTML += '<div class="ssa-display-options-switcher">';
+    controlsHTML += `<button class="ssa-show-images-toggle ${showImages ? 'ssa-active' : ''}" id="ssa-show-images-btn" title="Toggle image display">🖼️ Show Images</button>`;
+    controlsHTML += `<button class="ssa-signature-events-toggle ${showSignatureEventsOnly ? 'ssa-active' : ''}" id="ssa-signature-events-btn" title="Show only signature events">⭐ Signature Events</button>`;
+    controlsHTML += '<button class="ssa-dark-mode-toggle" title="Toggle dark mode">' + (isDarkMode ? '☀️' : '🌙') + '</button>';
     controlsHTML += '</div>';
+    controlsHTML += '</div>';
+    
+    controlsHTML += '</div>';
+    
+    controlsHTML += '</div>';
+    
+    // Advertisement container at top (shows placeholder when empty for testing)
+    let adHTML = '<div class="ssa-ad-container-top"><div class="ssa-ad-placeholder">Advertisement Space - Ready for content</div></div>';
     
     // Render events based on layout
     let eventsHTML = '';
@@ -1259,17 +1261,24 @@
       eventsHTML = renderCalendarLayout(filteredRows, state);
     }
     
-    mount.innerHTML = controlsHTML + eventsHTML;
-
+    mount.innerHTML = adHTML + controlsHTML + eventsHTML;
+    
+    // Verify keyword cloud was rendered
+    const keywordCloud = mount.querySelector('.ssa-keyword-filters');
+    console.log('✅ Keyword cloud rendered:', keywordCloud ? 'YES' : 'NO', keywordCloud ? `(${keywordCloud.querySelectorAll('.ssa-keyword-btn').length} buttons)` : '');
+    
     // Initialize dark mode toggle (wrap in try-catch to prevent breaking event loading)
     try {
       initDarkModeToggle();
     } catch (e) {
       console.error('Error initializing dark mode toggle:', e);
     }
-
+    
     // Attach event handlers
-    attachEventHandlers(mount, rows, state);
+    // Use mount._allRows if available (contains all fetched events), otherwise use the rows parameter
+    // This ensures event handlers have access to all events for filtering
+    const allRowsForHandlers = mount._allRows || rows;
+    attachEventHandlers(mount, allRowsForHandlers, state);
     
     // Inject styles if not already present
     injectStyles();
@@ -1295,7 +1304,10 @@
     // Keyword filter buttons
     mount.querySelectorAll('.ssa-keyword-btn').forEach(btn => {
       btn.addEventListener('click', async function() {
-        const keyword = this.dataset.keyword;
+        // Normalize keyword to lowercase for consistent storage and comparison
+        const keyword = (this.dataset.keyword || '').toLowerCase().trim();
+        if (!keyword) return;
+        
         const isCurrentlySelected = state.selectedKeywords.includes(keyword);
         
         // Immediately toggle the active class for instant visual feedback
@@ -1345,6 +1357,19 @@
       });
     }
     
+    if (clearDatesBtn) {
+      clearDatesBtn.addEventListener('click', async function() {
+        const newState = { ...state, fromDate: null, toDate: null, selectedKeywords: [], showSignatureEventsOnly: false };
+        // Reload events to show all
+        if (mount._widgetOpts) {
+          reloadEvents(mount, newState, mount._widgetOpts);
+        } else {
+          // Fallback: filter client-side if opts not available
+          await renderEvents(mount, rows, newState);
+        }
+      });
+    }
+    
     // Image display toggle checkbox
     const showImagesBtn = mount.querySelector('#ssa-show-images-btn');
     if (showImagesBtn) {
@@ -1360,23 +1385,17 @@
     const signatureEventsBtn = mount.querySelector('#ssa-signature-events-btn');
     if (signatureEventsBtn) {
       signatureEventsBtn.addEventListener('click', async function() {
-        const newShowSignatureEventsOnly = !state.showSignatureEventsOnly;
-        const newState = { ...state, showSignatureEventsOnly: newShowSignatureEventsOnly };
+        // Use mount._currentState to get the most up-to-date state
+        const currentState = mount._currentState || state;
+        const newShowSignatureEventsOnly = !currentState.showSignatureEventsOnly;
+        const newState = { ...currentState, showSignatureEventsOnly: newShowSignatureEventsOnly };
+        console.log('⭐ Signature Events toggle clicked:', { 
+          oldValue: currentState.showSignatureEventsOnly, 
+          newValue: newShowSignatureEventsOnly,
+          newState 
+        });
         // Re-render events with updated signature event filter (no need to reload from server)
         await renderEvents(mount, rows, newState);
-      });
-    }
-    
-    if (clearDatesBtn) {
-      clearDatesBtn.addEventListener('click', async function() {
-        const newState = { ...state, fromDate: null, toDate: null, selectedKeywords: [], showSignatureEventsOnly: false };
-        // Reload events to show all
-        if (mount._widgetOpts) {
-          reloadEvents(mount, newState, mount._widgetOpts);
-        } else {
-          // Fallback: filter client-side if opts not available
-          await renderEvents(mount, rows, newState);
-        }
       });
     }
     
@@ -1386,16 +1405,22 @@
       weekendBtn.addEventListener('click', async function() {
         const weekend = getUpcomingWeekend();
         const newState = { ...state, fromDate: weekend.from, toDate: weekend.to };
+        console.log('📅 This Weekend clicked:', { weekend, newState, hasWidgetOpts: !!mount._widgetOpts });
         // Update the input values
         if (fromInput) fromInput.value = weekend.from;
         if (toInput) toInput.value = weekend.to;
-        // Use client-side filtering instead of reloadEvents to avoid cache issues
-        // This ensures keyword cloud updates correctly
-        console.log('🔵🔵🔵 WEEKEND BUTTON CLICKED - NEW CODE VERSION 🔵🔵🔵');
-        const allRows = mount._allRows || rows;
-        console.log('📅 This Weekend: Using client-side filtering with', allRows.length, 'events');
-        console.log('📅 This Weekend: Will NOT call reloadEvents - using client-side filtering only');
-        await renderEvents(mount, allRows, newState);
+        // Reload events with weekend filter
+        if (mount._widgetOpts) {
+          console.log('🔄 Calling reloadEvents');
+          reloadEvents(mount, newState, mount._widgetOpts);
+        } else {
+          // Fallback: filter client-side if opts not available
+          // Use mount._allRows to ensure we have all events for filtering
+          console.log('⚠️ No widgetOpts, using client-side filtering');
+          const allRows = mount._allRows || rows;
+          console.log('📊 Using rows:', { allRowsLength: allRows.length, mountAllRowsLength: mount._allRows ? mount._allRows.length : 0 });
+          await renderEvents(mount, allRows, newState);
+        }
       });
     }
     
@@ -1404,15 +1429,24 @@
     if (nextWeekendBtn) {
       nextWeekendBtn.addEventListener('click', async function() {
         const weekend = getNextWeekend();
+        console.log('📅 Next Weekend clicked:', { weekend, calculatedDates: weekend });
         const newState = { ...state, fromDate: weekend.from, toDate: weekend.to };
+        console.log('📅 Next Weekend state:', { newState, fromDate: newState.fromDate, toDate: newState.toDate });
         // Update the input values
         if (fromInput) fromInput.value = weekend.from;
         if (toInput) toInput.value = weekend.to;
-        // Use client-side filtering instead of reloadEvents to avoid cache issues
-        // This ensures keyword cloud updates correctly
-        const allRows = mount._allRows || rows;
-        console.log('📅 Next Weekend: Using client-side filtering with', allRows.length, 'events');
-        await renderEvents(mount, allRows, newState);
+        // Reload events with next weekend filter
+        if (mount._widgetOpts) {
+          console.log('🔄 Calling reloadEvents for Next Weekend');
+          reloadEvents(mount, newState, mount._widgetOpts);
+        } else {
+          // Fallback: filter client-side if opts not available
+          // Use mount._allRows to ensure we have all events for filtering
+          console.log('⚠️ No widgetOpts, using client-side filtering for Next Weekend');
+          const allRows = mount._allRows || rows;
+          console.log('📊 Available rows for Next Weekend:', { allRowsLength: allRows.length });
+          await renderEvents(mount, allRows, newState);
+        }
       });
     }
     
@@ -1422,15 +1456,58 @@
       thisWeekBtn.addEventListener('click', async function() {
         const week = getUpcomingWeek();
         const newState = { ...state, fromDate: week.from, toDate: week.to };
-        console.log('📆 This Week clicked:', { week, newState });
+        console.log('📆 This Week clicked:', { week, newState, hasWidgetOpts: !!mount._widgetOpts });
         // Update the input values
         if (fromInput) fromInput.value = week.from;
         if (toInput) toInput.value = week.to;
-        // Use client-side filtering instead of reloadEvents to avoid cache issues
-        // This ensures keyword cloud updates correctly
-        const allRows = mount._allRows || rows;
-        console.log('📆 This Week: Using client-side filtering with', allRows.length, 'events');
-        await renderEvents(mount, allRows, newState);
+        // Reload events with week filter
+        if (mount._widgetOpts) {
+          console.log('🔄 Calling reloadEvents');
+          reloadEvents(mount, newState, mount._widgetOpts);
+        } else {
+          // Fallback: filter client-side if opts not available
+          // Use mount._allRows to ensure we have all events for filtering
+          console.log('⚠️ No widgetOpts, using client-side filtering');
+          const allRows = mount._allRows || rows;
+          console.log('📊 Using rows:', { allRowsLength: allRows.length, mountAllRowsLength: mount._allRows ? mount._allRows.length : 0 });
+          await renderEvents(mount, allRows, newState);
+        }
+      });
+    }
+    
+    // Keyword tag clicks in list view
+    if (state.layout === LAYOUTS.LIST) {
+      mount.querySelectorAll('.ssa-keyword-tag-clickable').forEach(tag => {
+        tag.addEventListener('click', async function() {
+          // Normalize keyword to lowercase for consistent storage and comparison
+          const keyword = (this.dataset.keyword || '').toLowerCase().trim();
+          if (!keyword) return;
+          
+          // Toggle keyword in selected keywords
+          const newSelected = state.selectedKeywords.includes(keyword)
+            ? state.selectedKeywords.filter(k => k !== keyword)
+            : [...state.selectedKeywords, keyword];
+          
+          await renderEvents(mount, rows, { ...state, selectedKeywords: newSelected });
+        });
+      });
+    }
+    
+    // Keyword tag clicks in grid view
+    if (state.layout === LAYOUTS.GRID) {
+      mount.querySelectorAll('.ssa-tag-clickable').forEach(tag => {
+        tag.addEventListener('click', async function() {
+          // Normalize keyword to lowercase for consistent storage and comparison
+          const keyword = (this.dataset.keyword || '').toLowerCase().trim();
+          if (!keyword) return;
+          
+          // Toggle keyword in selected keywords
+          const newSelected = state.selectedKeywords.includes(keyword)
+            ? state.selectedKeywords.filter(k => k !== keyword)
+            : [...state.selectedKeywords, keyword];
+          
+          await renderEvents(mount, rows, { ...state, selectedKeywords: newSelected });
+        });
       });
     }
     
@@ -1561,68 +1638,9 @@
       }, 100);
     }
     
-    // Image click preview for list view
-    if (state.layout === LAYOUTS.LIST) {
-      mount.querySelectorAll('.ssa-event-image-wrapper[data-image-url]').forEach(wrapper => {
-        const eventId = wrapper.dataset.eventId;
-        const imageUrl = wrapper.dataset.imageUrl;
-        if (!imageUrl || !imageUrl.trim()) return;
-        
-        wrapper.addEventListener('click', function(e) {
-          e.stopPropagation();
-          showImagePreview(eventId, imageUrl, wrapper);
-        });
-      });
-      
-      // Image icon button handlers for list view
-      mount.querySelectorAll('.ssa-image-icon-btn').forEach(btn => {
-        const eventId = btn.dataset.eventId;
-        const imageUrl = btn.dataset.imageUrl;
-        if (!imageUrl || !imageUrl.trim()) return;
-        
-        btn.addEventListener('click', function(e) {
-          e.stopPropagation();
-          showImagePreview(eventId, imageUrl, btn);
-        });
-      });
-    }
-    
-    // Keyword tag clicks in list view
-    if (state.layout === LAYOUTS.LIST) {
-      mount.querySelectorAll('.ssa-keyword-tag-clickable').forEach(tag => {
-        tag.addEventListener('click', async function() {
-          const keyword = this.dataset.keyword;
-          if (!keyword) return;
-          
-          // Toggle keyword in selected keywords
-          const newSelected = state.selectedKeywords.includes(keyword)
-            ? state.selectedKeywords.filter(k => k !== keyword)
-            : [...state.selectedKeywords, keyword];
-          
-          await renderEvents(mount, rows, { ...state, selectedKeywords: newSelected });
-        });
-      });
-    }
-    
-    // Keyword tag clicks in grid view
-    if (state.layout === LAYOUTS.GRID) {
-      mount.querySelectorAll('.ssa-tag-clickable').forEach(tag => {
-        tag.addEventListener('click', async function() {
-          const keyword = this.dataset.keyword;
-          if (!keyword) return;
-          
-          // Toggle keyword in selected keywords
-          const newSelected = state.selectedKeywords.includes(keyword)
-            ? state.selectedKeywords.filter(k => k !== keyword)
-            : [...state.selectedKeywords, keyword];
-          
-          await renderEvents(mount, rows, { ...state, selectedKeywords: newSelected });
-        });
-      });
-    }
-    
     // Image click preview for grid view
     if (state.layout === LAYOUTS.GRID) {
+      
       mount.querySelectorAll('.ssa-card-image-icon').forEach(icon => {
         const eventId = icon.dataset.eventId;
         const imageUrl = icon.dataset.imageUrl;
@@ -1653,6 +1671,153 @@
         closeImagePreview();
       }
     });
+    
+    // Image hover preview for list view (similar to info icon hover)
+    let activeImagePopover = null;
+    let imagePopoverTimeout = null;
+    
+    if (state.layout === LAYOUTS.LIST) {
+      mount.querySelectorAll('.ssa-event-image-wrapper[data-image-url]').forEach(wrapper => {
+        const eventId = wrapper.dataset.eventId;
+        const imageUrl = wrapper.dataset.imageUrl;
+        if (!imageUrl || !imageUrl.trim()) return;
+        
+        wrapper.addEventListener('mouseenter', function(e) {
+          if (imagePopoverTimeout) clearTimeout(imagePopoverTimeout);
+          
+          // Remove any existing image popover
+          if (activeImagePopover) {
+            activeImagePopover.remove();
+            activeImagePopover = null;
+          }
+          
+          // Get element position
+          const rect = wrapper.getBoundingClientRect();
+          
+          // Create image popover element
+          const popover = document.createElement('div');
+          popover.className = 'ssa-image-popover';
+          popover.dataset.eventId = eventId;
+          
+          const gap = 8;
+          const viewportH = window.innerHeight;
+          const viewportW = window.innerWidth;
+          const maxH = Math.min(800, viewportH - gap * 2);
+          const maxW = Math.min(800, viewportW - gap * 2);
+          
+          // Create image element
+          const img = document.createElement('img');
+          img.src = imageUrl;
+          img.alt = 'Event preview';
+          img.style.cssText = `
+            width: auto;
+            height: auto;
+            max-width: ${maxW}px;
+            max-height: ${maxH}px;
+            border-radius: 6px;
+            display: block;
+          `;
+          
+          popover.appendChild(img);
+          document.body.appendChild(popover);
+          
+          // Get popover dimensions and viewport info
+          const popoverRect = popover.getBoundingClientRect();
+          const viewportHeight = window.innerHeight;
+          const viewportWidth = window.innerWidth;
+          const minGapFromEdge = 10;
+          
+          // Calculate horizontal position - prefer to the right, fall back to left, otherwise center
+          let left = rect.right + gap;
+          const spaceRight = viewportWidth - rect.right - gap;
+          const spaceLeft = rect.left - gap;
+          
+          if (spaceRight >= popoverRect.width) {
+            left = rect.right + gap;
+          } else if (spaceLeft >= popoverRect.width) {
+            left = rect.left - gap - popoverRect.width;
+          } else {
+            // Center horizontally within viewport
+            left = Math.max(minGapFromEdge, Math.min(rect.left + rect.width / 2 - popoverRect.width / 2, viewportWidth - popoverRect.width - minGapFromEdge));
+          }
+          
+          // Calculate vertical position - prefer to align with thumbnail, but keep within viewport
+          let top = rect.top;
+          if (rect.top < 120) {
+            // near top – align tops
+            top = Math.max(minGapFromEdge, rect.top);
+          } else if (rect.bottom > viewportHeight - 120) {
+            // near bottom – align bottoms
+            top = Math.max(minGapFromEdge, rect.bottom - popoverRect.height);
+          } else {
+            // middle – center vertically relative to thumbnail
+            top = rect.top + rect.height / 2 - popoverRect.height / 2;
+          }
+          
+          // Clamp inside viewport
+          top = Math.max(minGapFromEdge, Math.min(top, viewportHeight - popoverRect.height - minGapFromEdge));
+          
+          popover.style.cssText = `
+            position: fixed;
+            left: ${left}px;
+            top: ${top}px;
+            z-index: 10002;
+            padding: 6px;
+            background: rgba(255,255,255,0.98);
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            box-shadow: 0 10px 30px rgba(0,0,0,.25);
+            display: block;
+          `;
+          
+          activeImagePopover = popover;
+        });
+        
+        wrapper.addEventListener('mouseleave', function() {
+          if (imagePopoverTimeout) clearTimeout(imagePopoverTimeout);
+          imagePopoverTimeout = setTimeout(() => {
+            if (activeImagePopover) {
+              activeImagePopover.remove();
+              activeImagePopover = null;
+            }
+          }, 100);
+        });
+        
+        // Also handle mouseenter on popover itself to keep it open
+        document.addEventListener('mouseenter', function(e) {
+          const target = e.target.nodeType === Node.ELEMENT_NODE ? e.target : e.target.parentElement;
+          if (target && target.closest && target.closest('.ssa-image-popover')) {
+            if (imagePopoverTimeout) clearTimeout(imagePopoverTimeout);
+          }
+        }, true);
+        
+        // Handle mouseleave on popover
+        document.addEventListener('mouseleave', function(e) {
+          const target = e.target.nodeType === Node.ELEMENT_NODE ? e.target : e.target.parentElement;
+          if (target && target.closest && target.closest('.ssa-image-popover')) {
+            if (imagePopoverTimeout) clearTimeout(imagePopoverTimeout);
+            imagePopoverTimeout = setTimeout(() => {
+              if (activeImagePopover) {
+                activeImagePopover.remove();
+                activeImagePopover = null;
+              }
+            }, 100);
+          }
+        }, true);
+      });
+      
+      // Image icon button handlers for list view (keep as click for mobile)
+      mount.querySelectorAll('.ssa-image-icon-btn').forEach(btn => {
+        const eventId = btn.dataset.eventId;
+        const imageUrl = btn.dataset.imageUrl;
+        if (!imageUrl || !imageUrl.trim()) return;
+        
+        btn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          showImagePreview(eventId, imageUrl, btn);
+        });
+      });
+    }
     
     // Description popover on hover for info icons (list and grid views)
     let activePopover = null;
@@ -1754,7 +1919,6 @@
         
         // Popover content - restructured for calendar view with fixed header/footer and scrollable middle
         const content = document.createElement('div');
-        content.className = 'ssa-popover-content';
         
         if (isCalendarView) {
           // Calendar view: show full event details with fixed layout
@@ -1769,7 +1933,6 @@
           const keywordsStr = element.dataset.keywords || '';
           
           // Set up flexbox layout for popover
-          // The ssa-popover-content class already provides flex and overflow styles
           content.style.cssText = 'display: flex; flex-direction: column; height: 100%; max-height: 400px; padding-right: 8px; overflow: hidden;';
           
           // Header section (fixed at top)
@@ -1936,7 +2099,8 @@
                   
                   const state = mount._currentState;
                   const rows = mount._allRows || [];
-                  const keyword = this.dataset.keyword;
+                  // Normalize keyword to lowercase for consistent storage and comparison
+                  const keyword = (this.dataset.keyword || '').toLowerCase().trim();
                   if (!keyword) return;
                   
                   // Toggle keyword in selected keywords
@@ -2451,12 +2615,15 @@
     css.textContent = `
       .ssa-controls{display:flex;flex-direction:column;gap:20px;margin-bottom:32px;padding:24px;background:#f9fafb;border-radius:12px;border:1px solid #e5e7eb}
       body.dark-mode .ssa-controls{background:#1f2937!important;border-color:#374151!important}
-      .ssa-view-controls-section{display:flex;flex-wrap:wrap;gap:20px;align-items:center;justify-content:center;padding:16px;background:#fff;border-radius:8px;border:1px solid #e5e7eb}
+      .ssa-view-controls-section{display:flex;flex-wrap:wrap;gap:20px;align-items:center;justify-content:space-between;padding:16px;background:#fff;border-radius:8px;border:1px solid #e5e7eb}
       body.dark-mode .ssa-view-controls-section{background:#111827!important;border-color:#374151!important}
+      .ssa-view-controls-left{display:flex;flex-wrap:wrap;gap:20px;align-items:center;flex:1}
       .ssa-layout-switcher-wrapper{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
       .ssa-group-switcher-wrapper{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
       .ssa-layout-switcher-wrapper ~ .ssa-group-switcher-wrapper{padding-left:20px;border-left:1px solid #e5e7eb}
       body.dark-mode .ssa-layout-switcher-wrapper ~ .ssa-group-switcher-wrapper{border-left-color:#374151!important}
+      .ssa-display-options-wrapper{display:flex;align-items:center;justify-content:flex-end;flex-shrink:0}
+      .ssa-display-options-switcher{display:flex;flex-wrap:wrap;gap:10px;justify-content:flex-end}
       .ssa-control-label{font-size:0.875rem;font-weight:600;color:#374151;white-space:nowrap;text-transform:uppercase;letter-spacing:0.5px}
       body.dark-mode .ssa-control-label{color:#f9fafb!important}
       .ssa-layout-switcher{display:flex;gap:6px}
@@ -2486,10 +2653,6 @@
       .ssa-clear-dates:hover{background:#f9fafb!important;transform:translateY(-1px);box-shadow:0 2px 4px rgba(0,0,0,0.1)}
       .ssa-weekend-btn{padding:8px 16px;border:1px solid #d1d5db;border-radius:6px;background:#fff!important;color:#374151!important;cursor:pointer;font-size:0.875rem;font-weight:500;white-space:nowrap;transition:all 0.2s;box-shadow:0 1px 2px rgba(0,0,0,0.05)}
       .ssa-weekend-btn:hover{background:#f9fafb!important;border-color:#9ca3af;transform:translateY(-1px);box-shadow:0 2px 4px rgba(0,0,0,0.1)}
-      .ssa-display-options-section{display:flex;flex-direction:column;gap:12px;padding:16px;background:#fff;border-radius:8px;border:1px solid #e5e7eb}
-      body.dark-mode .ssa-display-options-section{background:#111827!important;border-color:#374151!important}
-      .ssa-display-options-wrapper{display:flex;align-items:center;justify-content:center}
-      .ssa-display-options-switcher{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
       .ssa-show-images-toggle{padding:8px 16px;border:1px solid #d1d5db;border-radius:6px;background:#fff;color:#374151;cursor:pointer;font-size:0.875rem;font-weight:500;transition:all 0.2s;white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,0.05)}
       .ssa-show-images-toggle:hover{background:#f9fafb;border-color:#9ca3af;transform:translateY(-1px);box-shadow:0 2px 4px rgba(0,0,0,0.1)}
       .ssa-show-images-toggle.ssa-active{background:#3b82f6;border-color:#3b82f6;color:#fff;box-shadow:0 2px 4px rgba(59,130,246,0.3)}
@@ -2510,12 +2673,6 @@
       .ssa-dark-mode-toggle:hover{background:#f9fafb;border-color:#9ca3af;transform:translateY(-1px);box-shadow:0 2px 4px rgba(0,0,0,0.1)}
       body.dark-mode .ssa-dark-mode-toggle{background:#374151;border-color:#4b5563;color:#f9fafb}
       body.dark-mode .ssa-dark-mode-toggle:hover{background:#4b5563;border-color:#6b7280}
-      body.dark-mode{background:#111827!important;color:#f9fafb!important}
-      html body.dark-mode{background:#111827!important;color:#f9fafb!important}
-      body.dark-mode #events-list{background:#111827!important;color:#f9fafb!important}
-      body.dark-mode #events-list *{color:inherit}
-      body.dark-mode .Main-content{background:#111827!important}
-      body.dark-mode .sqs-block{background:transparent!important}
       .ssa-keyword-filters-section{display:flex;flex-direction:column;gap:12px;padding:16px;background:#fff;border-radius:8px;border:1px solid #e5e7eb}
       body.dark-mode .ssa-keyword-filters-section{background:#111827!important;border-color:#374151!important}
       .ssa-keyword-filters{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
@@ -2524,42 +2681,69 @@
       .ssa-keyword-active{background:#fff!important;border-color:#3b82f6!important;color:#3b82f6!important}
       .ssa-keyword-active:hover{background:#f0f9ff!important;border-color:#2563eb!important;color:#2563eb!important}
       body.dark-mode .ssa-keyword-filters{background:transparent!important}
-      body.dark-mode .ssa-keyword-active{background:transparent!important;border-color:#3b82f6!important;color:#3b82f6!important}
-      body.dark-mode .ssa-keyword-active:hover{background:transparent!important;border-color:#60a5fa!important;color:#60a5fa!important}
-      body.dark-mode .ssa-layout-btn{background:#374151!important;border-color:#4b5563!important;color:#f9fafb!important}
-      body.dark-mode .ssa-layout-btn:hover{background:#4b5563!important;border-color:#6b7280!important}
-      body.dark-mode .ssa-group-btn{background:#374151!important;border-color:#4b5563!important;color:#f9fafb!important}
-      body.dark-mode .ssa-group-btn:hover{background:#4b5563!important;border-color:#6b7280!important}
-      body.dark-mode .ssa-keyword-btn{background:#374151!important;border-color:#4b5563!important;color:#f9fafb!important}
-      body.dark-mode .ssa-keyword-btn:hover{background:#4b5563!important;border-color:#6b7280!important}
-      body.dark-mode .ssa-weekend-btn{background:#374151!important;border-color:#4b5563!important;color:#f9fafb!important}
-      body.dark-mode .ssa-weekend-btn:hover{background:#4b5563!important;border-color:#6b7280!important}
-      body.dark-mode .ssa-clear-dates{background:#374151!important;border-color:#4b5563!important;color:#f9fafb!important}
-      body.dark-mode .ssa-clear-dates:hover{background:#4b5563!important;border-color:#6b7280!important}
+      body.dark-mode .ssa-keyword-active{background:var(--ssa-control-bg, #374151)!important;border-color:#3b82f6!important;color:#3b82f6!important}
+      body.dark-mode .ssa-keyword-active:hover{background:#4b5563!important;border-color:#60a5fa!important;color:#60a5fa!important}
       .ssa-empty{color:#6b7280;padding:20px;text-align:center}
       .ssa-skel{height:110px;border-radius:14px;background:linear-gradient(90deg,#f4f4f5,#f9fafb,#f4f4f5);background-size:200% 100%;animation:ssaShimmer 1.1s linear infinite}
       @keyframes ssaShimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
-      .ssa-month-header{margin:24px 0 12px;font-size:1.25rem;font-weight:600;color:#1f2937}
-      .ssa-day-header,.ssa-day-header *,#events-list .ssa-day-header,#events-list .ssa-day-header *{margin:24px 0 12px;font-size:1.25rem;font-weight:600;color:#000000!important;padding-bottom:8px;border-bottom:2px solid #e5e7eb}
+      .ssa-ad-container-top{width:100%;min-height:100px;margin-bottom:32px;padding:16px;background:#f9fafb;border:1px dashed #d1d5db;border-radius:8px;display:flex;align-items:center;justify-content:center}
+      .ssa-ad-container-top:empty{display:none}
+      .ssa-ad-placeholder{color:#9ca3af;font-size:0.875rem;text-align:center;font-style:italic}
+      body.dark-mode .ssa-ad-placeholder{color:#6b7280!important}
+      .ssa-ad-slot{width:100%;min-height:120px;margin:24px 0;padding:16px;background:#f9fafb;border:1px dashed #d1d5db;border-radius:8px;display:none}
+      .ssa-ad-slot:not(:empty){display:block}
+      body.dark-mode .ssa-ad-container-top{background:#1f2937!important;border-color:#4b5563!important}
+      body.dark-mode .ssa-ad-slot{background:#1f2937!important;border-color:#4b5563!important}
+      @media(max-width:768px){.ssa-ad-container-top{margin-bottom:24px;padding:12px;min-height:80px}}
+      .ssa-month-header{margin:20px 0 10px;font-size:1.4rem;font-weight:700;color:#1f2937;letter-spacing:-0.02em}
+      .ssa-day-header,.ssa-day-header *,#events-list .ssa-day-header,#events-list .ssa-day-header *{margin:20px 0 10px;font-size:1.4rem;font-weight:700;color:#000000!important;padding-bottom:10px;border-bottom:2px solid #e0e7ff;letter-spacing:-0.02em}
+      @media(min-width:640px){
+        .ssa-month-header{margin:22px 0 11px;font-size:1.6rem}
+        .ssa-day-header,.ssa-day-header *,#events-list .ssa-day-header,#events-list .ssa-day-header *{margin:22px 0 11px;font-size:1.6rem;padding-bottom:11px}
+      }
+      @media(min-width:1024px){
+        .ssa-month-header{margin:24px 0 12px;font-size:1.75rem}
+        .ssa-day-header,.ssa-day-header *,#events-list .ssa-day-header,#events-list .ssa-day-header *{margin:24px 0 12px;font-size:1.75rem;padding-bottom:12px}
+      }
       h3.ssa-day-header,h3.ssa-day-header *{color:#000000!important}
       .ssa-events-list{list-style:none;padding:0;margin:0 0 32px}
-      .ssa-event-item{margin-bottom:12px;padding:12px 0;border-bottom:1px solid #f3f4f6}
-      .ssa-event-item:last-child{border-bottom:none}
-      .ssa-event-content{display:flex;gap:16px;align-items:flex-start}
-      .ssa-event-image-wrapper{flex-shrink:0;width:60px;height:60px;border-radius:8px;overflow:hidden;background:#f3f4f6;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:opacity 0.2s}
-      .ssa-event-image-wrapper:hover{opacity:0.8}
-      .ssa-event-image-wrapper:active{opacity:0.6}
+      .ssa-event-item{margin-bottom:16px;padding:12px;background:#fff;border:1px solid #e0e7ff;border-radius:6px;box-shadow:0 1px 3px rgba(0,0,0,0.05);transition:all 0.3s ease}
+      .ssa-event-item:hover{box-shadow:0 4px 12px rgba(0,0,0,0.1);background:#fafbff;transform:translateY(-1px)}
+      .ssa-event-item:last-child{margin-bottom:0}
+      .ssa-event-content{display:flex;gap:12px;align-items:flex-start}
+      .ssa-event-image-wrapper{flex-shrink:0;width:60px;height:60px;border-radius:8px;overflow:hidden;background:#f3f4f6;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.3s ease;box-shadow:0 2px 4px rgba(0,0,0,0.08)}
+      .ssa-event-image-wrapper:hover{box-shadow:0 4px 8px rgba(0,0,0,0.12);transform:scale(1.02)}
+      .ssa-event-image-wrapper:active{opacity:0.7;transform:scale(0.98)}
       .ssa-event-image-wrapper.ssa-event-image-placeholder{background:#f9fafb;border:1px dashed #d1d5db;cursor:default}
       .ssa-event-image{width:100%;height:100%;object-fit:cover;display:block}
       .ssa-event-details{flex:1;min-width:0}
       .ssa-event-name-wrapper{display:inline-flex;align-items:center;gap:6px}
-      .ssa-event-meta{margin-top:8px;display:flex;flex-direction:column;gap:4px}
-      .ssa-event-meta-item,.ssa-event-meta-item *,#events-list .ssa-event-meta-item,#events-list .ssa-event-meta-item *{font-size:0.9rem;line-height:1.5;color:#000000!important}
-      .ssa-event-meta-item strong,#events-list .ssa-event-meta-item strong,.ssa-event-meta-item strong *,#events-list .ssa-event-meta-item strong *{color:#000000!important;margin-right:4px}
-      div.ssa-event-meta-item,div.ssa-event-meta-item *{color:#000000!important}
-      .ssa-event-link{color:#3b82f6;text-decoration:none;cursor:pointer}
-      .ssa-event-link:hover{text-decoration:underline}
-      .ssa-event-name{cursor:default}
+      .ssa-event-name-wrapper strong{font-size:1.1rem;font-weight:600;line-height:1.4;color:#1f2937}
+      .ssa-event-link{font-size:1.1rem;font-weight:600;line-height:1.4;color:#3b82f6;text-decoration:none;cursor:pointer;transition:color 0.2s ease}
+      .ssa-event-link:hover{color:#2563eb;text-decoration:underline}
+      .ssa-event-name{cursor:default;color:#1f2937}
+      .ssa-event-meta{margin-top:10px;display:flex;flex-direction:column;gap:4px}
+      .ssa-event-meta-item,.ssa-event-meta-item *,#events-list .ssa-event-meta-item,#events-list .ssa-event-meta-item *{font-size:0.9rem;line-height:1.5;color:#374151!important}
+      .ssa-event-meta-item strong,#events-list .ssa-event-meta-item strong,.ssa-event-meta-item strong *,#events-list .ssa-event-meta-item strong *{color:#1f2937!important;margin-right:6px;font-weight:600}
+      div.ssa-event-meta-item,div.ssa-event-meta-item *{color:#374151!important}
+      @media(min-width:640px){
+        .ssa-event-item{margin-bottom:18px;padding:14px;border-radius:7px}
+        .ssa-event-content{gap:16px}
+        .ssa-event-image-wrapper{width:70px;height:70px;border-radius:9px}
+        .ssa-event-name-wrapper strong{font-size:1.15rem}
+        .ssa-event-link{font-size:1.15rem}
+        .ssa-event-meta{margin-top:11px;gap:5px}
+        .ssa-event-meta-item,.ssa-event-meta-item *,#events-list .ssa-event-meta-item,#events-list .ssa-event-meta-item *{font-size:0.925rem;line-height:1.55}
+      }
+      @media(min-width:1024px){
+        .ssa-event-item{margin-bottom:20px;padding:16px;border-radius:8px}
+        .ssa-event-content{gap:20px}
+        .ssa-event-image-wrapper{width:80px;height:80px;border-radius:10px}
+        .ssa-event-name-wrapper strong{font-size:1.25rem}
+        .ssa-event-link{font-size:1.25rem}
+        .ssa-event-meta{margin-top:12px;gap:6px}
+        .ssa-event-meta-item,.ssa-event-meta-item *,#events-list .ssa-event-meta-item,#events-list .ssa-event-meta-item *{font-size:0.95rem;line-height:1.6}
+      }
       .ssa-icon-group{display:inline-flex;align-items:center;gap:6px;flex-shrink:0}
       .ssa-info-icon{display:inline-flex!important;align-items:center;justify-content:center;font-size:0.7rem;opacity:0.8;cursor:help;transition:all 0.2s;flex-shrink:0;width:24px;height:24px;border-radius:50%;background:#3b82f6;color:#fff;font-weight:700;line-height:1;position:relative;vertical-align:middle;min-width:24px;min-height:24px}
       .ssa-info-icon::before{content:'i';font-style:normal;font-family:Georgia,serif;font-size:0.85rem}
@@ -2570,8 +2754,7 @@
       .ssa-location-icon-btn{display:none;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:#f59e0b;color:#fff;cursor:pointer;transition:all 0.2s;flex-shrink:0;font-size:0.9rem;opacity:0.8;min-width:24px;min-height:24px}
       .ssa-location-icon-btn:hover{opacity:1;background:#d97706;transform:scale(1.1)}
       .ssa-location-icon-btn:active{opacity:0.7}
-      .ssa-info-popover{padding:12px;background:#fff;border:1px solid #d1d5db;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);min-width:200px;max-width:300px;max-height:400px;font-size:0.875rem;line-height:1.5;color:#374151;white-space:normal;word-wrap:break-word;pointer-events:auto;position:relative;display:flex;flex-direction:column;overflow:hidden}
-      .ssa-info-popover .ssa-popover-content{overflow-y:auto;overflow-x:hidden;flex:1;min-height:0;max-height:100%;-webkit-overflow-scrolling:touch;position:relative}
+      .ssa-info-popover{padding:12px;background:#fff;border:1px solid #d1d5db;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);min-width:200px;max-width:300px;max-height:400px;font-size:0.875rem;line-height:1.5;color:#374151;white-space:normal;word-wrap:break-word;pointer-events:auto;position:relative}
       body.dark-mode .ssa-info-popover{background:#374151!important;border-color:#4b5563!important;color:#f9fafb!important;box-shadow:0 4px 12px rgba(0,0,0,0.3)!important}
       .ssa-calendar-popover{min-width:280px;max-width:400px}
       .ssa-popover-close{position:absolute;top:4px;right:4px;width:24px;height:24px;border:none;background:rgba(0,0,0,0.6);color:white;border-radius:50%;font-size:18px;line-height:1;cursor:pointer;z-index:10003;display:flex;align-items:center;justify-content:center;transition:background 0.2s;padding:0}
@@ -2592,121 +2775,125 @@
       .ssa-keywords-inline{display:inline-flex;flex-wrap:wrap;gap:4px;margin-left:8px}
       .ssa-tag{display:inline-block;padding:2px 8px;background:#f3f4f6;border-radius:12px;font-size:0.75rem;color:#6b7280}
       .ssa-event-keywords{margin-top:8px;display:flex;flex-wrap:wrap;gap:6px}
-      .ssa-keyword-tag-clickable{display:inline-block;padding:8px 16px;border:2px solid #d1d5db;border-radius:20px;background:#fff;color:#374151;cursor:pointer;font-size:0.875rem;font-weight:500;line-height:1;transition:all 0.2s}
-      .ssa-keyword-tag-clickable:hover{background:#f9fafb;border-color:#9ca3af}
-      .ssa-keyword-tag-clickable.ssa-keyword-tag-active{background:#374151;border-color:#374151;color:#fff}
-      .ssa-keyword-tag-clickable.ssa-keyword-tag-active:hover{background:#1f2937;border-color:#1f2937}
+      .ssa-keyword-tag-clickable{display:inline-block;padding:8px 16px;border:2px solid #d1d5db;border-radius:20px;background:#fff!important;color:#374151!important;cursor:pointer;font-size:0.875rem;font-weight:500;line-height:1.2;transition:all 0.2s}
+      .ssa-keyword-tag-clickable:hover{background:#f9fafb!important;border-color:#9ca3af!important}
+      .ssa-keyword-tag-clickable.ssa-keyword-tag-active{background:#fff!important;border-color:#3b82f6!important;color:#3b82f6!important}
+      .ssa-keyword-tag-clickable.ssa-keyword-tag-active:hover{background:#f0f9ff!important;border-color:#2563eb!important;color:#2563eb!important}
       body.dark-mode .ssa-keyword-tag-clickable{background:var(--ssa-control-bg, #374151)!important;border-color:var(--ssa-control-border, #4b5563)!important;color:var(--ssa-text, #f9fafb)!important}
       body.dark-mode .ssa-keyword-tag-clickable:hover{background:#4b5563!important;border-color:#6b7280!important}
-      body.dark-mode .ssa-keyword-tag-clickable.ssa-keyword-tag-active{background:transparent!important;border-color:#3b82f6!important;color:#3b82f6!important}
-      body.dark-mode .ssa-keyword-tag-clickable.ssa-keyword-tag-active:hover{background:transparent!important;border-color:#60a5fa!important;color:#60a5fa!important}
-      .ssa-grid{display:grid;gap:16px}
-      @media(min-width:720px){.ssa-grid{grid-template-columns:repeat(2,1fr)}}
-      @media(min-width:1024px){.ssa-grid{grid-template-columns:repeat(3,1fr)}}
+      body.dark-mode .ssa-keyword-tag-clickable.ssa-keyword-tag-active{background:var(--ssa-control-bg, #374151)!important;border-color:#3b82f6!important;color:#3b82f6!important}
+      body.dark-mode .ssa-keyword-tag-clickable.ssa-keyword-tag-active:hover{background:#4b5563!important;border-color:#60a5fa!important;color:#60a5fa!important}
+      .ssa-grid{display:grid;gap:16px;grid-template-columns:1fr}
+      @media(min-width:640px){.ssa-grid{grid-template-columns:repeat(2,1fr);gap:20px}}
+      @media(min-width:1024px){.ssa-grid{grid-template-columns:repeat(3,1fr);gap:24px}}
       .ssa-calendar-container{margin:24px 0}
-      .ssa-calendar-month-header{margin:0 0 16px;font-size:1.5rem;font-weight:600;color:#1f2937;text-align:center}
-      .ssa-calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:#e5e7eb;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden}
-      .ssa-calendar-day-header{background:#f8f9fa;padding:8px 4px;text-align:center;font-size:0.75rem;font-weight:600;color:#6b7280;text-transform:uppercase}
-      .ssa-calendar-day{background:#fff;min-height:80px;padding:4px;display:flex;flex-direction:column;position:relative}
+      .ssa-calendar-month-header{margin:0 0 20px;font-size:1.5rem;font-weight:700;color:#1f2937;text-align:center;letter-spacing:-0.02em}
+      .ssa-calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:#e0e7ff;border:1px solid #e0e7ff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.06)}
+      .ssa-calendar-day-header{background:#f8f9fa;padding:8px 4px;text-align:center;font-size:0.75rem;font-weight:700;color:#4b5563;text-transform:uppercase;letter-spacing:0.05em}
+      .ssa-calendar-day{background:#fff;min-height:70px;padding:4px;display:flex;flex-direction:column;position:relative;transition:background-color 0.2s ease}
+      .ssa-calendar-day:hover{background:#fafbff}
       .ssa-calendar-day-empty{background:#f9fafb;opacity:0.5}
       .ssa-calendar-day-out-of-range{opacity:0.4;background:#f3f4f6}
       .ssa-calendar-day-out-of-range .ssa-calendar-day-number{color:#9ca3af}
-      .ssa-calendar-day-number{font-size:0.875rem;font-weight:600;color:#374151;margin-bottom:4px}
+      .ssa-calendar-day-number{font-size:0.85rem;font-weight:600;color:#1f2937;margin-bottom:4px}
       .ssa-calendar-day-events{display:flex;flex-wrap:wrap;gap:2px;align-items:flex-start}
-      .ssa-calendar-info-icon{width:16px;height:16px;min-width:16px;min-height:16px;font-size:0.6rem;margin:0}
-      .ssa-calendar-event-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#3b82f6;opacity:0.7}
-      @media(max-width:768px){
-        .ssa-calendar-day{min-height:60px;padding:2px}
-        .ssa-calendar-day-number{font-size:0.75rem}
-        .ssa-calendar-info-icon{width:14px;height:14px;min-width:14px;min-height:14px;font-size:0.55rem}
-        .ssa-calendar-event-dot{width:6px;height:6px}
+      .ssa-calendar-info-icon{width:14px;height:14px;min-width:14px;min-height:14px;font-size:0.55rem;margin:0}
+      .ssa-calendar-event-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:#3b82f6;opacity:0.7}
+      @media(min-width:640px){
+        .ssa-calendar-month-header{font-size:1.65rem;margin:0 0 24px}
+        .ssa-calendar-grid{gap:2px;border-radius:10px}
+        .ssa-calendar-day-header{padding:10px 4px;font-size:0.8rem}
+        .ssa-calendar-day{min-height:80px;padding:6px}
+        .ssa-calendar-day-number{font-size:0.9rem;margin-bottom:6px}
+        .ssa-calendar-info-icon{width:16px;height:16px;min-width:16px;min-height:16px;font-size:0.6rem}
+        .ssa-calendar-event-dot{width:8px;height:8px}
       }
-      .ssa-card{border:1px solid #e5e7eb;border-radius:14px;padding:0;background:#fff;position:relative;overflow:hidden}
+      @media(min-width:1024px){
+        .ssa-calendar-month-header{font-size:1.75rem;margin:0 0 20px}
+        .ssa-calendar-grid{gap:2px;border-radius:12px}
+        .ssa-calendar-day-header{padding:10px 4px;font-size:0.8rem}
+        .ssa-calendar-day{min-height:85px;padding:6px}
+        .ssa-calendar-day-number{font-size:0.9rem;margin-bottom:6px}
+        .ssa-calendar-info-icon{width:16px;height:16px;min-width:16px;min-height:16px;font-size:0.6rem}
+        .ssa-calendar-event-dot{width:8px;height:8px}
+      }
+      .ssa-card{border:1px solid #e0e7ff;border-radius:12px;padding:0;background:#fff;position:relative;overflow:hidden;box-shadow:0 2px 6px rgba(0,0,0,0.05);transition:all 0.3s ease}
+      .ssa-card:hover{box-shadow:0 6px 18px rgba(0,0,0,0.1);transform:translateY(-2px);border-color:#c7d2fe}
       .ssa-card[data-has-image="true"]{background-color:#fff}
       .ssa-card[data-has-image="true"]::after{content:'';position:absolute;top:0;left:0;right:0;bottom:0;background-image:var(--card-bg-image);background-size:cover;background-position:center;background-repeat:no-repeat;opacity:0.2;z-index:0}
       .ssa-card[data-has-image="true"]::before{content:'';position:absolute;top:0;left:0;right:0;bottom:0;background:linear-gradient(to bottom,rgba(255,255,255,0.6) 0%,rgba(255,255,255,0.4) 50%,rgba(255,255,255,0.3) 100%);z-index:1}
       .ssa-card[data-has-image="true"] .ssa-card-content{position:relative;z-index:2;padding:14px}
       .ssa-card:not([data-has-image="true"]) .ssa-card-content{padding:14px}
       .ssa-card-content{min-height:120px}
-      .ssa-card-head{display:flex;align-items:center;gap:8px;position:relative}
-      .ssa-card-image-icon{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:6px;overflow:hidden;cursor:pointer;opacity:0.8;transition:opacity 0.2s;flex-shrink:0;z-index:10;border:2px solid rgba(0,0,0,0.1)}
+      .ssa-card-head{display:flex;align-items:center;gap:6px;position:relative}
+      .ssa-card-image-icon{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:6px;overflow:hidden;cursor:pointer;opacity:0.8;transition:opacity 0.2s;flex-shrink:0;z-index:10;border:2px solid rgba(0,0,0,0.1)}
       .ssa-card-image-icon:hover{opacity:0.9;border-color:rgba(0,0,0,0.15)}
       .ssa-card-image-icon:active{opacity:0.7}
       .ssa-card-icon-thumb{width:100%;height:100%;object-fit:cover;display:block}
-      .ssa-title{margin:0;font-size:1.05rem;line-height:1.3;color:#1f2937;font-weight:600;flex:1;display:inline-flex;align-items:center;gap:4px}
-      .ssa-meta{margin:.35rem 0;color:#000000!important;font-weight:500}
+      .ssa-title{margin:0;font-size:1.05rem;line-height:1.35;color:#1f2937;font-weight:600;flex:1;display:inline-flex;align-items:center;gap:4px;letter-spacing:-0.01em}
+      .ssa-meta{margin:.4rem 0;color:#000000!important;font-weight:500;font-size:0.9rem;line-height:1.5}
       .ssa-meta .ssa-location{color:#0f172a!important}
+      @media(min-width:640px){
+        .ssa-card{border-radius:14px;box-shadow:0 2px 7px rgba(0,0,0,0.055)}
+        .ssa-card:hover{box-shadow:0 7px 21px rgba(0,0,0,0.11)}
+        .ssa-card[data-has-image="true"] .ssa-card-content{padding:16px}
+        .ssa-card:not([data-has-image="true"]) .ssa-card-content{padding:16px}
+        .ssa-card-content{min-height:130px}
+        .ssa-card-head{gap:7px}
+        .ssa-card-image-icon{width:38px;height:38px}
+        .ssa-title{font-size:1.1rem;gap:5px}
+        .ssa-meta{font-size:0.925rem;line-height:1.55}
+      }
+      @media(min-width:1024px){
+        .ssa-card{border-radius:16px;box-shadow:0 2px 8px rgba(0,0,0,0.06)}
+        .ssa-card:hover{box-shadow:0 8px 24px rgba(0,0,0,0.12)}
+        .ssa-card[data-has-image="true"] .ssa-card-content{padding:18px}
+        .ssa-card:not([data-has-image="true"]) .ssa-card-content{padding:18px}
+        .ssa-card-content{min-height:140px}
+        .ssa-card-head{gap:8px}
+        .ssa-card-image-icon{width:40px;height:40px}
+        .ssa-title{font-size:1.15rem;gap:6px}
+        .ssa-meta{font-size:0.95rem;line-height:1.6}
+      }
       .ssa-keywords{margin:.5rem 0;display:flex;flex-wrap:wrap;gap:4px}
-      .ssa-tag-clickable{display:inline-block;padding:8px 16px;border:2px solid #d1d5db;border-radius:20px;background:#fff;color:#374151;cursor:pointer;font-size:0.875rem;font-weight:500;line-height:1;transition:all 0.2s}
-      .ssa-tag-clickable:hover{background:#f9fafb;border-color:#9ca3af}
-      .ssa-tag-clickable.ssa-tag-active{background:#374151;border-color:#374151;color:#fff}
-      .ssa-tag-clickable.ssa-tag-active:hover{background:#1f2937;border-color:#1f2937}
+      .ssa-tag-clickable{display:inline-block;padding:8px 16px;border:2px solid #d1d5db;border-radius:20px;background:#fff!important;color:#374151!important;cursor:pointer;font-size:0.875rem;font-weight:500;line-height:1.2;transition:all 0.2s}
+      .ssa-tag-clickable:hover{background:#f9fafb!important;border-color:#9ca3af!important}
+      .ssa-tag-clickable.ssa-tag-active{background:#fff!important;border-color:#3b82f6!important;color:#3b82f6!important}
+      .ssa-tag-clickable.ssa-tag-active:hover{background:#f0f9ff!important;border-color:#2563eb!important;color:#2563eb!important}
       body.dark-mode .ssa-tag-clickable{background:var(--ssa-control-bg, #374151)!important;border-color:var(--ssa-control-border, #4b5563)!important;color:var(--ssa-text, #f9fafb)!important}
       body.dark-mode .ssa-tag-clickable:hover{background:#4b5563!important;border-color:#6b7280!important}
-      body.dark-mode .ssa-tag-clickable.ssa-tag-active{background:transparent!important;border-color:#3b82f6!important;color:#3b82f6!important}
-      body.dark-mode .ssa-tag-clickable.ssa-tag-active:hover{background:transparent!important;border-color:#60a5fa!important;color:#60a5fa!important}
-      body.dark-mode .ssa-event-name,.ssa-event-meta-item{color:#f9fafb!important}
-      body.dark-mode .ssa-event-meta-item,.ssa-event-meta-item *{color:#f9fafb!important}
-      body.dark-mode #events-list .ssa-event-meta-item,#events-list .ssa-event-meta-item *{color:#f9fafb!important}
-      body.dark-mode div.ssa-event-meta-item,div.ssa-event-meta-item *{color:#f9fafb!important}
-      body.dark-mode .ssa-event-meta-item strong{color:#f9fafb!important}
-      body.dark-mode #events-list .ssa-event-meta-item strong,.ssa-event-meta-item strong *,#events-list .ssa-event-meta-item strong *{color:#f9fafb!important}
-      body.dark-mode .ssa-card{background:#374151!important;border-color:#4b5563!important}
-      body.dark-mode .ssa-card *{color:#f9fafb!important}
-      body.dark-mode .ssa-title,.ssa-meta{color:#f9fafb!important}
-      body.dark-mode .ssa-card .ssa-location{color:#60a5fa!important}
-      body.dark-mode .ssa-card .ssa-location:hover{color:#93c5fd!important}
-      body.dark-mode .ssa-card h3{color:#f9fafb!important}
-      body.dark-mode .ssa-card p{color:#f9fafb!important}
-      body.dark-mode .ssa-card span{color:#f9fafb!important}
-      body.dark-mode .ssa-card strong{color:#f9fafb!important}
-      body.dark-mode .ssa-card a{color:#60a5fa!important}
-      body.dark-mode .ssa-card a:hover{color:#93c5fd!important}
-      body.dark-mode .ssa-event-item{border-bottom-color:#374151!important}
-      body.dark-mode .ssa-event-name,.ssa-event-meta-item{color:#f9fafb!important}
-      body.dark-mode .ssa-event-meta-item,.ssa-event-meta-item *{color:#f9fafb!important}
-      body.dark-mode #events-list .ssa-event-meta-item,#events-list .ssa-event-meta-item *{color:#f9fafb!important}
-      body.dark-mode div.ssa-event-meta-item,div.ssa-event-meta-item *{color:#f9fafb!important}
-      body.dark-mode .ssa-event-meta-item strong{color:#f9fafb!important}
-      body.dark-mode #events-list .ssa-event-meta-item strong,.ssa-event-meta-item strong *,#events-list .ssa-event-meta-item strong *{color:#f9fafb!important}
-      body.dark-mode .ssa-month-header,.ssa-day-header,.ssa-calendar-month-header{color:#f9fafb!important}
-      body.dark-mode .ssa-calendar-day{background:#374151!important;border-color:#4b5563!important}
-      body.dark-mode .ssa-calendar-day-empty{background:#111827!important}
-      body.dark-mode .ssa-calendar-day-out-of-range{opacity:0.3;background:#1f2937!important}
-      body.dark-mode .ssa-calendar-day-out-of-range .ssa-calendar-day-number{color:#6b7280!important}
-      body.dark-mode .ssa-calendar-day-header{background:#374151!important;color:#9ca3af!important}
-      body.dark-mode .ssa-calendar-day-number{color:#f9fafb!important}
-      body.dark-mode .ssa-calendar-grid{background:#4b5563!important;border-color:#4b5563!important}
+      body.dark-mode .ssa-tag-clickable.ssa-tag-active{background:var(--ssa-control-bg, #374151)!important;border-color:#3b82f6!important;color:#3b82f6!important}
+      body.dark-mode .ssa-tag-clickable.ssa-tag-active:hover{background:#4b5563!important;border-color:#60a5fa!important;color:#60a5fa!important}
       .ssa-link{text-decoration:underline;color:#3b82f6;font-weight:500}
-      @media(max-width:768px){
+      @media(max-width:639px){
         #events-list{padding:0 12px;box-sizing:border-box;max-width:100%;overflow-x:hidden}
         *{box-sizing:border-box}
-        .ssa-controls{padding:16px;gap:16px;margin:0 -12px 24px}
-        .ssa-view-controls-section{padding:12px;flex-direction:column;gap:12px}
-        .ssa-layout-switcher-wrapper{flex-direction:column;align-items:flex-start;gap:8px;width:100%}
-        .ssa-group-switcher-wrapper{flex-direction:column;align-items:flex-start;gap:8px;width:100%}
-        .ssa-layout-switcher-wrapper ~ .ssa-group-switcher-wrapper{border-top:1px solid #e5e7eb;padding-top:12px;margin-top:12px;border-left:none;padding-left:0}
-        body.dark-mode .ssa-layout-switcher-wrapper ~ .ssa-group-switcher-wrapper{border-top-color:#374151!important}
-        .ssa-display-options-section{padding:12px}
-        .ssa-display-options-wrapper{flex-direction:column;align-items:stretch;gap:8px}
-        .ssa-display-options-switcher{flex-direction:column;gap:8px;width:100%}
-        .ssa-date-filters-section{padding:12px}
-        .ssa-date-filters{flex-direction:column;align-items:stretch;gap:10px}
-        .ssa-date-inputs-row{display:flex;flex-direction:column;gap:10px;width:100%}
-        .ssa-date-filters label{flex-direction:column;align-items:flex-start;gap:6px;font-size:0.9rem;width:100%}
-        .ssa-date-input{width:100%;padding:10px;font-size:1rem;min-height:44px}
-        .ssa-clear-dates{width:100%;padding:10px;font-size:0.9rem;min-height:44px}
-        .ssa-weekend-btn{width:100%;padding:10px;font-size:0.9rem;min-height:44px}
-        .ssa-keyword-filters-section{padding:12px}
-        .ssa-control-label{font-size:0.8rem}
-        .ssa-layout-btn{padding:10px 14px;font-size:1.1rem;min-height:44px}
-        .ssa-group-switcher{gap:6px;width:100%}
-        .ssa-group-btn{padding:10px 14px;font-size:0.9rem;min-height:44px;flex:1}
-        .ssa-show-images-toggle,.ssa-signature-events-toggle,.ssa-dark-mode-toggle{width:100%;padding:10px;font-size:0.9rem;min-height:44px}
-        .ssa-keyword-filters{gap:6px}
-        .ssa-keyword-btn{padding:10px 14px;font-size:0.9rem;min-height:44px;border-radius:22px}
-        .ssa-month-header{font-size:1.1rem;margin:20px 0 10px}
-        .ssa-event-item{padding:16px 0;margin-bottom:16px;max-width:100%;overflow-x:hidden}
+        .ssa-controls{padding:12px;gap:12px;margin:0 -12px 20px}
+        .ssa-view-controls-section{padding:10px;flex-direction:row;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between}
+        .ssa-view-controls-left{flex-direction:row;flex-wrap:wrap;gap:8px;flex:1;min-width:0}
+        .ssa-layout-switcher-wrapper{flex-direction:row;align-items:center;gap:6px;flex:1;min-width:0}
+        .ssa-group-switcher-wrapper{flex-direction:row;align-items:center;gap:6px;flex:1;min-width:0}
+        .ssa-layout-switcher-wrapper ~ .ssa-group-switcher-wrapper{border-left:1px solid #e5e7eb;padding-left:8px;margin-left:0;border-top:none;padding-top:0;margin-top:0}
+        body.dark-mode .ssa-layout-switcher-wrapper ~ .ssa-group-switcher-wrapper{border-left-color:#374151!important}
+        .ssa-display-options-wrapper{flex-shrink:0;justify-content:flex-end}
+        .ssa-display-options-switcher{flex-direction:row;flex-wrap:wrap;gap:6px;justify-content:flex-end}
+        .ssa-date-filters-section{padding:10px}
+        .ssa-date-filters{flex-direction:row;flex-wrap:wrap;align-items:center;gap:6px}
+        .ssa-date-inputs-row{display:flex;flex-direction:row;gap:6px;width:100%;flex-basis:100%}
+        .ssa-date-filters label{flex-direction:row;align-items:center;gap:4px;font-size:0.8rem;flex:1;min-width:0}
+        .ssa-date-input{flex:1;padding:8px;font-size:0.85rem;min-height:40px;min-width:0}
+        .ssa-clear-dates{width:100%;padding:8px;font-size:0.85rem;min-height:40px;flex-basis:100%}
+        .ssa-weekend-btn{flex:1;min-width:calc(33.333% - 4px);padding:8px 4px;font-size:0.75rem;min-height:40px;white-space:normal;line-height:1.2;text-align:center}
+        .ssa-keyword-filters-section{padding:10px}
+        .ssa-control-label{font-size:0.75rem;margin-bottom:0;white-space:nowrap}
+        .ssa-layout-switcher{display:flex;gap:6px;flex-wrap:wrap}
+        .ssa-layout-btn{padding:8px 10px;font-size:1rem;min-height:40px}
+        .ssa-group-switcher{gap:6px;flex:1;min-width:0}
+        .ssa-group-btn{padding:8px 10px;font-size:0.85rem;min-height:40px;flex:1}
+        .ssa-show-images-toggle,.ssa-signature-events-toggle,.ssa-dark-mode-toggle{flex:1;min-width:calc(33.333% - 4px);padding:8px 4px;font-size:0.75rem;min-height:40px;white-space:normal;line-height:1.2;text-align:center}
+        .ssa-keyword-filters{gap:6px;justify-content:center}
+        .ssa-keyword-btn{padding:8px 12px;font-size:0.8rem;min-height:36px;border-radius:18px}
+        .ssa-event-item{padding:16px;margin-bottom:16px;max-width:100%;overflow-x:hidden}
         .ssa-event-content{flex-direction:column;gap:12px;max-width:100%}
         .ssa-event-image-wrapper{width:100%;height:200px;max-width:100%;box-sizing:border-box}
         .ssa-event-details{width:100%;max-width:100%;overflow-wrap:break-word;word-wrap:break-word}
@@ -2723,11 +2910,8 @@
         .ssa-event-meta-item strong{display:inline}
         .ssa-event-keywords{margin-top:12px;padding-top:12px;border-top:1px solid #e5e7eb;display:flex;flex-wrap:wrap;gap:6px;max-width:100%}
         .ssa-keyword-tag-clickable{padding:10px 14px;font-size:0.9rem;min-height:44px;border-radius:22px}
-        .ssa-info-popover{max-width:calc(100vw - 20px);width:calc(100vw - 20px);left:10px!important;right:10px;font-size:1rem;line-height:1.6;max-height:60vh;padding:16px;display:flex!important;flex-direction:column!important;overflow:hidden!important}
-        .ssa-info-popover .ssa-popover-content{overflow-y:auto!important;overflow-x:hidden!important;flex:1!important;min-height:0!important;max-height:calc(60vh - 32px)!important;-webkit-overflow-scrolling:touch!important}
+        .ssa-info-popover{max-width:calc(100vw - 20px);width:calc(100vw - 20px);left:10px!important;right:10px;font-size:1rem;line-height:1.6;max-height:60vh;padding:16px}
         .ssa-popover-close{width:32px;height:32px;font-size:24px;top:8px;right:8px}
-        .ssa-grid{gap:12px;max-width:100%}
-        .ssa-card{max-width:100%;overflow:hidden}
         .ssa-card-content{padding:16px!important;min-height:auto;max-width:100%;overflow-wrap:break-word;word-wrap:break-word}
         .ssa-title{font-size:1rem;line-height:1.4;flex-wrap:wrap;gap:6px;max-width:100%;overflow-wrap:break-word;word-wrap:break-word}
         .ssa-title .ssa-info-icon{margin-bottom:4px}
@@ -2736,8 +2920,680 @@
         .ssa-tag-clickable{padding:10px 14px;font-size:0.9rem;min-height:44px;border-radius:22px}
         .ssa-map-popover{width:calc(100vw - 20px)!important;height:250px;left:10px!important;right:10px}
       }
+      @media(min-width:640px) and (max-width:1023px){
+        #events-list{padding:0 16px;box-sizing:border-box;max-width:100%}
+        .ssa-controls{padding:20px;gap:16px}
+        .ssa-view-controls-section{padding:14px;flex-direction:row;flex-wrap:wrap;justify-content:space-between}
+        .ssa-view-controls-left{flex-direction:row;flex-wrap:wrap;gap:16px;flex:1}
+        .ssa-layout-switcher-wrapper{flex-direction:row;align-items:center;gap:10px}
+        .ssa-group-switcher-wrapper{flex-direction:row;align-items:center;gap:10px}
+        .ssa-layout-switcher-wrapper ~ .ssa-group-switcher-wrapper{padding-left:16px;border-left:1px solid #e5e7eb;border-top:none;padding-top:0;margin-top:0}
+        body.dark-mode .ssa-layout-switcher-wrapper ~ .ssa-group-switcher-wrapper{border-left-color:#374151!important}
+        .ssa-display-options-wrapper{flex-shrink:0;justify-content:flex-end}
+        .ssa-display-options-switcher{flex-direction:row;flex-wrap:wrap;gap:10px;justify-content:flex-end}
+        .ssa-date-filters-section{padding:14px}
+        .ssa-date-filters{flex-direction:row;flex-wrap:wrap;align-items:center;gap:10px}
+        .ssa-date-inputs-row{display:flex;flex-direction:row;gap:10px}
+        .ssa-date-filters label{font-size:0.875rem;flex-direction:row}
+        .ssa-date-input{padding:8px 10px;font-size:0.9rem;min-height:40px}
+        .ssa-clear-dates{padding:8px 12px;font-size:0.875rem;min-height:40px}
+        .ssa-weekend-btn{padding:8px 12px;font-size:0.875rem;min-height:40px}
+        .ssa-keyword-filters-section{padding:14px}
+        .ssa-control-label{font-size:0.875rem}
+        .ssa-layout-btn{padding:9px 13px;font-size:1.15rem;min-height:42px}
+        .ssa-group-btn{padding:9px 13px;font-size:0.875rem;min-height:42px}
+        .ssa-show-images-toggle,.ssa-signature-events-toggle,.ssa-dark-mode-toggle{padding:8px 14px;font-size:0.875rem;min-height:40px}
+        .ssa-keyword-btn{padding:9px 15px;font-size:0.875rem;min-height:40px}
+        .ssa-keyword-tag-clickable,.ssa-tag-clickable{padding:9px 15px;font-size:0.875rem;line-height:1.2}
+        .ssa-event-item{padding:14px;margin-bottom:18px}
+        .ssa-event-content{flex-direction:row;gap:16px}
+        .ssa-event-image-wrapper{width:70px;height:70px}
+        .ssa-event-name-wrapper strong{font-size:1.15rem}
+        .ssa-event-link{font-size:1.15rem}
+        .ssa-event-meta{margin-top:11px;gap:5px}
+        .ssa-event-meta-item{font-size:0.925rem}
+        .ssa-card-content{padding:16px!important}
+        .ssa-title{font-size:1.1rem}
+        .ssa-meta{font-size:0.925rem}
+        .ssa-map-popover{width:380px!important;height:280px!important}
+      }
+      @media(min-width:1024px){
+        #events-list{padding:0 24px;box-sizing:border-box;max-width:1400px;margin:0 auto}
+        .ssa-controls{padding:24px;gap:20px}
+        .ssa-view-controls-section{padding:16px;justify-content:space-between}
+        .ssa-view-controls-left{flex-direction:row;flex-wrap:wrap;gap:20px;flex:1}
+        .ssa-layout-switcher-wrapper{flex-direction:row;align-items:center;gap:10px}
+        .ssa-group-switcher-wrapper{flex-direction:row;align-items:center;gap:10px}
+        .ssa-layout-switcher-wrapper ~ .ssa-group-switcher-wrapper{padding-left:20px;border-left:1px solid #e5e7eb;border-top:none;padding-top:0;margin-top:0}
+        body.dark-mode .ssa-layout-switcher-wrapper ~ .ssa-group-switcher-wrapper{border-left-color:#374151!important}
+        .ssa-display-options-wrapper{flex-shrink:0;justify-content:flex-end}
+        .ssa-display-options-switcher{flex-direction:row;gap:10px;justify-content:flex-end}
+        .ssa-date-filters-section{padding:16px}
+        .ssa-date-filters{flex-direction:row;flex-wrap:wrap;align-items:center;gap:12px}
+        .ssa-date-inputs-row{display:flex;flex-direction:row;gap:12px}
+        .ssa-date-filters label{font-size:0.875rem;flex-direction:row}
+        .ssa-date-input{padding:8px 12px;font-size:0.875rem;min-height:36px}
+        .ssa-clear-dates{padding:8px 16px;font-size:0.875rem;min-height:36px}
+        .ssa-weekend-btn{padding:8px 16px;font-size:0.875rem;min-height:36px}
+        .ssa-keyword-filters-section{padding:16px}
+        .ssa-control-label{font-size:0.875rem}
+        .ssa-layout-btn{padding:10px 14px;font-size:1.2rem;min-height:40px}
+        .ssa-group-btn{padding:8px 16px;font-size:0.875rem;min-height:40px}
+        .ssa-show-images-toggle,.ssa-signature-events-toggle,.ssa-dark-mode-toggle{padding:8px 16px;font-size:0.875rem;min-height:36px}
+        .ssa-keyword-btn{padding:8px 16px;font-size:0.875rem;min-height:36px}
+        .ssa-keyword-tag-clickable,.ssa-tag-clickable{padding:8px 16px;font-size:0.875rem;line-height:1.2}
+        .ssa-event-item{padding:16px;margin-bottom:20px}
+        .ssa-event-content{flex-direction:row;gap:20px}
+        .ssa-event-image-wrapper{width:80px;height:80px}
+        .ssa-event-name-wrapper strong{font-size:1.25rem}
+        .ssa-event-link{font-size:1.25rem}
+        .ssa-event-meta{margin-top:12px;gap:6px}
+        .ssa-event-meta-item{font-size:0.95rem}
+        .ssa-card-content{padding:18px!important}
+        .ssa-title{font-size:1.15rem}
+        .ssa-meta{font-size:0.95rem}
+        .ssa-map-popover{width:400px!important;height:300px!important}
+      }
+      .ssa-dark-mode-toggle{padding:8px 12px;border:1px solid #d1d5db;border-radius:6px;background:#fff;color:#374151;cursor:pointer;font-size:0.875rem;font-weight:500;transition:all 0.2s;white-space:nowrap}
+      .ssa-dark-mode-toggle:hover{background:#f9fafb;border-color:#9ca3af}
+      body.dark-mode .ssa-dark-mode-toggle{background:#374151;border-color:#4b5563;color:#f9fafb}
+      body.dark-mode .ssa-dark-mode-toggle:hover{background:#4b5563;border-color:#6b7280}
+      body.dark-mode{background:#111827!important;color:#f9fafb!important}
+      html body.dark-mode{background:#111827!important;color:#f9fafb!important}
+      html.dark-mode,html body.dark-mode{background:#111827!important;color:#f9fafb!important}
+      html.dark-mode body,html body.dark-mode{background:#111827!important;color:#f9fafb!important}
+      body.dark-mode #events-list{background:#111827!important;color:#f9fafb!important}
+      body.dark-mode #events-list *{color:inherit}
+      body.dark-mode .Main-content{background:#111827!important}
+      body.dark-mode .sqs-block{background:transparent!important}
+      html.dark-mode .Main-content,html body.dark-mode .Main-content{background:#111827!important;color:#f9fafb!important}
+      html.dark-mode .Main,html body.dark-mode .Main{background:#111827!important;color:#f9fafb!important}
+      html.dark-mode .Main-inner,html body.dark-mode .Main-inner{background:#111827!important;color:#f9fafb!important}
+      html.dark-mode .Content,html body.dark-mode .Content{background:#111827!important;color:#f9fafb!important}
+      html.dark-mode .Content-inner,html body.dark-mode .Content-inner{background:#111827!important;color:#f9fafb!important}
+      html.dark-mode .page,html body.dark-mode .page{background:#111827!important;color:#f9fafb!important}
+      html.dark-mode .page-content,html body.dark-mode .page-content{background:#111827!important;color:#f9fafb!important}
+      html.dark-mode .sqs-layout,html body.dark-mode .sqs-layout{background:#111827!important;color:#f9fafb!important}
+      html.dark-mode .Site,html body.dark-mode .Site{background:#111827!important;color:#f9fafb!important}
+      html.dark-mode .Site-inner,html body.dark-mode .Site-inner{background:#111827!important;color:#f9fafb!important}
+      html.dark-mode #siteWrapper,html body.dark-mode #siteWrapper{background:#111827!important;color:#f9fafb!important}
+      html.dark-mode #site,html body.dark-mode #site{background:#111827!important;color:#f9fafb!important}
+      html.dark-mode #mainContent,html body.dark-mode #mainContent{background:#111827!important;color:#f9fafb!important}
+      html.dark-mode #content,html body.dark-mode #content{background:#111827!important;color:#f9fafb!important}
+      html.dark-mode .sqs-wrapper,html body.dark-mode .sqs-wrapper{background:#111827!important;color:#f9fafb!important}
+      html.dark-mode .sqs-container,html body.dark-mode .sqs-container{background:#111827!important;color:#f9fafb!important}
+      html.dark-mode .sqs-row,html body.dark-mode .sqs-row{background:transparent!important}
+      html.dark-mode .sqs-col,html body.dark-mode .sqs-col{background:transparent!important}
+      html.dark-mode .sqs-block,html body.dark-mode .sqs-block{background:transparent!important}
+      html.dark-mode .sqs-block-content,html body.dark-mode .sqs-block-content{background:transparent!important}
+      html.dark-mode h1,html body.dark-mode h1,html.dark-mode h2,html body.dark-mode h2,html.dark-mode h3,html body.dark-mode h3,html.dark-mode h4,html body.dark-mode h4,html.dark-mode h5,html body.dark-mode h5,html.dark-mode h6,html body.dark-mode h6{color:#f9fafb!important}
+      html.dark-mode p,html body.dark-mode p{color:#e5e7eb!important}
+      html.dark-mode a,html body.dark-mode a{color:#60a5fa!important}
+      html.dark-mode a:hover,html body.dark-mode a:hover{color:#93c5fd!important}
+      body.dark-mode .Main{background:#111827!important}
+      body.dark-mode .Main-inner{background:#111827!important}
+      body.dark-mode .Content{background:#111827!important}
+      body.dark-mode .Content-inner{background:#111827!important}
+      body.dark-mode .page{background:#111827!important}
+      body.dark-mode .page-content{background:#111827!important}
+      body.dark-mode .sqs-layout{background:#111827!important}
+      body.dark-mode .sqs-row{background:transparent!important}
+      body.dark-mode .sqs-col{background:transparent!important}
+      body.dark-mode .sqs-block-content{background:transparent!important}
+      body.dark-mode .sqs-block-html{background:transparent!important}
+      body.dark-mode .sqs-block-code{background:transparent!important}
+      body.dark-mode .sqs-block-markdown{background:transparent!important}
+      body.dark-mode .sqs-block-embed{background:transparent!important}
+      body.dark-mode .sqs-block-image{background:transparent!important}
+      body.dark-mode .sqs-block-video{background:transparent!important}
+      body.dark-mode .sqs-block-summary-v2{background:transparent!important}
+      body.dark-mode .sqs-block-form{background:transparent!important}
+      body.dark-mode .sqs-block-button{background:transparent!important}
+      body.dark-mode .sqs-block-spacer{background:transparent!important}
+      body.dark-mode .sqs-block-divider{background:transparent!important}
+      body.dark-mode .sqs-block-menu{background:transparent!important}
+      body.dark-mode .sqs-block-socialaccountlinks{background:transparent!important}
+      body.dark-mode .sqs-block-twitter{background:transparent!important}
+      body.dark-mode .sqs-block-instagram{background:transparent!important}
+      body.dark-mode .sqs-block-facebook{background:transparent!important}
+      body.dark-mode .sqs-block-youtube{background:transparent!important}
+      body.dark-mode .sqs-block-pinterest{background:transparent!important}
+      body.dark-mode .sqs-block-tumblr{background:transparent!important}
+      body.dark-mode .sqs-block-foursquare{background:transparent!important}
+      body.dark-mode .sqs-block-vimeo{background:transparent!important}
+      body.dark-mode .sqs-block-soundcloud{background:transparent!important}
+      body.dark-mode .sqs-block-rss{background:transparent!important}
+      body.dark-mode .sqs-block-linkedin{background:transparent!important}
+      body.dark-mode .sqs-block-snapchat{background:transparent!important}
+      body.dark-mode .sqs-block-medium{background:transparent!important}
+      body.dark-mode .sqs-block-newsletter{background:transparent!important}
+      body.dark-mode .sqs-block-calendar{background:transparent!important}
+      body.dark-mode .sqs-block-gallery{background:transparent!important}
+      body.dark-mode .sqs-block-map{background:transparent!important}
+      body.dark-mode .sqs-block-audio{background:transparent!important}
+      body.dark-mode .sqs-block-quote{background:transparent!important}
+      body.dark-mode .sqs-block-animation{background:transparent!important}
+      body.dark-mode .sqs-block-shape{background:transparent!important}
+      body.dark-mode .sqs-block-chart{background:transparent!important}
+      body.dark-mode .sqs-block-table{background:transparent!important}
+      body.dark-mode .sqs-block-tagcloud{background:transparent!important}
+      body.dark-mode .sqs-block-search{background:transparent!important}
+      body.dark-mode .sqs-block-comments{background:transparent!important}
+      body.dark-mode .sqs-block-blog{background:transparent!important}
+      body.dark-mode .sqs-block-events{background:transparent!important}
+      body.dark-mode .sqs-block-products{background:transparent!important}
+      body.dark-mode .sqs-block-cart{background:transparent!important}
+      body.dark-mode .sqs-block-newsletter{background:transparent!important}
+      body.dark-mode .sqs-block-newsletter .newsletter-form{background:transparent!important}
+      body.dark-mode .sqs-block-newsletter .newsletter-form-field-wrapper{background:transparent!important}
+      body.dark-mode .sqs-block-newsletter .newsletter-form-field-wrapper input{background:#374151!important;border-color:#4b5563!important;color:#f9fafb!important}
+      body.dark-mode .sqs-block-newsletter .newsletter-form-field-wrapper input::placeholder{color:#9ca3af!important}
+      body.dark-mode .sqs-block-newsletter .newsletter-form-button{background:#3b82f6!important;border-color:#3b82f6!important;color:#fff!important}
+      body.dark-mode .sqs-block-newsletter .newsletter-form-button:hover{background:#2563eb!important;border-color:#2563eb!important}
+      body.dark-mode .sqs-block-form .form-wrapper{background:transparent!important}
+      body.dark-mode .sqs-block-form .form-wrapper .field-list{background:transparent!important}
+      body.dark-mode .sqs-block-form .form-wrapper .field-list .field{background:transparent!important}
+      body.dark-mode .sqs-block-form .form-wrapper .field-list .field input{background:#374151!important;border-color:#4b5563!important;color:#f9fafb!important}
+      body.dark-mode .sqs-block-form .form-wrapper .field-list .field input::placeholder{color:#9ca3af!important}
+      body.dark-mode .sqs-block-form .form-wrapper .field-list .field textarea{background:#374151!important;border-color:#4b5563!important;color:#f9fafb!important}
+      body.dark-mode .sqs-block-form .form-wrapper .field-list .field textarea::placeholder{color:#9ca3af!important}
+      body.dark-mode .sqs-block-form .form-wrapper .field-list .field select{background:#374151!important;border-color:#4b5563!important;color:#f9fafb!important}
+      body.dark-mode .sqs-block-form .form-wrapper .field-list .field label{color:#f9fafb!important}
+      body.dark-mode .sqs-block-form .form-wrapper .field-list .field .caption{color:#9ca3af!important}
+      body.dark-mode .sqs-block-form .form-wrapper .field-list .field .field-error{color:#ef4444!important}
+      body.dark-mode .sqs-block-form .form-wrapper .field-list .field .field-help{color:#9ca3af!important}
+      body.dark-mode .sqs-block-form .form-wrapper .button{background:#3b82f6!important;border-color:#3b82f6!important;color:#fff!important}
+      body.dark-mode .sqs-block-form .form-wrapper .button:hover{background:#2563eb!important;border-color:#2563eb!important}
+      body.dark-mode .sqs-block-button .sqs-block-button-element{background:#3b82f6!important;border-color:#3b82f6!important;color:#fff!important}
+      body.dark-mode .sqs-block-button .sqs-block-button-element:hover{background:#2563eb!important;border-color:#2563eb!important}
+      body.dark-mode .sqs-block-button .sqs-block-button-element--primary{background:#3b82f6!important;border-color:#3b82f6!important;color:#fff!important}
+      body.dark-mode .sqs-block-button .sqs-block-button-element--primary:hover{background:#2563eb!important;border-color:#2563eb!important}
+      body.dark-mode .sqs-block-button .sqs-block-button-element--secondary{background:transparent!important;border-color:#4b5563!important;color:#f9fafb!important}
+      body.dark-mode .sqs-block-button .sqs-block-button-element--secondary:hover{background:#374151!important;border-color:#6b7280!important}
+      body.dark-mode .sqs-block-menu .menu{background:transparent!important}
+      body.dark-mode .sqs-block-menu .menu .menu-item{background:transparent!important}
+      body.dark-mode .sqs-block-menu .menu .menu-item a{color:#f9fafb!important}
+      body.dark-mode .sqs-block-menu .menu .menu-item a:hover{color:#60a5fa!important}
+      body.dark-mode .sqs-block-menu .menu .menu-item.active a{color:#60a5fa!important}
+      body.dark-mode .sqs-block-menu .menu .menu-item.active a:hover{color:#93c5fd!important}
+      body.dark-mode .sqs-block-menu .menu .menu-item .submenu{background:#1f2937!important;border-color:#374151!important}
+      body.dark-mode .sqs-block-menu .menu .menu-item .submenu .menu-item{background:transparent!important}
+      body.dark-mode .sqs-block-menu .menu .menu-item .submenu .menu-item a{color:#f9fafb!important}
+      body.dark-mode .sqs-block-menu .menu .menu-item .submenu .menu-item a:hover{color:#60a5fa!important;background:#374151!important}
+      body.dark-mode .sqs-block-menu .menu .menu-item .submenu .menu-item.active a{color:#60a5fa!important}
+      body.dark-mode .sqs-block-menu .menu .menu-item .submenu .menu-item.active a:hover{color:#93c5fd!important}
+      body.dark-mode .sqs-block-socialaccountlinks .sqs-svg-icon--wrapper{background:transparent!important}
+      body.dark-mode .sqs-block-socialaccountlinks .sqs-svg-icon--wrapper svg{fill:#f9fafb!important}
+      body.dark-mode .sqs-block-socialaccountlinks .sqs-svg-icon--wrapper:hover svg{fill:#60a5fa!important}
+      body.dark-mode .sqs-block-image .image-block-wrapper{background:transparent!important}
+      body.dark-mode .sqs-block-image .image-block-wrapper img{opacity:0.95}
+      body.dark-mode .sqs-block-image .image-block-wrapper:hover img{opacity:1}
+      body.dark-mode .sqs-block-video .video-block-wrapper{background:transparent!important}
+      body.dark-mode .sqs-block-video .video-block-wrapper video{opacity:0.95}
+      body.dark-mode .sqs-block-video .video-block-wrapper:hover video{opacity:1}
+      body.dark-mode .sqs-block-gallery .gallery-wrapper{background:transparent!important}
+      body.dark-mode .sqs-block-gallery .gallery-wrapper .gallery-item{background:transparent!important}
+      body.dark-mode .sqs-block-gallery .gallery-wrapper .gallery-item img{opacity:0.95}
+      body.dark-mode .sqs-block-gallery .gallery-wrapper .gallery-item:hover img{opacity:1}
+      body.dark-mode .sqs-block-quote .quote-block{background:transparent!important}
+      body.dark-mode .sqs-block-quote .quote-block .quote-content{color:#f9fafb!important}
+      body.dark-mode .sqs-block-quote .quote-block .quote-author{color:#9ca3af!important}
+      body.dark-mode .sqs-block-quote .quote-block .quote-author::before{color:#4b5563!important}
+      body.dark-mode .sqs-block-quote .quote-block .quote-author::after{color:#4b5563!important}
+      body.dark-mode .sqs-block-summary-v2 .summary-item{background:#1f2937!important;border-color:#374151!important}
+      body.dark-mode .sqs-block-summary-v2 .summary-item:hover{background:#374151!important;border-color:#4b5563!important}
+      body.dark-mode .sqs-block-summary-v2 .summary-item .summary-title{color:#f9fafb!important}
+      body.dark-mode .sqs-block-summary-v2 .summary-item .summary-content{color:#e5e7eb!important}
+      body.dark-mode .sqs-block-summary-v2 .summary-item .summary-metadata{color:#9ca3af!important}
+      body.dark-mode .sqs-block-summary-v2 .summary-item .summary-metadata a{color:#60a5fa!important}
+      body.dark-mode .sqs-block-summary-v2 .summary-item .summary-metadata a:hover{color:#93c5fd!important}
+      body.dark-mode .sqs-block-summary-v2 .summary-item .summary-thumbnail img{opacity:0.95}
+      body.dark-mode .sqs-block-summary-v2 .summary-item:hover .summary-thumbnail img{opacity:1}
+      body.dark-mode .sqs-block-blog .blog-item{background:#1f2937!important;border-color:#374151!important}
+      body.dark-mode .sqs-block-blog .blog-item:hover{background:#374151!important;border-color:#4b5563!important}
+      body.dark-mode .sqs-block-blog .blog-item .blog-title{color:#f9fafb!important}
+      body.dark-mode .sqs-block-blog .blog-item .blog-content{color:#e5e7eb!important}
+      body.dark-mode .sqs-block-blog .blog-item .blog-metadata{color:#9ca3af!important}
+      body.dark-mode .sqs-block-blog .blog-item .blog-metadata a{color:#60a5fa!important}
+      body.dark-mode .sqs-block-blog .blog-item .blog-metadata a:hover{color:#93c5fd!important}
+      body.dark-mode .sqs-block-blog .blog-item .blog-thumbnail img{opacity:0.95}
+      body.dark-mode .sqs-block-blog .blog-item:hover .blog-thumbnail img{opacity:1}
+      body.dark-mode .sqs-block-events .event-item{background:#1f2937!important;border-color:#374151!important}
+      body.dark-mode .sqs-block-events .event-item:hover{background:#374151!important;border-color:#4b5563!important}
+      body.dark-mode .sqs-block-events .event-item .event-title{color:#f9fafb!important}
+      body.dark-mode .sqs-block-events .event-item .event-content{color:#e5e7eb!important}
+      body.dark-mode .sqs-block-events .event-item .event-metadata{color:#9ca3af!important}
+      body.dark-mode .sqs-block-events .event-item .event-metadata a{color:#60a5fa!important}
+      body.dark-mode .sqs-block-events .event-item .event-metadata a:hover{color:#93c5fd!important}
+      body.dark-mode .sqs-block-events .event-item .event-thumbnail img{opacity:0.95}
+      body.dark-mode .sqs-block-events .event-item:hover .event-thumbnail img{opacity:1}
+      body.dark-mode .sqs-block-products .product-item{background:#1f2937!important;border-color:#374151!important}
+      body.dark-mode .sqs-block-products .product-item:hover{background:#374151!important;border-color:#4b5563!important}
+      body.dark-mode .sqs-block-products .product-item .product-title{color:#f9fafb!important}
+      body.dark-mode .sqs-block-products .product-item .product-content{color:#e5e7eb!important}
+      body.dark-mode .sqs-block-products .product-item .product-price{color:#f9fafb!important}
+      body.dark-mode .sqs-block-products .product-item .product-price .product-price-on-sale{color:#ef4444!important}
+      body.dark-mode .sqs-block-products .product-item .product-price .product-price-original{color:#9ca3af!important;text-decoration:line-through}
+      body.dark-mode .sqs-block-products .product-item .product-metadata{color:#9ca3af!important}
+      body.dark-mode .sqs-block-products .product-item .product-metadata a{color:#60a5fa!important}
+      body.dark-mode .sqs-block-products .product-item .product-metadata a:hover{color:#93c5fd!important}
+      body.dark-mode .sqs-block-products .product-item .product-thumbnail img{opacity:0.95}
+      body.dark-mode .sqs-block-products .product-item:hover .product-thumbnail img{opacity:1}
+      body.dark-mode .sqs-block-cart .cart-item{background:#1f2937!important;border-color:#374151!important}
+      body.dark-mode .sqs-block-cart .cart-item:hover{background:#374151!important;border-color:#4b5563!important}
+      body.dark-mode .sqs-block-cart .cart-item .cart-item-title{color:#f9fafb!important}
+      body.dark-mode .sqs-block-cart .cart-item .cart-item-price{color:#f9fafb!important}
+      body.dark-mode .sqs-block-cart .cart-item .cart-item-quantity{color:#f9fafb!important}
+      body.dark-mode .sqs-block-cart .cart-item .cart-item-total{color:#f9fafb!important}
+      body.dark-mode .sqs-block-cart .cart-item .cart-item-remove{color:#ef4444!important}
+      body.dark-mode .sqs-block-cart .cart-item .cart-item-remove:hover{color:#dc2626!important}
+      body.dark-mode .sqs-block-cart .cart-total{color:#f9fafb!important}
+      body.dark-mode .sqs-block-cart .cart-total .cart-total-label{color:#9ca3af!important}
+      body.dark-mode .sqs-block-cart .cart-total .cart-total-amount{color:#f9fafb!important}
+      body.dark-mode .sqs-block-cart .cart-checkout-button{background:#3b82f6!important;border-color:#3b82f6!important;color:#fff!important}
+      body.dark-mode .sqs-block-cart .cart-checkout-button:hover{background:#2563eb!important;border-color:#2563eb!important}
+      body.dark-mode .sqs-block-search .search-input{background:#374151!important;border-color:#4b5563!important;color:#f9fafb!important}
+      body.dark-mode .sqs-block-search .search-input::placeholder{color:#9ca3af!important}
+      body.dark-mode .sqs-block-search .search-button{background:#3b82f6!important;border-color:#3b82f6!important;color:#fff!important}
+      body.dark-mode .sqs-block-search .search-button:hover{background:#2563eb!important;border-color:#2563eb!important}
+      body.dark-mode .sqs-block-search .search-results{background:#1f2937!important;border-color:#374151!important}
+      body.dark-mode .sqs-block-search .search-results .search-result-item{background:transparent!important;border-color:#374151!important}
+      body.dark-mode .sqs-block-search .search-results .search-result-item:hover{background:#374151!important;border-color:#4b5563!important}
+      body.dark-mode .sqs-block-search .search-results .search-result-item .search-result-title{color:#f9fafb!important}
+      body.dark-mode .sqs-block-search .search-results .search-result-item .search-result-content{color:#e5e7eb!important}
+      body.dark-mode .sqs-block-search .search-results .search-result-item .search-result-metadata{color:#9ca3af!important}
+      body.dark-mode .sqs-block-search .search-results .search-result-item .search-result-metadata a{color:#60a5fa!important}
+      body.dark-mode .sqs-block-search .search-results .search-result-item .search-result-metadata a:hover{color:#93c5fd!important}
+      body.dark-mode .sqs-block-comments .comment-item{background:#1f2937!important;border-color:#374151!important}
+      body.dark-mode .sqs-block-comments .comment-item:hover{background:#374151!important;border-color:#4b5563!important}
+      body.dark-mode .sqs-block-comments .comment-item .comment-author{color:#f9fafb!important}
+      body.dark-mode .sqs-block-comments .comment-item .comment-content{color:#e5e7eb!important}
+      body.dark-mode .sqs-block-comments .comment-item .comment-metadata{color:#9ca3af!important}
+      body.dark-mode .sqs-block-comments .comment-item .comment-metadata a{color:#60a5fa!important}
+      body.dark-mode .sqs-block-comments .comment-item .comment-metadata a:hover{color:#93c5fd!important}
+      body.dark-mode .sqs-block-comments .comment-form{background:transparent!important}
+      body.dark-mode .sqs-block-comments .comment-form .comment-form-field{background:#374151!important;border-color:#4b5563!important;color:#f9fafb!important}
+      body.dark-mode .sqs-block-comments .comment-form .comment-form-field::placeholder{color:#9ca3af!important}
+      body.dark-mode .sqs-block-comments .comment-form .comment-form-button{background:#3b82f6!important;border-color:#3b82f6!important;color:#fff!important}
+      body.dark-mode .sqs-block-comments .comment-form .comment-form-button:hover{background:#2563eb!important;border-color:#2563eb!important}
+      body.dark-mode .sqs-block-table .table-wrapper{background:transparent!important}
+      body.dark-mode .sqs-block-table .table-wrapper table{background:transparent!important;border-color:#374151!important}
+      body.dark-mode .sqs-block-table .table-wrapper table th{background:#1f2937!important;border-color:#374151!important;color:#f9fafb!important}
+      body.dark-mode .sqs-block-table .table-wrapper table td{background:transparent!important;border-color:#374151!important;color:#f9fafb!important}
+      body.dark-mode .sqs-block-table .table-wrapper table tr:hover td{background:#374151!important}
+      body.dark-mode .sqs-block-table .table-wrapper table tr:nth-child(even) td{background:#1f2937!important}
+      body.dark-mode .sqs-block-table .table-wrapper table tr:nth-child(even):hover td{background:#374151!important}
+      body.dark-mode .sqs-block-chart .chart-wrapper{background:transparent!important}
+      body.dark-mode .sqs-block-chart .chart-wrapper .chart-title{color:#f9fafb!important}
+      body.dark-mode .sqs-block-chart .chart-wrapper .chart-content{color:#e5e7eb!important}
+      body.dark-mode .sqs-block-tagcloud .tagcloud-wrapper{background:transparent!important}
+      body.dark-mode .sqs-block-tagcloud .tagcloud-wrapper .tagcloud-item{background:#374151!important;border-color:#4b5563!important;color:#f9fafb!important}
+      body.dark-mode .sqs-block-tagcloud .tagcloud-wrapper .tagcloud-item:hover{background:#4b5563!important;border-color:#6b7280!important;color:#60a5fa!important}
+      body.dark-mode .sqs-block-divider .divider-wrapper{background:transparent!important}
+      body.dark-mode .sqs-block-divider .divider-wrapper .divider-line{background:#374151!important;border-color:#4b5563!important}
+      body.dark-mode .sqs-block-spacer .spacer-wrapper{background:transparent!important}
+      body.dark-mode .sqs-block-shape .shape-wrapper{background:transparent!important}
+      body.dark-mode .sqs-block-shape .shape-wrapper svg{fill:#f9fafb!important;stroke:#f9fafb!important}
+      body.dark-mode .sqs-block-animation .animation-wrapper{background:transparent!important}
+      body.dark-mode .sqs-block-audio .audio-wrapper{background:transparent!important}
+      body.dark-mode .sqs-block-audio .audio-wrapper .audio-player{background:#374151!important;border-color:#4b5563!important;color:#f9fafb!important}
+      body.dark-mode .sqs-block-audio .audio-wrapper .audio-player .audio-controls{background:transparent!important;color:#f9fafb!important}
+      body.dark-mode .sqs-block-audio .audio-wrapper .audio-player .audio-controls:hover{color:#60a5fa!important}
+      body.dark-mode .sqs-block-audio .audio-wrapper .audio-player .audio-progress{background:#4b5563!important}
+      body.dark-mode .sqs-block-audio .audio-wrapper .audio-player .audio-progress .audio-progress-bar{background:#3b82f6!important}
+      body.dark-mode .sqs-block-audio .audio-wrapper .audio-player .audio-time{color:#9ca3af!important}
+      body.dark-mode .sqs-block-map .map-wrapper{background:transparent!important}
+      body.dark-mode .sqs-block-map .map-wrapper .map-container{background:#1f2937!important;border-color:#374151!important}
+      body.dark-mode .sqs-block-map .map-wrapper .map-container .map-controls{background:#374151!important;border-color:#4b5563!important;color:#f9fafb!important}
+      body.dark-mode .sqs-block-map .map-wrapper .map-container .map-controls:hover{background:#4b5563!important;border-color:#6b7280!important}
+      body.dark-mode .sqs-block-map .map-wrapper .map-container .map-marker{background:#3b82f6!important;border-color:#2563eb!important;color:#fff!important}
+      body.dark-mode .sqs-block-map .map-wrapper .map-container .map-marker:hover{background:#2563eb!important;border-color:#1d4ed8!important}
+      body.dark-mode .sqs-block-map .map-wrapper .map-container .map-popup{background:#1f2937!important;border-color:#374151!important;color:#f9fafb!important}
+      body.dark-mode .sqs-block-map .map-wrapper .map-container .map-popup .map-popup-title{color:#f9fafb!important}
+      body.dark-mode .sqs-block-map .map-wrapper .map-container .map-popup .map-popup-content{color:#e5e7eb!important}
+      body.dark-mode .sqs-block-map .map-wrapper .map-container .map-popup .map-popup-close{color:#9ca3af!important}
+      body.dark-mode .sqs-block-map .map-wrapper .map-container .map-popup .map-popup-close:hover{color:#f9fafb!important}
+      body.dark-mode .sqs-block-calendar .calendar-wrapper{background:transparent!important}
+      body.dark-mode .sqs-block-calendar .calendar-wrapper .calendar-header{background:#1f2937!important;border-color:#374151!important;color:#f9fafb!important}
+      body.dark-mode .sqs-block-calendar .calendar-wrapper .calendar-header .calendar-nav{background:transparent!important;color:#f9fafb!important}
+      body.dark-mode .sqs-block-calendar .calendar-wrapper .calendar-header .calendar-nav:hover{background:#374151!important;color:#60a5fa!important}
+      body.dark-mode .sqs-block-calendar .calendar-wrapper .calendar-header .calendar-title{color:#f9fafb!important}
+      body.dark-mode .sqs-block-calendar .calendar-wrapper .calendar-grid{background:transparent!important;border-color:#374151!important}
+      body.dark-mode .sqs-block-calendar .calendar-wrapper .calendar-grid .calendar-day-header{background:#374151!important;border-color:#4b5563!important;color:#f9fafb!important}
+      body.dark-mode .sqs-block-calendar .calendar-wrapper .calendar-grid .calendar-day{background:#1f2937!important;border-color:#374151!important;color:#f9fafb!important}
+      body.dark-mode .sqs-block-calendar .calendar-wrapper .calendar-grid .calendar-day:hover{background:#374151!important;border-color:#4b5563!important}
+      body.dark-mode .sqs-block-calendar .calendar-wrapper .calendar-grid .calendar-day.today{background:#3b82f6!important;border-color:#2563eb!important;color:#fff!important}
+      body.dark-mode .sqs-block-calendar .calendar-wrapper .calendar-grid .calendar-day.today:hover{background:#2563eb!important;border-color:#1d4ed8!important}
+      body.dark-mode .sqs-block-calendar .calendar-wrapper .calendar-grid .calendar-day.other-month{background:transparent!important;border-color:#374151!important;color:#6b7280!important}
+      body.dark-mode .sqs-block-calendar .calendar-wrapper .calendar-grid .calendar-day.other-month:hover{background:#1f2937!important;border-color:#4b5563!important}
+      body.dark-mode .sqs-block-calendar .calendar-wrapper .calendar-grid .calendar-day.has-events{background:#1f2937!important;border-color:#3b82f6!important;color:#f9fafb!important}
+      body.dark-mode .sqs-block-calendar .calendar-wrapper .calendar-grid .calendar-day.has-events:hover{background:#374151!important;border-color:#60a5fa!important}
+      body.dark-mode .sqs-block-calendar .calendar-wrapper .calendar-grid .calendar-day.has-events .calendar-day-number{color:#3b82f6!important}
+      body.dark-mode .sqs-block-calendar .calendar-wrapper .calendar-grid .calendar-day.has-events:hover .calendar-day-number{color:#60a5fa!important}
+      body.dark-mode .sqs-block-calendar .calendar-wrapper .calendar-events{background:#1f2937!important;border-color:#374151!important}
+      body.dark-mode .sqs-block-calendar .calendar-wrapper .calendar-events .calendar-event-item{background:transparent!important;border-color:#374151!important;color:#f9fafb!important}
+      body.dark-mode .sqs-block-calendar .calendar-wrapper .calendar-events .calendar-event-item:hover{background:#374151!important;border-color:#4b5563!important}
+      body.dark-mode .sqs-block-calendar .calendar-wrapper .calendar-events .calendar-event-item .calendar-event-title{color:#f9fafb!important}
+      body.dark-mode .sqs-block-calendar .calendar-wrapper .calendar-events .calendar-event-item .calendar-event-content{color:#e5e7eb!important}
+      body.dark-mode .sqs-block-calendar .calendar-wrapper .calendar-events .calendar-event-item .calendar-event-metadata{color:#9ca3af!important}
+      body.dark-mode .sqs-block-calendar .calendar-wrapper .calendar-events .calendar-event-item .calendar-event-metadata a{color:#60a5fa!important}
+      body.dark-mode .sqs-block-calendar .calendar-wrapper .calendar-events .calendar-event-item .calendar-event-metadata a:hover{color:#93c5fd!important}
+      body.dark-mode .Header{background:#111827!important;border-color:#374151!important}
+      body.dark-mode .Header-inner{background:#111827!important}
+      body.dark-mode .Header-nav{background:transparent!important}
+      body.dark-mode .Header-nav .Header-nav-item{background:transparent!important}
+      body.dark-mode .Header-nav .Header-nav-item a{color:#f9fafb!important}
+      body.dark-mode .Header-nav .Header-nav-item a:hover{color:#60a5fa!important}
+      body.dark-mode .Header-nav .Header-nav-item.active a{color:#60a5fa!important}
+      body.dark-mode .Header-nav .Header-nav-item.active a:hover{color:#93c5fd!important}
+      body.dark-mode .Header-nav .Header-nav-item .Header-nav-submenu{background:#1f2937!important;border-color:#374151!important}
+      body.dark-mode .Header-nav .Header-nav-item .Header-nav-submenu .Header-nav-submenu-item{background:transparent!important}
+      body.dark-mode .Header-nav .Header-nav-item .Header-nav-submenu .Header-nav-submenu-item a{color:#f9fafb!important}
+      body.dark-mode .Header-nav .Header-nav-item .Header-nav-submenu .Header-nav-submenu-item a:hover{color:#60a5fa!important;background:#374151!important}
+      body.dark-mode .Header-nav .Header-nav-item .Header-nav-submenu .Header-nav-submenu-item.active a{color:#60a5fa!important}
+      body.dark-mode .Header-nav .Header-nav-item .Header-nav-submenu .Header-nav-submenu-item.active a:hover{color:#93c5fd!important}
+      body.dark-mode .Header-logo{background:transparent!important}
+      body.dark-mode .Header-logo img{opacity:0.95}
+      body.dark-mode .Header-logo:hover img{opacity:1}
+      body.dark-mode .Header-actions{background:transparent!important}
+      body.dark-mode .Header-actions .Header-action{background:transparent!important;color:#f9fafb!important}
+      body.dark-mode .Header-actions .Header-action:hover{background:#374151!important;color:#60a5fa!important}
+      body.dark-mode .Header-actions .Header-action.active{background:#3b82f6!important;color:#fff!important}
+      body.dark-mode .Header-actions .Header-action.active:hover{background:#2563eb!important}
+      body.dark-mode .Header-actions .Header-action .Header-action-icon{color:#f9fafb!important}
+      body.dark-mode .Header-actions .Header-action:hover .Header-action-icon{color:#60a5fa!important}
+      body.dark-mode .Header-actions .Header-action.active .Header-action-icon{color:#fff!important}
+      body.dark-mode .Header-actions .Header-action.active:hover .Header-action-icon{color:#fff!important}
+      body.dark-mode .Header-mobileNav{background:#111827!important;border-color:#374151!important}
+      body.dark-mode .Header-mobileNav .Header-mobileNav-toggle{background:transparent!important;color:#f9fafb!important}
+      body.dark-mode .Header-mobileNav .Header-mobileNav-toggle:hover{background:#374151!important;color:#60a5fa!important}
+      body.dark-mode .Header-mobileNav .Header-mobileNav-menu{background:#1f2937!important;border-color:#374151!important}
+      body.dark-mode .Header-mobileNav .Header-mobileNav-menu .Header-mobileNav-menu-item{background:transparent!important}
+      body.dark-mode .Header-mobileNav .Header-mobileNav-menu .Header-mobileNav-menu-item a{color:#f9fafb!important}
+      body.dark-mode .Header-mobileNav .Header-mobileNav-menu .Header-mobileNav-menu-item a:hover{color:#60a5fa!important;background:#374151!important}
+      body.dark-mode .Header-mobileNav .Header-mobileNav-menu .Header-mobileNav-menu-item.active a{color:#60a5fa!important}
+      body.dark-mode .Header-mobileNav .Header-mobileNav-menu .Header-mobileNav-menu-item.active a:hover{color:#93c5fd!important}
+      body.dark-mode .Header-mobileNav .Header-mobileNav-menu .Header-mobileNav-menu-item .Header-mobileNav-submenu{background:#374151!important;border-color:#4b5563!important}
+      body.dark-mode .Header-mobileNav .Header-mobileNav-menu .Header-mobileNav-menu-item .Header-mobileNav-submenu .Header-mobileNav-submenu-item{background:transparent!important}
+      body.dark-mode .Header-mobileNav .Header-mobileNav-menu .Header-mobileNav-menu-item .Header-mobileNav-submenu .Header-mobileNav-submenu-item a{color:#f9fafb!important}
+      body.dark-mode .Header-mobileNav .Header-mobileNav-menu .Header-mobileNav-menu-item .Header-mobileNav-submenu .Header-mobileNav-submenu-item a:hover{color:#60a5fa!important;background:#4b5563!important}
+      body.dark-mode .Header-mobileNav .Header-mobileNav-menu .Header-mobileNav-menu-item .Header-mobileNav-submenu .Header-mobileNav-submenu-item.active a{color:#60a5fa!important}
+      body.dark-mode .Header-mobileNav .Header-mobileNav-menu .Header-mobileNav-menu-item .Header-mobileNav-submenu .Header-mobileNav-submenu-item.active a:hover{color:#93c5fd!important}
+      body.dark-mode .Footer{background:#111827!important;border-color:#374151!important}
+      body.dark-mode .Footer-inner{background:#111827!important}
+      body.dark-mode .Footer-content{background:transparent!important;color:#f9fafb!important}
+      body.dark-mode .Footer-content a{color:#60a5fa!important}
+      body.dark-mode .Footer-content a:hover{color:#93c5fd!important}
+      body.dark-mode .Footer-nav{background:transparent!important}
+      body.dark-mode .Footer-nav .Footer-nav-item{background:transparent!important}
+      body.dark-mode .Footer-nav .Footer-nav-item a{color:#f9fafb!important}
+      body.dark-mode .Footer-nav .Footer-nav-item a:hover{color:#60a5fa!important}
+      body.dark-mode .Footer-nav .Footer-nav-item.active a{color:#60a5fa!important}
+      body.dark-mode .Footer-nav .Footer-nav-item.active a:hover{color:#93c5fd!important}
+      body.dark-mode .Footer-social{background:transparent!important}
+      body.dark-mode .Footer-social .Footer-social-item{background:transparent!important}
+      body.dark-mode .Footer-social .Footer-social-item a{color:#f9fafb!important}
+      body.dark-mode .Footer-social .Footer-social-item a:hover{color:#60a5fa!important}
+      body.dark-mode .Footer-social .Footer-social-item .Footer-social-icon{color:#f9fafb!important}
+      body.dark-mode .Footer-social .Footer-social-item:hover .Footer-social-icon{color:#60a5fa!important}
+      body.dark-mode .Footer-copyright{background:transparent!important;color:#9ca3af!important}
+      body.dark-mode .Footer-copyright a{color:#60a5fa!important}
+      body.dark-mode .Footer-copyright a:hover{color:#93c5fd!important}
+      body.dark-mode .Site{background:#111827!important}
+      body.dark-mode .Site-inner{background:#111827!important}
+      body.dark-mode .Site-header{background:#111827!important}
+      body.dark-mode .Site-header-inner{background:#111827!important}
+      body.dark-mode .Site-header-nav{background:transparent!important}
+      body.dark-mode .Site-header-nav .Site-header-nav-item{background:transparent!important}
+      body.dark-mode .Site-header-nav .Site-header-nav-item a{color:#f9fafb!important}
+      body.dark-mode .Site-header-nav .Site-header-nav-item a:hover{color:#60a5fa!important}
+      body.dark-mode .Site-header-nav .Site-header-nav-item.active a{color:#60a5fa!important}
+      body.dark-mode .Site-header-nav .Site-header-nav-item.active a:hover{color:#93c5fd!important}
+      body.dark-mode .Site-header-nav .Site-header-nav-item .Site-header-nav-submenu{background:#1f2937!important;border-color:#374151!important}
+      body.dark-mode .Site-header-nav .Site-header-nav-item .Site-header-nav-submenu .Site-header-nav-submenu-item{background:transparent!important}
+      body.dark-mode .Site-header-nav .Site-header-nav-item .Site-header-nav-submenu .Site-header-nav-submenu-item a{color:#f9fafb!important}
+      body.dark-mode .Site-header-nav .Site-header-nav-item .Site-header-nav-submenu .Site-header-nav-submenu-item a:hover{color:#60a5fa!important;background:#374151!important}
+      body.dark-mode .Site-header-nav .Site-header-nav-item .Site-header-nav-submenu .Site-header-nav-submenu-item.active a{color:#60a5fa!important}
+      body.dark-mode .Site-header-nav .Site-header-nav-item .Site-header-nav-submenu .Site-header-nav-submenu-item.active a:hover{color:#93c5fd!important}
+      body.dark-mode .Site-header-logo{background:transparent!important}
+      body.dark-mode .Site-header-logo img{opacity:0.95}
+      body.dark-mode .Site-header-logo:hover img{opacity:1}
+      body.dark-mode .Site-header-actions{background:transparent!important}
+      body.dark-mode .Site-header-actions .Site-header-action{background:transparent!important;color:#f9fafb!important}
+      body.dark-mode .Site-header-actions .Site-header-action:hover{background:#374151!important;color:#60a5fa!important}
+      body.dark-mode .Site-header-actions .Site-header-action.active{background:#3b82f6!important;color:#fff!important}
+      body.dark-mode .Site-header-actions .Site-header-action.active:hover{background:#2563eb!important}
+      body.dark-mode .Site-header-actions .Site-header-action .Site-header-action-icon{color:#f9fafb!important}
+      body.dark-mode .Site-header-actions .Site-header-action:hover .Site-header-action-icon{color:#60a5fa!important}
+      body.dark-mode .Site-header-actions .Site-header-action.active .Site-header-action-icon{color:#fff!important}
+      body.dark-mode .Site-header-actions .Site-header-action.active:hover .Site-header-action-icon{color:#fff!important}
+      body.dark-mode .Site-header-mobileNav{background:#111827!important;border-color:#374151!important}
+      body.dark-mode .Site-header-mobileNav .Site-header-mobileNav-toggle{background:transparent!important;color:#f9fafb!important}
+      body.dark-mode .Site-header-mobileNav .Site-header-mobileNav-toggle:hover{background:#374151!important;color:#60a5fa!important}
+      body.dark-mode .Site-header-mobileNav .Site-header-mobileNav-menu{background:#1f2937!important;border-color:#374151!important}
+      body.dark-mode .Site-header-mobileNav .Site-header-mobileNav-menu .Site-header-mobileNav-menu-item{background:transparent!important}
+      body.dark-mode .Site-header-mobileNav .Site-header-mobileNav-menu .Site-header-mobileNav-menu-item a{color:#f9fafb!important}
+      body.dark-mode .Site-header-mobileNav .Site-header-mobileNav-menu .Site-header-mobileNav-menu-item a:hover{color:#60a5fa!important;background:#374151!important}
+      body.dark-mode .Site-header-mobileNav .Site-header-mobileNav-menu .Site-header-mobileNav-menu-item.active a{color:#60a5fa!important}
+      body.dark-mode .Site-header-mobileNav .Site-header-mobileNav-menu .Site-header-mobileNav-menu-item.active a:hover{color:#93c5fd!important}
+      body.dark-mode .Site-header-mobileNav .Site-header-mobileNav-menu .Site-header-mobileNav-menu-item .Site-header-mobileNav-submenu{background:#374151!important;border-color:#4b5563!important}
+      body.dark-mode .Site-header-mobileNav .Site-header-mobileNav-menu .Site-header-mobileNav-menu-item .Site-header-mobileNav-submenu .Site-header-mobileNav-submenu-item{background:transparent!important}
+      body.dark-mode .Site-header-mobileNav .Site-header-mobileNav-menu .Site-header-mobileNav-menu-item .Site-header-mobileNav-submenu .Site-header-mobileNav-submenu-item a{color:#f9fafb!important}
+      body.dark-mode .Site-header-mobileNav .Site-header-mobileNav-menu .Site-header-mobileNav-menu-item .Site-header-mobileNav-submenu .Site-header-mobileNav-submenu-item a:hover{color:#60a5fa!important;background:#4b5563!important}
+      body.dark-mode .Site-header-mobileNav .Site-header-mobileNav-menu .Site-header-mobileNav-menu-item .Site-header-mobileNav-submenu .Site-header-mobileNav-submenu-item.active a{color:#60a5fa!important}
+      body.dark-mode .Site-header-mobileNav .Site-header-mobileNav-menu .Site-header-mobileNav-menu-item .Site-header-mobileNav-submenu .Site-header-mobileNav-submenu-item.active a:hover{color:#93c5fd!important}
+      body.dark-mode .Site-footer{background:#111827!important}
+      body.dark-mode .Site-footer-inner{background:#111827!important}
+      body.dark-mode .Site-footer-content{background:transparent!important;color:#f9fafb!important}
+      body.dark-mode .Site-footer-content a{color:#60a5fa!important}
+      body.dark-mode .Site-footer-content a:hover{color:#93c5fd!important}
+      body.dark-mode .Site-footer-nav{background:transparent!important}
+      body.dark-mode .Site-footer-nav .Site-footer-nav-item{background:transparent!important}
+      body.dark-mode .Site-footer-nav .Site-footer-nav-item a{color:#f9fafb!important}
+      body.dark-mode .Site-footer-nav .Site-footer-nav-item a:hover{color:#60a5fa!important}
+      body.dark-mode .Site-footer-nav .Site-footer-nav-item.active a{color:#60a5fa!important}
+      body.dark-mode .Site-footer-nav .Site-footer-nav-item.active a:hover{color:#93c5fd!important}
+      body.dark-mode .Site-footer-social{background:transparent!important}
+      body.dark-mode .Site-footer-social .Site-footer-social-item{background:transparent!important}
+      body.dark-mode .Site-footer-social .Site-footer-social-item a{color:#f9fafb!important}
+      body.dark-mode .Site-footer-social .Site-footer-social-item a:hover{color:#60a5fa!important}
+      body.dark-mode .Site-footer-social .Site-footer-social-item .Site-footer-social-icon{color:#f9fafb!important}
+      body.dark-mode .Site-footer-social .Site-footer-social-item:hover .Site-footer-social-icon{color:#60a5fa!important}
+      body.dark-mode .Site-footer-copyright{background:transparent!important;color:#9ca3af!important}
+      body.dark-mode .Site-footer-copyright a{color:#60a5fa!important}
+      body.dark-mode .Site-footer-copyright a:hover{color:#93c5fd!important}
+      body.dark-mode h1,body.dark-mode h2,body.dark-mode h3,body.dark-mode h4,body.dark-mode h5,body.dark-mode h6{color:#f9fafb!important}
+      body.dark-mode p{color:#e5e7eb!important}
+      body.dark-mode a{color:#60a5fa!important}
+      body.dark-mode a:hover{color:#93c5fd!important}
+      body.dark-mode ul,body.dark-mode ol{color:#e5e7eb!important}
+      body.dark-mode li{color:#e5e7eb!important}
+      body.dark-mode blockquote{background:#1f2937!important;border-color:#374151!important;color:#e5e7eb!important}
+      body.dark-mode code{background:#1f2937!important;border-color:#374151!important;color:#f9fafb!important}
+      body.dark-mode pre{background:#1f2937!important;border-color:#374151!important;color:#f9fafb!important}
+      body.dark-mode pre code{background:transparent!important;border-color:transparent!important;color:#f9fafb!important}
+      body.dark-mode table{background:transparent!important;border-color:#374151!important}
+      body.dark-mode table th{background:#1f2937!important;border-color:#374151!important;color:#f9fafb!important}
+      body.dark-mode table td{background:transparent!important;border-color:#374151!important;color:#f9fafb!important}
+      body.dark-mode table tr:hover td{background:#374151!important}
+      body.dark-mode table tr:nth-child(even) td{background:#1f2937!important}
+      body.dark-mode table tr:nth-child(even):hover td{background:#374151!important}
+      body.dark-mode hr{background:#374151!important;border-color:#4b5563!important}
+      body.dark-mode img{opacity:0.95}
+      body.dark-mode img:hover{opacity:1}
+      body.dark-mode svg{fill:#f9fafb!important;stroke:#f9fafb!important}
+      body.dark-mode svg:hover{fill:#60a5fa!important;stroke:#60a5fa!important}
+      body.dark-mode input[type="text"],body.dark-mode input[type="email"],body.dark-mode input[type="password"],body.dark-mode input[type="number"],body.dark-mode input[type="tel"],body.dark-mode input[type="url"],body.dark-mode input[type="search"],body.dark-mode input[type="date"],body.dark-mode input[type="time"],body.dark-mode input[type="datetime-local"],body.dark-mode input[type="month"],body.dark-mode input[type="week"],body.dark-mode textarea,body.dark-mode select{background:#374151!important;border-color:#4b5563!important;color:#f9fafb!important}
+      body.dark-mode input[type="text"]::placeholder,body.dark-mode input[type="email"]::placeholder,body.dark-mode input[type="password"]::placeholder,body.dark-mode input[type="number"]::placeholder,body.dark-mode input[type="tel"]::placeholder,body.dark-mode input[type="url"]::placeholder,body.dark-mode input[type="search"]::placeholder,body.dark-mode input[type="date"]::placeholder,body.dark-mode input[type="time"]::placeholder,body.dark-mode input[type="datetime-local"]::placeholder,body.dark-mode input[type="month"]::placeholder,body.dark-mode input[type="week"]::placeholder,body.dark-mode textarea::placeholder{color:#9ca3af!important}
+      body.dark-mode input[type="text"]:focus,body.dark-mode input[type="email"]:focus,body.dark-mode input[type="password"]:focus,body.dark-mode input[type="number"]:focus,body.dark-mode input[type="tel"]:focus,body.dark-mode input[type="url"]:focus,body.dark-mode input[type="search"]:focus,body.dark-mode input[type="date"]:focus,body.dark-mode input[type="time"]:focus,body.dark-mode input[type="datetime-local"]:focus,body.dark-mode input[type="month"]:focus,body.dark-mode input[type="week"]:focus,body.dark-mode textarea:focus,body.dark-mode select:focus{background:#4b5563!important;border-color:#60a5fa!important;color:#f9fafb!important;outline:none!important;box-shadow:0 0 0 3px rgba(59,130,246,0.1)!important}
+      body.dark-mode input[type="checkbox"],body.dark-mode input[type="radio"]{background:#374151!important;border-color:#4b5563!important;color:#f9fafb!important}
+      body.dark-mode input[type="checkbox"]:checked,body.dark-mode input[type="radio"]:checked{background:#3b82f6!important;border-color:#3b82f6!important;color:#fff!important}
+      body.dark-mode input[type="checkbox"]:focus,body.dark-mode input[type="radio"]:focus{outline:none!important;box-shadow:0 0 0 3px rgba(59,130,246,0.1)!important}
+      body.dark-mode button{background:#3b82f6!important;border-color:#3b82f6!important;color:#fff!important}
+      body.dark-mode button:hover{background:#2563eb!important;border-color:#2563eb!important}
+      body.dark-mode button:focus{outline:none!important;box-shadow:0 0 0 3px rgba(59,130,246,0.1)!important}
+      body.dark-mode button.secondary{background:transparent!important;border-color:#4b5563!important;color:#f9fafb!important}
+      body.dark-mode button.secondary:hover{background:#374151!important;border-color:#6b7280!important}
+      body.dark-mode button.secondary:focus{outline:none!important;box-shadow:0 0 0 3px rgba(59,130,246,0.1)!important}
+      body.dark-mode button.danger{background:#ef4444!important;border-color:#ef4444!important;color:#fff!important}
+      body.dark-mode button.danger:hover{background:#dc2626!important;border-color:#dc2626!important}
+      body.dark-mode button.danger:focus{outline:none!important;box-shadow:0 0 0 3px rgba(239,68,68,0.1)!important}
+      body.dark-mode button.success{background:#10b981!important;border-color:#10b981!important;color:#fff!important}
+      body.dark-mode button.success:hover{background:#059669!important;border-color:#059669!important}
+      body.dark-mode button.success:focus{outline:none!important;box-shadow:0 0 0 3px rgba(16,185,129,0.1)!important}
+      body.dark-mode button.warning{background:#f59e0b!important;border-color:#f59e0b!important;color:#fff!important}
+      body.dark-mode button.warning:hover{background:#d97706!important;border-color:#d97706!important}
+      body.dark-mode button.warning:focus{outline:none!important;box-shadow:0 0 0 3px rgba(245,158,11,0.1)!important}
+      body.dark-mode button.info{background:#3b82f6!important;border-color:#3b82f6!important;color:#fff!important}
+      body.dark-mode button.info:hover{background:#2563eb!important;border-color:#2563eb!important}
+      body.dark-mode button.info:focus{outline:none!important;box-shadow:0 0 0 3px rgba(59,130,246,0.1)!important}
+      body.dark-mode button.link{background:transparent!important;border-color:transparent!important;color:#60a5fa!important}
+      body.dark-mode button.link:hover{background:transparent!important;border-color:transparent!important;color:#93c5fd!important;text-decoration:underline}
+      body.dark-mode button.link:focus{outline:none!important;box-shadow:0 0 0 3px rgba(59,130,246,0.1)!important}
+      body.dark-mode .btn{background:#3b82f6!important;border-color:#3b82f6!important;color:#fff!important}
+      body.dark-mode .btn:hover{background:#2563eb!important;border-color:#2563eb!important}
+      body.dark-mode .btn:focus{outline:none!important;box-shadow:0 0 0 3px rgba(59,130,246,0.1)!important}
+      body.dark-mode .btn-secondary{background:transparent!important;border-color:#4b5563!important;color:#f9fafb!important}
+      body.dark-mode .btn-secondary:hover{background:#374151!important;border-color:#6b7280!important}
+      body.dark-mode .btn-secondary:focus{outline:none!important;box-shadow:0 0 0 3px rgba(59,130,246,0.1)!important}
+      body.dark-mode .btn-danger{background:#ef4444!important;border-color:#ef4444!important;color:#fff!important}
+      body.dark-mode .btn-danger:hover{background:#dc2626!important;border-color:#dc2626!important}
+      body.dark-mode .btn-danger:focus{outline:none!important;box-shadow:0 0 0 3px rgba(239,68,68,0.1)!important}
+      body.dark-mode .btn-success{background:#10b981!important;border-color:#10b981!important;color:#fff!important}
+      body.dark-mode .btn-success:hover{background:#059669!important;border-color:#059669!important}
+      body.dark-mode .btn-success:focus{outline:none!important;box-shadow:0 0 0 3px rgba(16,185,129,0.1)!important}
+      body.dark-mode .btn-warning{background:#f59e0b!important;border-color:#f59e0b!important;color:#fff!important}
+      body.dark-mode .btn-warning:hover{background:#d97706!important;border-color:#d97706!important}
+      body.dark-mode .btn-warning:focus{outline:none!important;box-shadow:0 0 0 3px rgba(245,158,11,0.1)!important}
+      body.dark-mode .btn-info{background:#3b82f6!important;border-color:#3b82f6!important;color:#fff!important}
+      body.dark-mode .btn-info:hover{background:#2563eb!important;border-color:#2563eb!important}
+      body.dark-mode .btn-info:focus{outline:none!important;box-shadow:0 0 0 3px rgba(59,130,246,0.1)!important}
+      body.dark-mode .btn-link{background:transparent!important;border-color:transparent!important;color:#60a5fa!important}
+      body.dark-mode .btn-link:hover{background:transparent!important;border-color:transparent!important;color:#93c5fd!important;text-decoration:underline}
+      body.dark-mode .btn-link:focus{outline:none!important;box-shadow:0 0 0 3px rgba(59,130,246,0.1)!important}
+      body.dark-mode .ssa-controls{border-bottom-color:#374151!important}
+      body.dark-mode .ssa-layout-btn{background:#374151!important;border-color:#4b5563!important;color:#f9fafb!important}
+      body.dark-mode .ssa-layout-btn:hover{background:#4b5563!important;border-color:#6b7280!important}
+      body.dark-mode .ssa-group-btn{background:#374151!important;border-color:#4b5563!important;color:#f9fafb!important}
+      body.dark-mode .ssa-group-btn:hover{background:#4b5563!important;border-color:#6b7280!important}
+      body.dark-mode .ssa-keyword-btn{background:#374151!important;border-color:#4b5563!important;color:#f9fafb!important}
+      body.dark-mode .ssa-keyword-btn:hover{background:#4b5563!important;border-color:#6b7280!important}
+      body.dark-mode .ssa-weekend-btn{background:#374151!important;border-color:#4b5563!important;color:#f9fafb!important}
+      body.dark-mode .ssa-weekend-btn:hover{background:#4b5563!important;border-color:#6b7280!important}
+      body.dark-mode .ssa-clear-dates{background:#374151!important;border-color:#4b5563!important;color:#f9fafb!important}
+      body.dark-mode .ssa-clear-dates:hover{background:#4b5563!important;border-color:#6b7280!important}
+      body.dark-mode .ssa-date-input{background:#374151!important;border-color:#4b5563!important;color:#f9fafb!important}
+      body.dark-mode .ssa-date-filters label{color:#f9fafb!important}
+      body.dark-mode .ssa-month-header{color:#f9fafb!important}
+      body.dark-mode .ssa-day-header,body.dark-mode .ssa-day-header *,body.dark-mode #events-list .ssa-day-header,body.dark-mode #events-list .ssa-day-header *{color:#f9fafb!important}
+      body.dark-mode h3.ssa-day-header,body.dark-mode h3.ssa-day-header *{color:#f9fafb!important}
+      body.dark-mode .ssa-calendar-month-header{color:#f9fafb!important}
+      body.dark-mode .ssa-event-item{background:#1f2937!important;border-color:#374151!important;box-shadow:0 1px 3px rgba(0,0,0,0.2)!important}
+      body.dark-mode .ssa-event-item:hover{background:#374151!important;box-shadow:0 4px 12px rgba(0,0,0,0.3)!important}
+      body.dark-mode .ssa-event-name-wrapper strong{color:#f9fafb!important}
+      body.dark-mode .ssa-event-name{color:#f9fafb!important}
+      body.dark-mode .ssa-event-name,.ssa-event-meta-item{color:#e5e7eb!important}
+      body.dark-mode .ssa-event-meta-item,.ssa-event-meta-item *{color:#e5e7eb!important}
+      body.dark-mode #events-list .ssa-event-meta-item,#events-list .ssa-event-meta-item *{color:#e5e7eb!important}
+      body.dark-mode div.ssa-event-meta-item,div.ssa-event-meta-item *{color:#e5e7eb!important}
+      body.dark-mode .ssa-event-meta-item strong{color:#f9fafb!important}
+      body.dark-mode #events-list .ssa-event-meta-item strong,.ssa-event-meta-item strong *,#events-list .ssa-event-meta-item strong *{color:#f9fafb!important}
+      body.dark-mode .ssa-card{background:#1f2937!important;border-color:#374151!important;box-shadow:0 2px 8px rgba(0,0,0,0.2)!important}
+      body.dark-mode .ssa-card:hover{box-shadow:0 8px 24px rgba(0,0,0,0.4)!important;border-color:#4b5563!important}
+      body.dark-mode .ssa-card *{color:#f9fafb!important}
+      body.dark-mode .ssa-title,.ssa-meta{color:#f9fafb!important}
+      body.dark-mode .ssa-card .ssa-location{color:#60a5fa!important}
+      body.dark-mode .ssa-card .ssa-location:hover{color:#93c5fd!important}
+      body.dark-mode .ssa-card h3{color:#f9fafb!important}
+      body.dark-mode .ssa-card p{color:#f9fafb!important}
+      body.dark-mode .ssa-card span{color:#f9fafb!important}
+      body.dark-mode .ssa-card strong{color:#f9fafb!important}
+      body.dark-mode .ssa-card a{color:#60a5fa!important}
+      body.dark-mode .ssa-card a:hover{color:#93c5fd!important}
+      body.dark-mode .ssa-calendar-day{background:#1f2937!important}
+      body.dark-mode .ssa-calendar-day:hover{background:#374151!important}
+      body.dark-mode .ssa-calendar-day-empty{background:#111827!important}
+      body.dark-mode .ssa-calendar-day-out-of-range{opacity:0.3;background:#1f2937!important}
+      body.dark-mode .ssa-calendar-day-out-of-range .ssa-calendar-day-number{color:#6b7280!important}
+      body.dark-mode .ssa-calendar-day-header{background:#374151!important;color:#d1d5db!important}
+      body.dark-mode .ssa-calendar-day-number{color:#f9fafb!important}
+      body.dark-mode .ssa-calendar-grid{background:#374151!important;border-color:#374151!important;box-shadow:0 2px 8px rgba(0,0,0,0.3)!important}
+      body.dark-mode .ssa-day-header{border-bottom-color:#4b5563!important;color:#f9fafb!important}
+      body.dark-mode .ssa-day-header *,body.dark-mode #events-list .ssa-day-header,body.dark-mode #events-list .ssa-day-header *{color:#f9fafb!important}
+      body.dark-mode h3.ssa-day-header,body.dark-mode h3.ssa-day-header *{color:#f9fafb!important}
+      body.dark-mode .ssa-month-header{color:#f9fafb!important}
+      body.dark-mode .ssa-calendar-month-header{color:#f9fafb!important}
     `;
     document.head.appendChild(css);
+    
+    // Inject additional dark mode styles with maximum specificity for Squarespace
+    const sqsDarkModeCSS = document.createElement('style');
+    sqsDarkModeCSS.id = 'ssa-sqs-dark-mode';
+    sqsDarkModeCSS.textContent = `
+      html.dark-mode,html body.dark-mode,body.dark-mode{background:#111827!important;color:#f9fafb!important}
+      html.dark-mode body,html body.dark-mode body,body.dark-mode{background:#111827!important;color:#f9fafb!important}
+      html.dark-mode #siteWrapper,html body.dark-mode #siteWrapper,body.dark-mode #siteWrapper{background:#111827!important;color:#f9fafb!important}
+      html.dark-mode #site,html body.dark-mode #site,body.dark-mode #site{background:#111827!important;color:#f9fafb!important}
+      html.dark-mode #mainContent,html body.dark-mode #mainContent,body.dark-mode #mainContent{background:#111827!important;color:#f9fafb!important}
+      html.dark-mode #content,html body.dark-mode #content,body.dark-mode #content{background:#111827!important;color:#f9fafb!important}
+      html.dark-mode .Main-content,html body.dark-mode .Main-content,body.dark-mode .Main-content{background:#111827!important;color:#f9fafb!important}
+      html.dark-mode .Main,html body.dark-mode .Main,body.dark-mode .Main{background:#111827!important;color:#f9fafb!important}
+      html.dark-mode .Main-inner,html body.dark-mode .Main-inner,body.dark-mode .Main-inner{background:#111827!important;color:#f9fafb!important}
+      html.dark-mode .Content,html body.dark-mode .Content,body.dark-mode .Content{background:#111827!important;color:#f9fafb!important}
+      html.dark-mode .Content-inner,html body.dark-mode .Content-inner,body.dark-mode .Content-inner{background:#111827!important;color:#f9fafb!important}
+      html.dark-mode .page,html body.dark-mode .page,body.dark-mode .page{background:#111827!important;color:#f9fafb!important}
+      html.dark-mode .page-content,html body.dark-mode .page-content,body.dark-mode .page-content{background:#111827!important;color:#f9fafb!important}
+      html.dark-mode .sqs-layout,html body.dark-mode .sqs-layout,body.dark-mode .sqs-layout{background:#111827!important;color:#f9fafb!important}
+      html.dark-mode .sqs-wrapper,html body.dark-mode .sqs-wrapper,body.dark-mode .sqs-wrapper{background:#111827!important;color:#f9fafb!important}
+      html.dark-mode .sqs-container,html body.dark-mode .sqs-container,body.dark-mode .sqs-container{background:#111827!important;color:#f9fafb!important}
+      html.dark-mode .Site,html body.dark-mode .Site,body.dark-mode .Site{background:#111827!important;color:#f9fafb!important}
+      html.dark-mode .Site-inner,html body.dark-mode .Site-inner,body.dark-mode .Site-inner{background:#111827!important;color:#f9fafb!important}
+      html.dark-mode .Header,html body.dark-mode .Header,body.dark-mode .Header{background:#111827!important;color:#f9fafb!important;border-color:#374151!important}
+      html.dark-mode .Header-inner,html body.dark-mode .Header-inner,body.dark-mode .Header-inner{background:#111827!important;color:#f9fafb!important}
+      html.dark-mode .Header-nav,html body.dark-mode .Header-nav,body.dark-mode .Header-nav{background:transparent!important}
+      html.dark-mode .Header-nav-item,html body.dark-mode .Header-nav-item,body.dark-mode .Header-nav-item{background:transparent!important}
+      html.dark-mode .Header-nav-item a,html body.dark-mode .Header-nav-item a,body.dark-mode .Header-nav-item a{color:#f9fafb!important}
+      html.dark-mode .Header-nav-item a:hover,html body.dark-mode .Header-nav-item a:hover,body.dark-mode .Header-nav-item a:hover{color:#60a5fa!important}
+      html.dark-mode .Header-logo,html body.dark-mode .Header-logo,body.dark-mode .Header-logo{background:transparent!important}
+      html.dark-mode .Footer,html body.dark-mode .Footer,body.dark-mode .Footer{background:#111827!important;color:#f9fafb!important;border-color:#374151!important}
+      html.dark-mode .Footer-inner,html body.dark-mode .Footer-inner,body.dark-mode .Footer-inner{background:#111827!important;color:#f9fafb!important}
+      html.dark-mode .Footer-nav,html body.dark-mode .Footer-nav,body.dark-mode .Footer-nav{background:transparent!important}
+      html.dark-mode .Footer-nav-item,html body.dark-mode .Footer-nav-item,body.dark-mode .Footer-nav-item{background:transparent!important}
+      html.dark-mode .Footer-nav-item a,html body.dark-mode .Footer-nav-item a,body.dark-mode .Footer-nav-item a{color:#f9fafb!important}
+      html.dark-mode .Footer-nav-item a:hover,html body.dark-mode .Footer-nav-item a:hover,body.dark-mode .Footer-nav-item a:hover{color:#60a5fa!important}
+      html.dark-mode .sqs-row,html body.dark-mode .sqs-row,body.dark-mode .sqs-row{background:transparent!important}
+      html.dark-mode .sqs-col,html body.dark-mode .sqs-col,body.dark-mode .sqs-col{background:transparent!important}
+      html.dark-mode .sqs-block,html body.dark-mode .sqs-block,body.dark-mode .sqs-block{background:transparent!important}
+      html.dark-mode .sqs-block-content,html body.dark-mode .sqs-block-content,body.dark-mode .sqs-block-content{background:transparent!important}
+      html.dark-mode .section,html body.dark-mode .section,body.dark-mode .section{background:#111827!important;color:#f9fafb!important}
+      html.dark-mode .sqs-section,html body.dark-mode .sqs-section,body.dark-mode .sqs-section{background:#111827!important;color:#f9fafb!important}
+      html.dark-mode .sqs-section-content,html body.dark-mode .sqs-section-content,body.dark-mode .sqs-section-content{background:#111827!important;color:#f9fafb!important}
+      html.dark-mode .sqs-block-alignment-wrapper,html body.dark-mode .sqs-block-alignment-wrapper,body.dark-mode .sqs-block-alignment-wrapper{background:transparent!important}
+      html.dark-mode .sqs-block-html,html body.dark-mode .sqs-block-html,body.dark-mode .sqs-block-html{background:transparent!important}
+      html.dark-mode .sqs-block-code,html body.dark-mode .sqs-block-code,body.dark-mode .sqs-block-code{background:transparent!important}
+      html.dark-mode .sqs-block-markdown,html body.dark-mode .sqs-block-markdown,body.dark-mode .sqs-block-markdown{background:transparent!important}
+      html.dark-mode .sqs-block-embed,html body.dark-mode .sqs-block-embed,body.dark-mode .sqs-block-embed{background:transparent!important}
+      html.dark-mode header,html body.dark-mode header,body.dark-mode header{background:#111827!important;color:#f9fafb!important}
+      html.dark-mode footer,html body.dark-mode footer,body.dark-mode footer{background:#111827!important;color:#f9fafb!important}
+      html.dark-mode nav,html body.dark-mode nav,body.dark-mode nav{background:transparent!important;color:#f9fafb!important}
+      html.dark-mode nav a,html body.dark-mode nav a,body.dark-mode nav a{color:#f9fafb!important}
+      html.dark-mode nav a:hover,html body.dark-mode nav a:hover,body.dark-mode nav a:hover{color:#60a5fa!important}
+      html.dark-mode h1,html body.dark-mode h1,body.dark-mode h1,html.dark-mode h2,html body.dark-mode h2,body.dark-mode h2,html.dark-mode h3,html body.dark-mode h3,body.dark-mode h3,html.dark-mode h4,html body.dark-mode h4,body.dark-mode h4,html.dark-mode h5,html body.dark-mode h5,body.dark-mode h5,html.dark-mode h6,html body.dark-mode h6,body.dark-mode h6{color:#f9fafb!important}
+      html.dark-mode p,html body.dark-mode p,body.dark-mode p{color:#e5e7eb!important}
+      html.dark-mode a,html body.dark-mode a,body.dark-mode a{color:#60a5fa!important}
+      html.dark-mode a:hover,html body.dark-mode a:hover,body.dark-mode a:hover{color:#93c5fd!important}
+      html.dark-mode .ssa-day-header,html body.dark-mode .ssa-day-header,body.dark-mode .ssa-day-header{color:#f9fafb!important}
+      html.dark-mode .ssa-day-header *,html body.dark-mode .ssa-day-header *,body.dark-mode .ssa-day-header *{color:#f9fafb!important}
+      html.dark-mode #events-list .ssa-day-header,html body.dark-mode #events-list .ssa-day-header,body.dark-mode #events-list .ssa-day-header{color:#f9fafb!important}
+      html.dark-mode #events-list .ssa-day-header *,html body.dark-mode #events-list .ssa-day-header *,body.dark-mode #events-list .ssa-day-header *{color:#f9fafb!important}
+      html.dark-mode h3.ssa-day-header,html body.dark-mode h3.ssa-day-header,body.dark-mode h3.ssa-day-header{color:#f9fafb!important}
+      html.dark-mode h3.ssa-day-header *,html body.dark-mode h3.ssa-day-header *,body.dark-mode h3.ssa-day-header *{color:#f9fafb!important}
+      html.dark-mode .ssa-month-header,html body.dark-mode .ssa-month-header,body.dark-mode .ssa-month-header{color:#f9fafb!important}
+      html.dark-mode .ssa-calendar-month-header,html body.dark-mode .ssa-calendar-month-header,body.dark-mode .ssa-calendar-month-header{color:#f9fafb!important}
+      html.dark-mode div:not(.sqs-block):not(.sqs-block-content):not(.sqs-block-html):not(.sqs-block-code):not(.sqs-block-markdown):not(.sqs-block-embed),html body.dark-mode div:not(.sqs-block):not(.sqs-block-content):not(.sqs-block-html):not(.sqs-block-code):not(.sqs-block-markdown):not(.sqs-block-embed),body.dark-mode div:not(.sqs-block):not(.sqs-block-content):not(.sqs-block-html):not(.sqs-block-code):not(.sqs-block-markdown):not(.sqs-block-embed){background-color:inherit!important}
+      html.dark-mode *,html body.dark-mode *{color:inherit}
+    `;
+    document.head.appendChild(sqsDarkModeCSS);
   }
 
   // Helper function to reload events when filters change
@@ -2753,29 +3609,19 @@
     try {
       // ALWAYS fetch ALL events (no date filters) to ensure we have complete data for keyword extraction
       // Client-side filtering will handle date ranges - this avoids API filter complexity issues
-      console.log('🔄🔄🔄 reloadEvents CALLED - Fetching ALL events (no date filters)');
-      console.log('🔄 reloadEvents: state.fromDate =', state.fromDate, 'state.toDate =', state.toDate);
-      console.log('🔄 reloadEvents: IGNORING state dates - will pass from=null, to=null to fetchEvents');
-      
-      // CRITICAL: Always pass null for from/to to fetchEvents, regardless of state
-      // This ensures we get all events for keyword extraction
+      console.log('🔄 reloadEvents: Fetching ALL events (no date filters)');
       const fetchOpts = {
         url: opts.url,
         key: opts.key,
-        from: null,  // ALWAYS null - fetch all events (ignore state.fromDate completely)
-        to: null,    // ALWAYS null - fetch all events (ignore state.toDate completely)
+        from: null,  // Explicitly null - fetch all events
+        to: null,    // Explicitly null - fetch all events
         limit: opts.limit || 200
       };
-      
-      console.log('🔄 reloadEvents: fetchOpts =', JSON.stringify(fetchOpts));
-      console.log('🔄 reloadEvents: About to call fetchEvents with from=null, to=null');
-      
       const key = `ssa_events:${opts.url}:all:${opts.limit||200}`;
       const rows = await fetchEvents(fetchOpts);
-      
       mount._allRows = rows; // Store for fallback
       sessionStorage.setItem(key, JSON.stringify(rows));
-      console.log('✅✅✅ reloadEvents: Successfully fetched', rows.length, 'events for keyword cloud');
+      console.log('✅ reloadEvents: Fetched', rows.length, 'events for keyword cloud');
       await renderEvents(mount, rows, state);
     } catch (e) {
       console.error('Error reloading events:', e);
@@ -2793,10 +3639,13 @@
     const mount = document.querySelector(opts.mount);
     if (!mount) return;
     
+    // Normalize initial keywords to lowercase for consistent comparison
+    const normalizedKeywords = (opts.selectedKeywords || []).map(kw => (kw || '').toLowerCase().trim()).filter(kw => kw);
+    
     // Initialize state - default fromDate to today
     const state = {
       layout: opts.layout || LAYOUTS.LIST,
-      selectedKeywords: opts.selectedKeywords || [],
+      selectedKeywords: normalizedKeywords,
       fromDate: opts.fromDate !== undefined ? opts.fromDate : todayISO(),
       toDate: opts.toDate || null,
       showImages: opts.showImages !== undefined ? opts.showImages : false,
@@ -2973,11 +3822,13 @@
   // Dark mode toggle functionality
   function toggleDarkMode() {
     const body = document.body;
+    const html = document.documentElement;
     const isDark = body.classList.toggle('dark-mode');
+    html.classList.toggle('dark-mode', isDark);
     const button = document.querySelector('.ssa-dark-mode-toggle');
     
     if (button) {
-      button.textContent = isDark ? '☀️ Light Mode' : '🌙 Dark Mode';
+      button.textContent = isDark ? '☀️' : '🌙';
     }
     
     localStorage.setItem('ssa-dark-mode', isDark ? 'true' : 'false');
@@ -2993,7 +3844,8 @@
       const savedDarkMode = localStorage.getItem('ssa-dark-mode');
       if (savedDarkMode === 'true') {
         document.body.classList.add('dark-mode');
-        button.textContent = '☀️ Light Mode';
+        document.documentElement.classList.add('dark-mode');
+        button.textContent = '☀️';
       }
     }
   }
@@ -3001,4 +3853,3 @@
   window.SSWidgets = window.SSWidgets || {};
   window.SSWidgets.renderEvents = renderEventsWidget;
 })();
-
