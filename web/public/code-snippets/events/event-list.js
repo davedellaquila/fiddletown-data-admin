@@ -53,6 +53,7 @@
     GRID: 'grid',
     CALENDAR: 'calendar'
   };
+  const SIGNATURE_EVENT_KEYWORD = 'signature event';
 
   async function fetchEvents({ url, key, from = null, to = null, limit = 200 }) {
       const api = new URL(url + '/rest/v1/events');
@@ -293,12 +294,31 @@
     }
   }
 
+  function isSignatureEvent(ev) {
+    return ev.is_signature_event === true ||
+           ev.is_signature_event === 'true' ||
+           ev.is_signature_event === 1 ||
+           (typeof ev.is_signature_event === 'string' && ev.is_signature_event.toLowerCase() === 'true');
+  }
+
+  function getEventKeywords(ev) {
+    const keywordSet = new Set();
+    if (ev.keywords && ev.keywords.length > 0) {
+      ev.keywords.forEach(kw => {
+        const normalized = (kw || '').toLowerCase().trim();
+        if (normalized) keywordSet.add(normalized);
+      });
+    }
+    if (isSignatureEvent(ev)) {
+      keywordSet.add(SIGNATURE_EVENT_KEYWORD);
+    }
+    return Array.from(keywordSet).sort();
+  }
+
   function getAllKeywords(rows) {
     const keywordSet = new Set();
     rows.forEach(ev => {
-      if (ev.keywords && ev.keywords.length > 0) {
-        ev.keywords.forEach(kw => keywordSet.add(kw));
-      }
+      getEventKeywords(ev).forEach(kw => keywordSet.add(kw));
     });
     return Array.from(keywordSet).sort();
   }
@@ -463,29 +483,11 @@
     // Normalize selected keywords to lowercase for consistent comparison
     const normalizedSelected = selectedKeywords.map(kw => (kw || '').toLowerCase().trim()).filter(kw => kw);
     return events.filter(ev => {
-      if (!ev.keywords || ev.keywords.length === 0) return false;
       // Normalize event keywords to lowercase for consistent comparison
-      const normalizedEventKeywords = ev.keywords.map(kw => (kw || '').toLowerCase().trim()).filter(kw => kw);
+      const normalizedEventKeywords = getEventKeywords(ev);
+      if (normalizedEventKeywords.length === 0) return false;
       // AND logic: event must have ALL selected keywords
       return normalizedSelected.every(selectedKw => normalizedEventKeywords.includes(selectedKw));
-    });
-  }
-
-  function filterEventsBySignature(events, showSignatureEventsOnly) {
-    // FIXED: The filter was inverted - when showSignatureEventsOnly is true, show ONLY signature events
-    // When showSignatureEventsOnly is false, show ALL events
-    if (!showSignatureEventsOnly) {
-      // When toggle is OFF (showSignatureEventsOnly is false), show all events
-      return events;
-    }
-    // When toggle is ON (showSignatureEventsOnly is true), filter to show only signature events
-    return events.filter(ev => {
-      // Check if event is a signature event (handle boolean, string, and number types)
-      const isSignature = ev.is_signature_event === true || 
-                         ev.is_signature_event === 'true' || 
-                         ev.is_signature_event === 1 ||
-                         (typeof ev.is_signature_event === 'string' && ev.is_signature_event.toLowerCase() === 'true');
-      return isSignature;
     });
   }
 
@@ -859,9 +861,10 @@
         html += `</div>`;
         
         // Keywords on their own line
-        if (event.keywords && event.keywords.length > 0) {
+        const eventKeywords = getEventKeywords(event);
+        if (eventKeywords.length > 0) {
           html += `<div class="ssa-event-keywords">`;
-          html += event.keywords.map(kw => {
+          html += eventKeywords.map(kw => {
             const isSelected = state.selectedKeywords.includes(kw);
             return `<span class="ssa-keyword-tag-clickable ${isSelected ? 'ssa-keyword-tag-active' : ''}" data-keyword="${kw}">${kw}</span>`;
           }).join('');
@@ -974,10 +977,13 @@
             return `<p class="ssa-meta">${dateTimeDisplay}${ev.location ? ' · <span class="ssa-location" data-location="' + ev.location.replace(/"/g, '&quot;').replace(/'/g, '&#39;') + '" title="Click to get directions">' + ev.location + '</span>' : ''}</p>`;
           })()}
           ${ev.recurrence ? `<p class="ssa-meta">${ev.recurrence}</p>` : ''}
-          ${ev.keywords && ev.keywords.length > 0 ? `<p class="ssa-keywords">${ev.keywords.map(kw => {
+          ${(() => {
+            const eventKeywords = getEventKeywords(ev);
+            return eventKeywords.length > 0 ? `<p class="ssa-keywords">${eventKeywords.map(kw => {
             const isSelected = selectedKeywords.includes(kw);
             return `<span class="ssa-tag-clickable ${isSelected ? 'ssa-tag-active' : ''}" data-keyword="${kw}">${kw}</span>`;
-          }).join('')}</p>` : ''}
+            }).join('')}</p>` : '';
+          })()}
         </div>
       </article>
     `;
@@ -1141,7 +1147,8 @@
             websiteUrl = 'https://' + websiteUrl;
           }
           websiteUrl = websiteUrl ? websiteUrl.replace(/"/g, '&quot;').replace(/'/g, '&#39;') : '';
-          const keywords = event.keywords && event.keywords.length > 0 ? event.keywords.join(',') : '';
+          const eventKeywords = getEventKeywords(event);
+          const keywords = eventKeywords.length > 0 ? eventKeywords.join(',') : '';
 
           // Always show info icon in calendar view (even without description)
           html += `<span class="ssa-calendar-info-icon ssa-info-icon" data-event-id="${eventId}" data-description="${description}" data-event-name="${name}" data-start-date="${startDate}" data-end-date="${endDate}" data-location="${location}" data-start-time="${startTime}" data-end-time="${endTime}" data-website-url="${websiteUrl}" data-keywords="${keywords}" data-calendar-view="true" title="Hover to view event details"></span>`;
@@ -1165,7 +1172,7 @@
   }
 
   async function renderEvents(mount, rows, state) {
-    const { layout = LAYOUTS.LIST, selectedKeywords = [], fromDate = null, toDate = null, groupBy = 'day', showImages = true, showSignatureEventsOnly = false } = state;
+    const { layout = LAYOUTS.LIST, selectedKeywords = [], fromDate = null, toDate = null, groupBy = 'day', showImages = true } = state;
     
     // Store state on mount for handlers
     mount._currentState = state;
@@ -1183,7 +1190,6 @@
     // Apply all filters to get the final set of displayed events
     const dateFilteredRows = filterEventsByDateRange(allAvailableRows, fromDate, toDate);
     let filteredRows = filterEventsByKeywords(dateFilteredRows, selectedKeywords);
-    filteredRows = filterEventsBySignature(filteredRows, showSignatureEventsOnly);
     
     // Get keywords only from events that match the date filters (not keyword filters)
     // This allows users to see what keywords are available to filter by for the selected date range
@@ -1203,9 +1209,9 @@
       toDate,
       hasMountAllRows: !!mount._allRows,
       mountAllRowsLength: mount._allRows ? mount._allRows.length : 0,
-      sampleEventKeywords: dateFilteredRows.length > 0 && dateFilteredRows[0].keywords ? dateFilteredRows[0].keywords : 'no keywords',
+      sampleEventKeywords: dateFilteredRows.length > 0 ? getEventKeywords(dateFilteredRows[0]) : 'no keywords',
       sampleEventName: dateFilteredRows.length > 0 ? dateFilteredRows[0].name : 'no events',
-      eventsWithKeywords: dateFilteredRows.filter(ev => ev.keywords && ev.keywords.length > 0).length
+      eventsWithKeywords: dateFilteredRows.filter(ev => getEventKeywords(ev).length > 0).length
     });
     
     // Render page intro and controls
@@ -1234,6 +1240,7 @@
     controlsHTML += '<div class="ssa-date-inputs-row">';
     controlsHTML += `<label><span>From</span><input type="date" class="ssa-date-input" id="ssa-from-date" value="${fromDate || ''}"></label>`;
     controlsHTML += `<label><span>To</span><input type="date" class="ssa-date-input" id="ssa-to-date" value="${toDate || ''}" placeholder="Open"></label>`;
+    controlsHTML += `<button class="ssa-date-clear-btn ssa-clear-to-date" title="Clear To date" aria-label="Clear To date"></button>`;
     controlsHTML += '</div>';
     controlsHTML += `<button class="ssa-weekend-btn ssa-this-weekend-btn" title="Set date range to upcoming weekend">This Weekend</button>`;
     controlsHTML += `<button class="ssa-weekend-btn ssa-next-weekend-btn" title="Set date range to next weekend">Next Weekend</button>`;
@@ -1257,20 +1264,13 @@
     // Grouping switcher (only show for list layout)
     if (layout === LAYOUTS.LIST) {
       controlsHTML += '<div class="ssa-group-switcher-wrapper">';
-      controlsHTML += '<label class="ssa-control-label">Group:</label>';
+      controlsHTML += '<label class="ssa-control-label">Group</label>';
       controlsHTML += '<div class="ssa-group-switcher">';
       controlsHTML += `<button class="ssa-group-btn ${groupBy === 'day' ? 'ssa-active' : ''}" data-group="day" title="Group by day">Day</button>`;
       controlsHTML += `<button class="ssa-group-btn ${groupBy === 'month' ? 'ssa-active' : ''}" data-group="month" title="Group by month">Month</button>`;
       controlsHTML += '</div>';
       controlsHTML += '</div>';
     }
-    controlsHTML += '</div>';
-    
-    // Right side: Display Options (Show Images, Signature Events)
-    controlsHTML += '<div class="ssa-display-options-wrapper">';
-    controlsHTML += '<div class="ssa-display-options-switcher">';
-    controlsHTML += `<button class="ssa-signature-events-toggle ${showSignatureEventsOnly ? 'ssa-active' : ''}" id="ssa-signature-events-btn" title="Show only signature events">Signature only</button>`;
-    controlsHTML += '</div>';
     controlsHTML += '</div>';
     
     controlsHTML += '</div>';
@@ -1396,6 +1396,7 @@
     // Date inputs
     const fromInput = mount.querySelector('#ssa-from-date');
     const toInput = mount.querySelector('#ssa-to-date');
+    const clearToDateBtn = mount.querySelector('.ssa-clear-to-date');
     const clearDatesBtn = mount.querySelector('.ssa-clear-dates');
     
     if (fromInput) {
@@ -1426,9 +1427,21 @@
       });
     }
     
+    if (clearToDateBtn) {
+      clearToDateBtn.addEventListener('click', async function() {
+        const newState = { ...state, toDate: null };
+        if (toInput) toInput.value = '';
+        if (mount._widgetOpts) {
+          reloadEvents(mount, newState, mount._widgetOpts);
+        } else {
+          await renderEvents(mount, rows, newState);
+        }
+      });
+    }
+    
     if (clearDatesBtn) {
       clearDatesBtn.addEventListener('click', async function() {
-        const newState = { ...state, fromDate: null, toDate: null, selectedKeywords: [], showSignatureEventsOnly: false };
+        const newState = { ...state, fromDate: null, toDate: null, selectedKeywords: [] };
         // Reload events to show all
         if (mount._widgetOpts) {
           reloadEvents(mount, newState, mount._widgetOpts);
@@ -1449,25 +1462,6 @@
         await renderEvents(mount, rows, newState);
       });
     }
-    
-    // Signature events toggle button
-    const signatureEventsBtn = mount.querySelector('#ssa-signature-events-btn');
-    if (signatureEventsBtn) {
-      signatureEventsBtn.addEventListener('click', async function() {
-        // Use mount._currentState to get the most up-to-date state
-        const currentState = mount._currentState || state;
-        const newShowSignatureEventsOnly = !currentState.showSignatureEventsOnly;
-        const newState = { ...currentState, showSignatureEventsOnly: newShowSignatureEventsOnly };
-        console.log('⭐ Signature Events toggle clicked:', { 
-          oldValue: currentState.showSignatureEventsOnly, 
-          newValue: newShowSignatureEventsOnly,
-          newState 
-        });
-        // Re-render events with updated signature event filter (no need to reload from server)
-        await renderEvents(mount, rows, newState);
-      });
-    }
-    
     // Weekend button handlers
     const weekendBtn = mount.querySelector('.ssa-this-weekend-btn');
     if (weekendBtn) {
@@ -3551,6 +3545,7 @@
       body.dark-mode .ssa-weekend-btn:hover{background:#4b5563!important;border-color:#6b7280!important}
       body.dark-mode .ssa-clear-dates{background:#374151!important;border-color:#4b5563!important;color:#f9fafb!important}
       body.dark-mode .ssa-clear-dates:hover{background:#4b5563!important;border-color:#6b7280!important}
+      body.dark-mode .ssa-date-clear-btn,body.dark-mode .ssa-date-clear-btn:hover{background:transparent!important;border-color:transparent!important;color:#f9fafb!important}
       body.dark-mode .ssa-date-input{background:#374151!important;border-color:#4b5563!important;color:#f9fafb!important}
       body.dark-mode .ssa-date-filters label{color:#f9fafb!important}
       body.dark-mode .ssa-month-header{color:#f9fafb!important}
@@ -3709,7 +3704,9 @@
       #events-list .ssa-date-filters label{display:flex;flex-direction:column;align-items:flex-start;gap:8px;color:var(--ssa-muted)!important;font-size:17px;font-weight:700}
       #events-list .ssa-date-input{width:230px;height:58px;padding:0 16px;background:var(--ssa-surface-soft)!important;border:1px solid var(--ssa-border)!important;border-radius:10px;color:var(--ssa-text)!important;font-size:20px;font-weight:700;box-shadow:none!important}
       #events-list button{font-family:var(--ssa-font);letter-spacing:0}
-      #events-list .ssa-weekend-btn,#events-list .ssa-clear-dates,#events-list .ssa-layout-btn,#events-list .ssa-group-btn,#events-list .ssa-show-images-toggle,#events-list .ssa-signature-events-toggle,#events-list .ssa-dark-mode-toggle,#events-list .ssa-keyword-btn{height:52px;padding:0 22px;display:inline-flex;align-items:center;justify-content:center;background:var(--ssa-surface)!important;border:1px solid var(--ssa-border-soft)!important;border-radius:10px;color:var(--ssa-muted)!important;font-size:20px;font-weight:700;line-height:1;box-shadow:none!important;transform:none!important;white-space:nowrap}
+      #events-list .ssa-weekend-btn,#events-list .ssa-clear-dates,#events-list .ssa-date-clear-btn,#events-list .ssa-layout-btn,#events-list .ssa-group-btn,#events-list .ssa-show-images-toggle,#events-list .ssa-signature-events-toggle,#events-list .ssa-dark-mode-toggle,#events-list .ssa-keyword-btn{height:52px;padding:0 22px;display:inline-flex;align-items:center;justify-content:center;background:var(--ssa-surface)!important;border:1px solid var(--ssa-border-soft)!important;border-radius:10px;color:var(--ssa-muted)!important;font-size:20px;font-weight:700;line-height:1;box-shadow:none!important;transform:none!important;white-space:nowrap}
+      #events-list .ssa-date-clear-btn{width:58px;height:58px;padding:0;border-color:transparent!important;border-radius:999px;background:transparent!important;font-size:0;color:transparent!important;align-self:end}
+      #events-list .ssa-date-clear-btn::before{content:'×';display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:999px;border:1px solid currentColor;color:var(--ssa-muted)!important;font-size:18px;font-weight:800;line-height:1}
       #events-list .ssa-dark-mode-toggle{width:auto!important;flex:0 0 auto;height:36px;min-width:92px;padding:0 10px 0 8px;gap:7px;border-radius:999px;background:var(--ssa-surface-soft)!important;color:var(--ssa-text)!important;font-size:13px;font-weight:800;text-transform:none}
       #events-list .ssa-theme-icon{position:relative;width:20px;min-width:20px;height:20px;flex:0 0 20px;display:inline-flex!important;align-items:center;justify-content:center;border-radius:999px;background:var(--ssa-accent)!important;box-shadow:inset -5px 0 0 rgba(0,0,0,.18)}
       #events-list .ssa-theme-icon::after{content:'';width:6px;height:6px;border-radius:999px;background:var(--ssa-surface)!important;box-shadow:6px 3px 0 -1px var(--ssa-surface),2px 8px 0 -2px var(--ssa-surface)}
@@ -3717,7 +3714,9 @@
       body.dark-mode #events-list .ssa-theme-icon{background:#f2d58c!important;box-shadow:0 0 0 4px rgba(240,121,97,.12)}
       body.dark-mode #events-list .ssa-theme-icon::after{width:10px;height:10px;background:#f2d58c!important;box-shadow:0 0 0 2px rgba(255,255,255,.18)}
       #events-list .ssa-layout-btn.ssa-active,#events-list .ssa-group-btn.ssa-active,#events-list .ssa-keyword-btn.ssa-keyword-active,#events-list .ssa-show-images-toggle.ssa-active,#events-list .ssa-signature-events-toggle.ssa-active{background:rgba(169,51,38,.06)!important;border-color:var(--ssa-accent-soft)!important;color:var(--ssa-accent)!important}
-      #events-list .ssa-weekend-btn:hover,#events-list .ssa-clear-dates:hover,#events-list .ssa-layout-btn:hover,#events-list .ssa-group-btn:hover,#events-list .ssa-show-images-toggle:hover,#events-list .ssa-signature-events-toggle:hover,#events-list .ssa-dark-mode-toggle:hover,#events-list .ssa-keyword-btn:hover{border-color:var(--ssa-accent-soft)!important;color:var(--ssa-accent)!important;background:rgba(169,51,38,.035)!important}
+      #events-list .ssa-weekend-btn:hover,#events-list .ssa-clear-dates:hover,#events-list .ssa-date-clear-btn:hover,#events-list .ssa-layout-btn:hover,#events-list .ssa-group-btn:hover,#events-list .ssa-show-images-toggle:hover,#events-list .ssa-signature-events-toggle:hover,#events-list .ssa-dark-mode-toggle:hover,#events-list .ssa-keyword-btn:hover{border-color:var(--ssa-accent-soft)!important;color:var(--ssa-accent)!important;background:rgba(169,51,38,.035)!important}
+      #events-list .ssa-date-clear-btn:hover{border-color:transparent!important;background:transparent!important}
+      #events-list .ssa-date-clear-btn:hover::before{color:var(--ssa-accent)!important}
       #events-list .ssa-view-controls-section{display:flex;align-items:flex-end;justify-content:space-between;gap:24px}
       #events-list .ssa-view-controls-left{display:flex;align-items:flex-end;gap:28px;flex-wrap:wrap}
       #events-list .ssa-layout-switcher-wrapper,#events-list .ssa-group-switcher-wrapper{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
@@ -3768,13 +3767,11 @@
         #events-list .ssa-event-keywords{grid-column:3;grid-row:1;align-self:start;justify-content:flex-end;margin:0}
       }
       @media(min-width:960px){
-        #events-list .ssa-date-filters{display:grid;grid-template-columns:230px 230px max-content max-content;gap:14px 16px;align-items:end;justify-content:start}
-        #events-list .ssa-date-inputs-row{display:contents}
-        #events-list .ssa-date-filters label{width:230px}
-        #events-list .ssa-date-input{width:100%}
-        #events-list .ssa-this-week-btn{grid-column:1}
-        #events-list .ssa-clear-dates{grid-column:2}
-        #events-list .ssa-weekend-btn,#events-list .ssa-clear-dates{height:58px}
+        #events-list .ssa-date-filters{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px 16px;align-items:end;width:100%}
+        #events-list .ssa-date-inputs-row{grid-column:1/-1;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 58px;gap:16px;width:100%;min-width:0}
+        #events-list .ssa-date-filters label{min-width:0;width:100%}
+        #events-list .ssa-date-input{width:100%;min-width:0}
+        #events-list .ssa-weekend-btn,#events-list .ssa-clear-dates{width:100%;min-width:0;height:58px;padding:0 18px}
       }
       @media(max-width:820px){
         #events-list{padding:22px 12px}
@@ -3788,12 +3785,14 @@
         #events-list .ssa-controls-heading h2{font-size:24px;line-height:1.12}
         #events-list .ssa-controls-heading p{font-size:15px;line-height:1.35}
         #events-list .ssa-date-filters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) 46px;gap:8px;width:100%;align-items:stretch}
-        #events-list .ssa-date-inputs-row{grid-column:1/-1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;width:100%;min-width:0}
+        #events-list .ssa-date-inputs-row{grid-column:1/-1;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 46px;gap:10px;width:100%;min-width:0}
         #events-list .ssa-date-filters label{min-width:0;font-size:13px;gap:7px}
         #events-list .ssa-date-input{width:100%;min-width:0;height:48px;font-size:15px;padding:0 10px;-webkit-appearance:none;appearance:none}
+        #events-list .ssa-date-clear-btn{width:46px;height:48px}
         #events-list .ssa-weekend-btn,#events-list .ssa-clear-dates,#events-list .ssa-layout-btn,#events-list .ssa-group-btn,#events-list .ssa-show-images-toggle,#events-list .ssa-signature-events-toggle,#events-list .ssa-dark-mode-toggle,#events-list .ssa-keyword-btn{width:100%;min-width:0;height:46px;padding:0 12px;font-size:14px;border-radius:8px;white-space:normal;text-align:center;line-height:1.15}
         #events-list .ssa-weekend-btn{padding:0 6px;font-size:12px;white-space:nowrap}
-        #events-list .ssa-clear-dates{width:46px;padding:0;border-radius:999px;font-size:0;color:transparent!important;white-space:nowrap}
+        #events-list .ssa-clear-dates{width:46px;padding:0;border-color:transparent!important;border-radius:999px;background:transparent!important;font-size:0;color:transparent!important;white-space:nowrap}
+        #events-list .ssa-clear-dates:hover{border-color:transparent!important;background:transparent!important}
         #events-list .ssa-clear-dates::before{content:'×';display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:999px;border:1px solid currentColor;color:var(--ssa-muted)!important;font-size:18px;font-weight:800;line-height:1}
         #events-list .ssa-clear-dates:hover::before{color:var(--ssa-accent)!important}
         #events-list .ssa-view-controls-section{display:flex;flex-direction:column;align-items:stretch;gap:16px}
@@ -3834,8 +3833,9 @@
         #events-list{padding:22px 10px}
         #events-list .ssa-page-intro h1{font-size:29px}
         #events-list .ssa-controls{padding:18px 14px}
-        #events-list .ssa-date-inputs-row{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+        #events-list .ssa-date-inputs-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 38px;gap:8px}
         #events-list .ssa-date-input{height:46px;font-size:13.5px;padding:0 8px}
+        #events-list .ssa-date-clear-btn{width:38px;height:46px}
         #events-list .ssa-date-filters{grid-template-columns:repeat(3,minmax(0,1fr)) 38px;gap:7px}
         #events-list .ssa-weekend-btn{height:44px;font-size:10.5px;padding:0 3px}
         #events-list .ssa-clear-dates{width:38px;height:44px}
@@ -3908,7 +3908,6 @@
       fromDate: opts.fromDate !== undefined ? opts.fromDate : todayISO(),
       toDate: opts.toDate || null,
       showImages: opts.showImages !== undefined ? opts.showImages : true,
-      showSignatureEventsOnly: opts.showSignatureEventsOnly !== undefined ? opts.showSignatureEventsOnly : false,
       groupBy: opts.groupBy || 'day'
     };
     
