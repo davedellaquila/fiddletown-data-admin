@@ -1441,7 +1441,8 @@
     
     if (clearDatesBtn) {
       clearDatesBtn.addEventListener('click', async function() {
-        const newState = { ...state, fromDate: null, toDate: null, selectedKeywords: [] };
+        const newState = { ...state, toDate: null, selectedKeywords: [] };
+        if (toInput) toInput.value = '';
         // Reload events to show all
         if (mount._widgetOpts) {
           reloadEvents(mount, newState, mount._widgetOpts);
