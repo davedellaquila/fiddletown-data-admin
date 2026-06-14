@@ -1295,7 +1295,7 @@
         <p>${filteredRows.length} ${filteredRows.length === 1 ? 'event' : 'events'} · ${getLayoutSummary(layout, groupBy)}</p>
       </section>
     `;
-    const footerHTML = '<p class="ssa-events-footnote">Confirm dates and ticketing with organizers before driving out. Design tokens support a future Transaction Tracker palette swap.</p>';
+    const footerHTML = '<p class="ssa-events-footnote">Confirm dates and ticketing with organizers before driving out.</p>';
     
     // Render events based on layout
     let eventsHTML = '';
