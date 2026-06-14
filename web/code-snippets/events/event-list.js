@@ -3707,7 +3707,7 @@
       #events-list button{font-family:var(--ssa-font);letter-spacing:0}
       #events-list .ssa-weekend-btn,#events-list .ssa-clear-dates,#events-list .ssa-date-clear-btn,#events-list .ssa-layout-btn,#events-list .ssa-group-btn,#events-list .ssa-show-images-toggle,#events-list .ssa-signature-events-toggle,#events-list .ssa-dark-mode-toggle,#events-list .ssa-keyword-btn{height:52px;padding:0 22px;display:inline-flex;align-items:center;justify-content:center;background:var(--ssa-surface)!important;border:1px solid var(--ssa-border-soft)!important;border-radius:10px;color:var(--ssa-muted)!important;font-size:20px;font-weight:700;line-height:1;box-shadow:none!important;transform:none!important;white-space:nowrap}
       #events-list .ssa-date-clear-btn{width:58px;height:58px;padding:0;border-color:transparent!important;border-radius:999px;background:transparent!important;font-size:0;color:transparent!important;align-self:end}
-      #events-list .ssa-date-clear-btn::before{content:'×';display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:999px;border:1px solid currentColor;color:var(--ssa-muted)!important;font-size:18px;font-weight:800;line-height:1}
+      #events-list .ssa-date-clear-btn::before{content:'×';display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:999px;border:1px solid currentColor;color:var(--ssa-muted)!important;font-size:18px;font-weight:800;line-height:1;transition:transform .22s ease,border-color .22s ease,color .22s ease,box-shadow .22s ease}
       #events-list .ssa-dark-mode-toggle{width:auto!important;flex:0 0 auto;height:36px;min-width:92px;padding:0 10px 0 8px;gap:7px;border-radius:999px;background:var(--ssa-surface-soft)!important;color:var(--ssa-text)!important;font-size:13px;font-weight:800;text-transform:none}
       #events-list .ssa-theme-icon{position:relative;width:20px;min-width:20px;height:20px;flex:0 0 20px;display:inline-flex!important;align-items:center;justify-content:center;border-radius:999px;background:var(--ssa-accent)!important;box-shadow:inset -5px 0 0 rgba(0,0,0,.18)}
       #events-list .ssa-theme-icon::after{content:'';width:6px;height:6px;border-radius:999px;background:var(--ssa-surface)!important;box-shadow:6px 3px 0 -1px var(--ssa-surface),2px 8px 0 -2px var(--ssa-surface)}
@@ -3717,7 +3717,8 @@
       #events-list .ssa-layout-btn.ssa-active,#events-list .ssa-group-btn.ssa-active,#events-list .ssa-keyword-btn.ssa-keyword-active,#events-list .ssa-show-images-toggle.ssa-active,#events-list .ssa-signature-events-toggle.ssa-active{background:rgba(169,51,38,.06)!important;border-color:var(--ssa-accent-soft)!important;color:var(--ssa-accent)!important}
       #events-list .ssa-weekend-btn:hover,#events-list .ssa-clear-dates:hover,#events-list .ssa-date-clear-btn:hover,#events-list .ssa-layout-btn:hover,#events-list .ssa-group-btn:hover,#events-list .ssa-show-images-toggle:hover,#events-list .ssa-signature-events-toggle:hover,#events-list .ssa-dark-mode-toggle:hover,#events-list .ssa-keyword-btn:hover{border-color:var(--ssa-accent-soft)!important;color:var(--ssa-accent)!important;background:rgba(169,51,38,.035)!important}
       #events-list .ssa-date-clear-btn:hover{border-color:transparent!important;background:transparent!important}
-      #events-list .ssa-date-clear-btn:hover::before{color:var(--ssa-accent)!important}
+      #events-list .ssa-date-clear-btn:hover::before,#events-list .ssa-date-clear-btn:focus-visible::before{color:var(--ssa-accent)!important;transform:rotate(90deg) scale(1.08);box-shadow:0 0 0 5px rgba(169,51,38,.08)}
+      #events-list .ssa-date-clear-btn:active::before{transform:rotate(90deg) scale(.92)}
       #events-list .ssa-view-controls-section{display:flex;align-items:flex-end;justify-content:space-between;gap:24px}
       #events-list .ssa-view-controls-left{display:flex;align-items:flex-end;gap:28px;flex-wrap:wrap}
       #events-list .ssa-layout-switcher-wrapper,#events-list .ssa-group-switcher-wrapper{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
@@ -3768,11 +3769,16 @@
         #events-list .ssa-event-keywords{grid-column:3;grid-row:1;align-self:start;justify-content:flex-end;margin:0}
       }
       @media(min-width:960px){
-        #events-list .ssa-date-filters{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px 16px;align-items:end;width:100%}
-        #events-list .ssa-date-inputs-row{grid-column:1/-1;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 58px;gap:16px;width:100%;min-width:0}
+        #events-list .ssa-date-filters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) 58px;gap:14px 16px;align-items:end;width:100%}
+        #events-list .ssa-date-inputs-row{grid-column:1/-1;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 58px;gap:20px;width:100%;min-width:0}
         #events-list .ssa-date-filters label{min-width:0;width:100%}
         #events-list .ssa-date-input{width:100%;min-width:0}
-        #events-list .ssa-weekend-btn,#events-list .ssa-clear-dates{width:100%;min-width:0;height:58px;padding:0 18px}
+        #events-list .ssa-weekend-btn{width:100%;min-width:0;height:58px;padding:0 18px}
+        #events-list .ssa-clear-dates{width:58px;min-width:58px;height:58px;padding:0;border-color:transparent!important;border-radius:999px;background:transparent!important;font-size:0;color:transparent!important;white-space:nowrap;justify-self:center}
+        #events-list .ssa-clear-dates:hover{border-color:transparent!important;background:transparent!important}
+        #events-list .ssa-clear-dates::before{content:'×';display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:999px;border:1px solid currentColor;color:var(--ssa-muted)!important;font-size:18px;font-weight:800;line-height:1;transition:transform .22s ease,border-color .22s ease,color .22s ease,box-shadow .22s ease}
+        #events-list .ssa-clear-dates:hover::before,#events-list .ssa-clear-dates:focus-visible::before{color:var(--ssa-accent)!important;transform:rotate(90deg) scale(1.08);box-shadow:0 0 0 5px rgba(169,51,38,.08)}
+        #events-list .ssa-clear-dates:active::before{transform:rotate(90deg) scale(.92)}
       }
       @media(max-width:820px){
         #events-list{padding:22px 12px}
@@ -3794,8 +3800,9 @@
         #events-list .ssa-weekend-btn{padding:0 6px;font-size:12px;white-space:nowrap}
         #events-list .ssa-clear-dates{width:46px;padding:0;border-color:transparent!important;border-radius:999px;background:transparent!important;font-size:0;color:transparent!important;white-space:nowrap}
         #events-list .ssa-clear-dates:hover{border-color:transparent!important;background:transparent!important}
-        #events-list .ssa-clear-dates::before{content:'×';display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:999px;border:1px solid currentColor;color:var(--ssa-muted)!important;font-size:18px;font-weight:800;line-height:1}
-        #events-list .ssa-clear-dates:hover::before{color:var(--ssa-accent)!important}
+        #events-list .ssa-clear-dates::before{content:'×';display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:999px;border:1px solid currentColor;color:var(--ssa-muted)!important;font-size:18px;font-weight:800;line-height:1;transition:transform .22s ease,border-color .22s ease,color .22s ease,box-shadow .22s ease}
+        #events-list .ssa-clear-dates:hover::before,#events-list .ssa-clear-dates:focus-visible::before{color:var(--ssa-accent)!important;transform:rotate(90deg) scale(1.08);box-shadow:0 0 0 5px rgba(169,51,38,.08)}
+        #events-list .ssa-clear-dates:active::before{transform:rotate(90deg) scale(.92)}
         #events-list .ssa-view-controls-section{display:flex;flex-direction:column;align-items:stretch;gap:16px}
         #events-list .ssa-view-controls-left{display:flex;flex-direction:column;align-items:stretch;gap:16px;width:100%}
         #events-list .ssa-layout-switcher-wrapper,#events-list .ssa-group-switcher-wrapper{display:flex;flex-direction:column;align-items:stretch;gap:8px;width:100%}
