@@ -1216,9 +1216,14 @@
       </section>
     `;
 
+    const isDarkMode = document.body && document.body.classList.contains('dark-mode');
+
     let controlsHTML = '<section class="ssa-controls" aria-label="Event filters">';
     controlsHTML += '<div class="ssa-controls-heading">';
+    controlsHTML += '<div class="ssa-controls-heading-top">';
     controlsHTML += '<span>Filters</span>';
+    controlsHTML += '<button class="ssa-dark-mode-toggle" title="Toggle dark mode" aria-label="Toggle dark mode"><span class="ssa-theme-icon" aria-hidden="true"></span><span class="ssa-theme-text">' + (isDarkMode ? 'Light' : 'Dark') + '</span></button>';
+    controlsHTML += '</div>';
     controlsHTML += '<h2>Narrow the calendar</h2>';
     controlsHTML += `<p>Use date presets, keywords, or layout options. ${layout === LAYOUTS.CALENDAR ? 'Click a day to see events.' : 'Active filters appear above the results.'}</p>`;
     controlsHTML += '</div>';
@@ -1261,13 +1266,11 @@
     }
     controlsHTML += '</div>';
     
-    // Right side: Display Options (Show Images, Signature Events, Dark Mode)
-    const isDarkMode = document.body && document.body.classList.contains('dark-mode');
+    // Right side: Display Options (Show Images, Signature Events)
     controlsHTML += '<div class="ssa-display-options-wrapper">';
     controlsHTML += '<div class="ssa-display-options-switcher">';
     controlsHTML += `<button class="ssa-show-images-toggle ${showImages ? 'ssa-active' : ''}" id="ssa-show-images-btn" title="Toggle image display">Show images</button>`;
     controlsHTML += `<button class="ssa-signature-events-toggle ${showSignatureEventsOnly ? 'ssa-active' : ''}" id="ssa-signature-events-btn" title="Show only signature events">Signature only</button>`;
-    controlsHTML += '<button class="ssa-dark-mode-toggle" title="Toggle dark mode">' + (isDarkMode ? 'Light' : 'Dark') + '</button>';
     controlsHTML += '</div>';
     controlsHTML += '</div>';
     
@@ -3696,7 +3699,9 @@
       #events-list .ssa-page-intro h1{margin:0 0 16px;color:var(--ssa-text)!important;font-size:64px;line-height:1.05;font-weight:800;letter-spacing:.01em}
       #events-list .ssa-page-intro p{margin:0;color:var(--ssa-muted)!important;font-size:25px;line-height:1.35;font-weight:400}
       #events-list .ssa-controls{max-width:1600px;margin:0 auto 34px;padding:34px 32px 30px;display:flex;flex-direction:column;gap:26px;background:var(--ssa-surface)!important;border:1px solid var(--ssa-border)!important;border-radius:12px;box-shadow:var(--ssa-shadow)}
+      #events-list .ssa-controls-heading-top{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:0 0 8px}
       #events-list .ssa-controls-heading span,#events-list .ssa-results-summary span,#events-list .ssa-control-label{display:block;margin:0 0 8px;color:var(--ssa-muted)!important;font-size:15px;font-weight:800;text-transform:uppercase;letter-spacing:.04em}
+      #events-list .ssa-controls-heading-top > span{margin:0}
       #events-list .ssa-controls-heading h2{margin:0 0 8px;color:var(--ssa-text)!important;font-size:32px;line-height:1.15;font-weight:800}
       #events-list .ssa-controls-heading p{margin:0;color:var(--ssa-muted)!important;font-size:21px;line-height:1.35}
       #events-list .ssa-date-filters-section,#events-list .ssa-view-controls-section,#events-list .ssa-keyword-filters-section{padding:0;background:transparent!important;border:0!important;border-radius:0}
@@ -3706,6 +3711,12 @@
       #events-list .ssa-date-input{width:230px;height:58px;padding:0 16px;background:var(--ssa-surface-soft)!important;border:1px solid var(--ssa-border)!important;border-radius:10px;color:var(--ssa-text)!important;font-size:20px;font-weight:700;box-shadow:none!important}
       #events-list button{font-family:var(--ssa-font);letter-spacing:0}
       #events-list .ssa-weekend-btn,#events-list .ssa-clear-dates,#events-list .ssa-layout-btn,#events-list .ssa-group-btn,#events-list .ssa-show-images-toggle,#events-list .ssa-signature-events-toggle,#events-list .ssa-dark-mode-toggle,#events-list .ssa-keyword-btn{height:52px;padding:0 22px;display:inline-flex;align-items:center;justify-content:center;background:var(--ssa-surface)!important;border:1px solid var(--ssa-border-soft)!important;border-radius:10px;color:var(--ssa-muted)!important;font-size:20px;font-weight:700;line-height:1;box-shadow:none!important;transform:none!important;white-space:nowrap}
+      #events-list .ssa-dark-mode-toggle{width:auto!important;flex:0 0 auto;height:36px;min-width:92px;padding:0 10px 0 8px;gap:7px;border-radius:999px;background:var(--ssa-surface-soft)!important;color:var(--ssa-text)!important;font-size:13px;font-weight:800;text-transform:none}
+      #events-list .ssa-theme-icon{position:relative;width:20px;min-width:20px;height:20px;flex:0 0 20px;display:inline-flex!important;align-items:center;justify-content:center;border-radius:999px;background:var(--ssa-accent)!important;box-shadow:inset -5px 0 0 rgba(0,0,0,.18)}
+      #events-list .ssa-theme-icon::after{content:'';width:6px;height:6px;border-radius:999px;background:var(--ssa-surface)!important;box-shadow:6px 3px 0 -1px var(--ssa-surface),2px 8px 0 -2px var(--ssa-surface)}
+      #events-list .ssa-theme-text{display:inline!important;margin:0!important;color:inherit!important;font-size:inherit!important;font-weight:inherit!important;text-transform:none!important;letter-spacing:0!important}
+      body.dark-mode #events-list .ssa-theme-icon{background:#f2d58c!important;box-shadow:0 0 0 4px rgba(240,121,97,.12)}
+      body.dark-mode #events-list .ssa-theme-icon::after{width:10px;height:10px;background:#f2d58c!important;box-shadow:0 0 0 2px rgba(255,255,255,.18)}
       #events-list .ssa-layout-btn.ssa-active,#events-list .ssa-group-btn.ssa-active,#events-list .ssa-keyword-btn.ssa-keyword-active,#events-list .ssa-show-images-toggle.ssa-active,#events-list .ssa-signature-events-toggle.ssa-active{background:rgba(169,51,38,.06)!important;border-color:var(--ssa-accent-soft)!important;color:var(--ssa-accent)!important}
       #events-list .ssa-weekend-btn:hover,#events-list .ssa-clear-dates:hover,#events-list .ssa-layout-btn:hover,#events-list .ssa-group-btn:hover,#events-list .ssa-show-images-toggle:hover,#events-list .ssa-signature-events-toggle:hover,#events-list .ssa-dark-mode-toggle:hover,#events-list .ssa-keyword-btn:hover{border-color:var(--ssa-accent-soft)!important;color:var(--ssa-accent)!important;background:rgba(169,51,38,.035)!important}
       #events-list .ssa-view-controls-section{display:flex;align-items:flex-end;justify-content:space-between;gap:24px}
@@ -3762,7 +3773,9 @@
         #events-list .ssa-page-intro h1{font-size:30px;line-height:1.08;margin-bottom:10px}
         #events-list .ssa-page-intro p{font-size:16px;line-height:1.35;max-width:330px}
         #events-list .ssa-controls{margin:0 0 18px;padding:18px 16px;gap:22px;border-radius:9px}
+        #events-list .ssa-controls-heading-top{gap:10px;margin-bottom:10px}
         #events-list .ssa-controls-heading span,#events-list .ssa-results-summary span,#events-list .ssa-control-label{font-size:13px;line-height:1.2}
+        #events-list .ssa-controls-heading-top > span{margin:0}
         #events-list .ssa-controls-heading h2{font-size:24px;line-height:1.12}
         #events-list .ssa-controls-heading p{font-size:15px;line-height:1.35}
         #events-list .ssa-date-filters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) 46px;gap:8px;width:100%;align-items:stretch}
@@ -3781,7 +3794,8 @@
         #events-list .ssa-group-switcher{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;width:100%}
         #events-list .ssa-display-options-wrapper{margin-left:0;width:100%}
         #events-list .ssa-display-options-switcher{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;width:100%}
-        #events-list .ssa-dark-mode-toggle{grid-column:1/-1}
+        #events-list .ssa-dark-mode-toggle{width:auto;min-width:84px;height:34px;padding:0 9px 0 7px;font-size:12px}
+        #events-list .ssa-theme-icon{width:18px;height:18px}
         #events-list .ssa-keyword-filters{display:flex;flex-wrap:wrap;gap:10px;overflow:visible;padding-bottom:0}
         #events-list .ssa-keyword-btn{width:auto;min-width:0;flex:1 1 calc(50% - 10px);padding:0 12px}
         #events-list .ssa-active-filters,#events-list .ssa-results-summary,#events-list .ssa-events-footnote{margin-left:0;margin-right:0;font-size:14px}
@@ -4054,6 +4068,11 @@
     };
   }
 
+  function setDarkModeButtonContent(button, isDark) {
+    if (!button) return;
+    button.innerHTML = '<span class="ssa-theme-icon" aria-hidden="true"></span><span class="ssa-theme-text">' + (isDark ? 'Light' : 'Dark') + '</span>';
+  }
+
   // Dark mode toggle functionality
   function toggleDarkMode() {
     const body = document.body;
@@ -4062,9 +4081,7 @@
     html.classList.toggle('dark-mode', isDark);
     const button = document.querySelector('.ssa-dark-mode-toggle');
     
-    if (button) {
-      button.textContent = isDark ? 'Light' : 'Dark';
-    }
+    setDarkModeButtonContent(button, isDark);
     
     localStorage.setItem('ssa-dark-mode', isDark ? 'true' : 'false');
   }
@@ -4080,7 +4097,9 @@
       if (savedDarkMode === 'true') {
         document.body.classList.add('dark-mode');
         document.documentElement.classList.add('dark-mode');
-        button.textContent = 'Light';
+        setDarkModeButtonContent(button, true);
+      } else {
+        setDarkModeButtonContent(button, false);
       }
     }
   }
