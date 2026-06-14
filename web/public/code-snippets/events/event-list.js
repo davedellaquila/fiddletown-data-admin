@@ -652,6 +652,48 @@
     return `${dayName}, ${monthName} ${day}${ordinalSuffix(day)}`;
   }
 
+  function escapeHtml(value) {
+    return String(value || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function normalizeEventUrl(url) {
+    const trimmed = (url || '').trim();
+    if (!trimmed) return '';
+    return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  }
+
+  function eventAppearsOnDate(event, dateKey) {
+    if (!event.start_date || !dateKey) return false;
+    const startDate = normalizeDateString(event.start_date);
+    const endDate = normalizeDateString(event.end_date || event.start_date);
+    return startDate && endDate && startDate <= dateKey && endDate >= dateKey;
+  }
+
+  function getCalendarEventsForDate(rows, state, dateKey) {
+    const dateFilteredRows = filterEventsByDateRange(rows || [], state.fromDate || null, state.toDate || null);
+    const keywordFilteredRows = filterEventsByKeywords(dateFilteredRows, state.selectedKeywords || []);
+    return keywordFilteredRows
+      .filter(event => eventAppearsOnDate(event, dateKey))
+      .sort((a, b) => {
+        const timeA = a.start_time || '99:99';
+        const timeB = b.start_time || '99:99';
+        return timeA.localeCompare(timeB) || (a.name || '').localeCompare(b.name || '');
+      });
+  }
+
+  function formatAgendaTime(event) {
+    if (!event.start_time && !event.end_time) return 'Time TBA';
+    if (event.start_time && event.end_time) {
+      return `${formatTime(event.start_time)} - ${formatTime(event.end_time)}`;
+    }
+    return formatTime(event.start_time || event.end_time);
+  }
+
   function groupEventsByDay(events) {
     const grouped = {};
     
@@ -1145,33 +1187,22 @@
       }
       
       const outOfRangeClass = isOutOfRange ? ' ssa-calendar-day-out-of-range' : '';
-      html += `<div class="ssa-calendar-day${outOfRangeClass}" data-date="${dateKey}">`;
+      const hasEventsClass = dayEvents.length > 0 ? ' ssa-calendar-day-has-events' : '';
+      html += `<div class="ssa-calendar-day${outOfRangeClass}${hasEventsClass}" data-date="${dateKey}">`;
       html += `<div class="ssa-calendar-day-number">${day}</div>`;
       
       if (dayEvents.length > 0) {
-        html += `<div class="ssa-calendar-day-events">`;
-        dayEvents.forEach(event => {
-          const eventId = event.id ? `event-${event.id}` : `event-${btoa(event.name + (event.start_date || '')).replace(/[^a-zA-Z0-9]/g, '').substring(0, 10)}`;
-          const description = event.description ? event.description.replace(/"/g, '&quot;').replace(/'/g, '&#39;') : '';
-          const name = event.name ? event.name.replace(/"/g, '&quot;').replace(/'/g, '&#39;') : '';
-          const startDate = event.start_date || '';
-          const endDate = event.end_date || '';
-          const location = event.location ? event.location.replace(/"/g, '&quot;').replace(/'/g, '&#39;') : '';
-          const startTime = event.start_time || '';
-          const endTime = event.end_time || '';
-          let websiteUrl = event.website_url ? event.website_url.trim() : '';
-          // Normalize URL: if it doesn't start with http:// or https://, prepend https://
-          if (websiteUrl && !websiteUrl.match(/^https?:\/\//i)) {
-            websiteUrl = 'https://' + websiteUrl;
-          }
-          websiteUrl = websiteUrl ? websiteUrl.replace(/"/g, '&quot;').replace(/'/g, '&#39;') : '';
-          const eventKeywords = getEventKeywords(event);
-          const keywords = eventKeywords.length > 0 ? eventKeywords.join(',') : '';
-
-          // Always show info icon in calendar view (even without description)
-          html += `<span class="ssa-calendar-info-icon ssa-info-icon" data-event-id="${eventId}" data-description="${description}" data-event-name="${name}" data-start-date="${startDate}" data-end-date="${endDate}" data-location="${location}" data-start-time="${startTime}" data-end-time="${endTime}" data-website-url="${websiteUrl}" data-keywords="${keywords}" data-calendar-view="true" title="Hover to view event details"></span>`;
+        const previewEvents = dayEvents.slice(0, 2);
+        html += `<button class="ssa-calendar-day-agenda-trigger" data-date="${dateKey}" type="button" aria-label="Open ${dayEvents.length} ${dayEvents.length === 1 ? 'event' : 'events'} on ${formatDayHeader(dateKey)}">`;
+        html += `<span class="ssa-calendar-event-count">${dayEvents.length} ${dayEvents.length === 1 ? 'event' : 'events'}</span>`;
+        html += `<span class="ssa-calendar-event-preview-list">`;
+        previewEvents.forEach(event => {
+          html += `<span class="ssa-calendar-event-preview">${escapeHtml(event.name || 'Untitled event')}</span>`;
         });
-        html += `</div>`;
+        if (dayEvents.length > previewEvents.length) {
+          html += `<span class="ssa-calendar-event-more">+${dayEvents.length - previewEvents.length} more</span>`;
+        }
+        html += `</span></button>`;
       }
       
       html += `</div>`;
@@ -1943,6 +1974,114 @@
         });
       });
     }
+
+    function closeDayAgenda() {
+      const activeAgenda = document.querySelector('.ssa-day-agenda-backdrop');
+      if (activeAgenda) {
+        activeAgenda.classList.remove('ssa-day-agenda-open');
+        window.setTimeout(() => activeAgenda.remove(), 180);
+      }
+      document.removeEventListener('keydown', handleDayAgendaEscape);
+    }
+
+    function handleDayAgendaEscape(e) {
+      if (e.key === 'Escape') {
+        closeDayAgenda();
+      }
+    }
+
+    function renderDayAgendaEvent(event, index, totalEvents) {
+      const eventId = event.id ? `event-${event.id}` : `event-${btoa((event.name || '') + (event.start_date || '')).replace(/[^a-zA-Z0-9]/g, '').substring(0, 10)}`;
+      const name = escapeHtml(event.name || 'Untitled event');
+      const time = escapeHtml(formatAgendaTime(event));
+      const location = escapeHtml(event.location || '');
+      const description = escapeHtml(event.description || '');
+      const websiteUrl = normalizeEventUrl(event.website_url);
+      const imageUrl = (event.image_url || '').trim();
+      const eventKeywords = getEventKeywords(event);
+      const mapsUrl = event.location ? `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(event.location)}` : '';
+      const shouldOpen = totalEvents === 1 || index === 0;
+
+      return `
+        <details class="ssa-day-agenda-event" ${shouldOpen ? 'open' : ''}>
+          <summary class="ssa-day-agenda-summary">
+            ${imageUrl ? `
+              <span class="ssa-day-agenda-thumb" data-event-id="${escapeHtml(eventId)}" data-image-url="${escapeHtml(imageUrl)}">
+                <img src="${escapeHtml(imageUrl)}" alt="${name}" loading="lazy" />
+              </span>
+            ` : '<span class="ssa-day-agenda-thumb ssa-day-agenda-thumb-empty" aria-hidden="true"></span>'}
+            <span class="ssa-day-agenda-main">
+              <span class="ssa-day-agenda-name">${name}</span>
+              <span class="ssa-day-agenda-meta">${time}${location ? ` · ${location}` : ''}</span>
+            </span>
+          </summary>
+          <div class="ssa-day-agenda-details">
+            ${description ? `<p>${description}</p>` : `<p class="ssa-day-agenda-muted">No additional description is available.</p>`}
+            ${eventKeywords.length ? `<div class="ssa-day-agenda-tags">${eventKeywords.map(keyword => `<span>${escapeHtml(keyword)}</span>`).join('')}</div>` : ''}
+            <div class="ssa-day-agenda-actions">
+              ${websiteUrl ? `<a href="${escapeHtml(websiteUrl)}" target="_blank" rel="noopener noreferrer">Event website</a>` : ''}
+              ${mapsUrl ? `<a href="${escapeHtml(mapsUrl)}" target="_blank" rel="noopener noreferrer">Directions</a>` : ''}
+            </div>
+          </div>
+        </details>
+      `;
+    }
+
+    function showDayAgenda(dateKey) {
+      const dayEvents = getCalendarEventsForDate(rows, state, dateKey);
+      if (!dayEvents.length) return;
+
+      closeDayAgenda();
+
+      const backdrop = document.createElement('div');
+      backdrop.className = 'ssa-day-agenda-backdrop';
+      backdrop.innerHTML = `
+        <section class="ssa-day-agenda-panel" role="dialog" aria-modal="true" aria-label="Events for ${escapeHtml(formatDayHeader(dateKey))}">
+          <header class="ssa-day-agenda-header">
+            <div>
+              <p>${dayEvents.length} ${dayEvents.length === 1 ? 'event' : 'events'}</p>
+              <h3>${escapeHtml(formatDayHeader(dateKey))}</h3>
+            </div>
+            <button class="ssa-day-agenda-close" type="button" aria-label="Close event details">×</button>
+          </header>
+          <div class="ssa-day-agenda-list">
+            ${dayEvents.map((event, index) => renderDayAgendaEvent(event, index, dayEvents.length)).join('')}
+          </div>
+        </section>
+      `;
+
+      backdrop.addEventListener('click', function(e) {
+        if (e.target === backdrop) {
+          closeDayAgenda();
+        }
+      });
+
+      const closeBtn = backdrop.querySelector('.ssa-day-agenda-close');
+      if (closeBtn) {
+        closeBtn.addEventListener('click', closeDayAgenda);
+      }
+
+      backdrop.querySelectorAll('.ssa-day-agenda-thumb[data-image-url]').forEach(thumb => {
+        thumb.addEventListener('click', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          showImagePreview(this.dataset.eventId, this.dataset.imageUrl, this);
+        });
+      });
+
+      document.body.appendChild(backdrop);
+      // Force the inserted state to register before adding the open class.
+      backdrop.getBoundingClientRect();
+      backdrop.classList.add('ssa-day-agenda-open');
+      document.addEventListener('keydown', handleDayAgendaEscape);
+    }
+
+    mount.querySelectorAll('.ssa-calendar-day-has-events').forEach(dayCell => {
+      dayCell.addEventListener('click', function(e) {
+        if (e.target.closest('a')) return;
+        showDayAgenda(this.dataset.date);
+      });
+    });
     
     // Description popover on hover for info icons (list and grid views)
     let activePopover = null;
@@ -3822,9 +3961,44 @@
       #events-list .ssa-calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:0;background:var(--ssa-border)!important;border:0!important;border-radius:0;box-shadow:none!important}
       #events-list .ssa-calendar-day-header{padding:16px 8px;background:var(--ssa-surface)!important;color:var(--ssa-muted)!important;font-size:16px;font-weight:800;text-transform:none}
       #events-list .ssa-calendar-day{min-height:150px;padding:18px;background:var(--ssa-surface)!important;border-top:1px solid var(--ssa-border)!important;border-left:1px solid var(--ssa-border)!important}
+      #events-list .ssa-calendar-day-has-events{cursor:pointer}
+      #events-list .ssa-calendar-day-has-events:hover{background:color-mix(in srgb,var(--ssa-accent) 4%,var(--ssa-surface))!important}
       #events-list .ssa-calendar-day-number{color:var(--ssa-text)!important;font-size:20px;font-weight:800}
+      #events-list .ssa-calendar-day-agenda-trigger{width:100%;margin-top:10px;padding:0;border:0;background:transparent;color:inherit;text-align:left;cursor:pointer}
+      #events-list .ssa-calendar-event-count{display:inline-flex;height:28px;padding:0 10px;align-items:center;border:1px solid var(--ssa-accent-soft)!important;border-radius:999px;background:rgba(169,51,38,.07)!important;color:var(--ssa-accent)!important;font-size:13px;font-weight:800}
+      #events-list .ssa-calendar-event-preview-list{display:flex;flex-direction:column;gap:5px;margin-top:10px}
+      #events-list .ssa-calendar-event-preview,#events-list .ssa-calendar-event-more{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ssa-muted)!important;font-size:14px;font-weight:700;line-height:1.25}
       #events-list .ssa-calendar-info-icon{width:10px;height:10px;min-width:10px;min-height:10px;background:var(--ssa-accent)!important}
       #events-list .ssa-calendar-info-icon::before{content:''}
+      .ssa-day-agenda-backdrop{position:fixed;inset:0;z-index:10020;display:flex;align-items:center;justify-content:center;padding:22px;background:rgba(15,23,42,.42);opacity:0;transition:opacity .18s ease}
+      .ssa-day-agenda-backdrop.ssa-day-agenda-open{opacity:1}
+      .ssa-day-agenda-panel{width:min(760px,100%);max-height:min(82vh,780px);display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--ssa-border-soft,#e5e7eb);border-radius:14px;background:var(--ssa-surface,#fff);box-shadow:0 28px 80px rgba(15,23,42,.26);color:var(--ssa-text,#111827);transform:translateY(10px) scale(.985);transition:transform .18s ease}
+      .ssa-day-agenda-open .ssa-day-agenda-panel{transform:translateY(0) scale(1)}
+      .ssa-day-agenda-backdrop.ssa-day-agenda-open .ssa-day-agenda-panel{transform:translateY(0) scale(1)!important}
+      .ssa-day-agenda-header{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;padding:22px 24px;border-bottom:1px solid var(--ssa-border-soft,#e5e7eb)}
+      .ssa-day-agenda-header p{margin:0 0 6px;color:var(--ssa-accent,#a93326);font-size:13px;font-weight:900;text-transform:uppercase;letter-spacing:.08em}
+      .ssa-day-agenda-header h3{margin:0;color:var(--ssa-text,#111827);font-size:28px;line-height:1.1;font-weight:900}
+      .ssa-day-agenda-close{width:38px;height:38px;display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;border:1px solid var(--ssa-border-soft,#e5e7eb);border-radius:999px;background:transparent;color:var(--ssa-muted,#6b7280);font-size:27px;line-height:1;cursor:pointer}
+      .ssa-day-agenda-close:hover{color:var(--ssa-accent,#a93326);border-color:var(--ssa-accent-soft,#c66b60)}
+      .ssa-day-agenda-list{overflow:auto;padding:12px}
+      .ssa-day-agenda-event{border:1px solid var(--ssa-border-soft,#e5e7eb);border-radius:10px;background:var(--ssa-surface,#fff)}
+      .ssa-day-agenda-event + .ssa-day-agenda-event{margin-top:10px}
+      .ssa-day-agenda-summary{display:grid;grid-template-columns:64px minmax(0,1fr);gap:14px;align-items:center;padding:12px;cursor:pointer;list-style:none}
+      .ssa-day-agenda-summary::-webkit-details-marker{display:none}
+      .ssa-day-agenda-thumb{width:64px;height:64px;display:block;overflow:hidden;border:1px solid var(--ssa-border-soft,#e5e7eb);border-radius:8px;background:var(--ssa-surface-soft,#f8fafc);cursor:pointer}
+      .ssa-day-agenda-thumb img{width:100%;height:100%;display:block;object-fit:cover}
+      .ssa-day-agenda-thumb-empty{cursor:default}
+      .ssa-day-agenda-main{min-width:0;display:flex;flex-direction:column;gap:5px}
+      .ssa-day-agenda-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ssa-accent-soft,#7f251d);font-size:19px;font-weight:900;line-height:1.2}
+      .ssa-day-agenda-meta{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ssa-muted,#6b7280);font-size:15px;font-weight:700;line-height:1.35}
+      .ssa-day-agenda-details{padding:0 14px 16px 90px;color:var(--ssa-muted,#6b7280);font-size:15px;line-height:1.55}
+      .ssa-day-agenda-details p{margin:0 0 12px}
+      .ssa-day-agenda-muted{font-style:italic}
+      .ssa-day-agenda-tags{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 14px}
+      .ssa-day-agenda-tags span{height:30px;padding:0 10px;display:inline-flex;align-items:center;border:1px solid var(--ssa-border-soft,#e5e7eb);border-radius:999px;color:var(--ssa-muted,#6b7280);font-size:13px;font-weight:800}
+      .ssa-day-agenda-actions{display:flex;flex-wrap:wrap;gap:10px}
+      .ssa-day-agenda-actions a{height:38px;padding:0 14px;display:inline-flex;align-items:center;border:1px solid var(--ssa-accent-soft,#c66b60);border-radius:999px;background:rgba(169,51,38,.06);color:var(--ssa-accent,#a93326)!important;text-decoration:none;font-size:14px;font-weight:900}
+      .ssa-day-agenda-actions a:hover{background:rgba(169,51,38,.1)}
       #events-list .ssa-events-footnote{max-width:1600px;margin:36px auto 0;color:var(--ssa-muted)!important;font-size:21px;line-height:1.45}
       @media(min-width:821px){
         #events-list .ssa-event-content{grid-template-columns:112px minmax(0,1fr) minmax(260px,auto)}
@@ -3915,6 +4089,21 @@
         #events-list .ssa-calendar-month-header{font-size:21px!important;padding:18px 16px}
         #events-list .ssa-calendar-grid{min-width:720px}
         #events-list .ssa-calendar-day{min-height:104px;padding:10px}
+        #events-list .ssa-calendar-event-count{height:24px;padding:0 8px;font-size:12px}
+        #events-list .ssa-calendar-event-preview-list{gap:4px;margin-top:7px}
+        #events-list .ssa-calendar-event-preview,#events-list .ssa-calendar-event-more{font-size:12px}
+        .ssa-day-agenda-backdrop{align-items:flex-end;padding:0;background:rgba(15,23,42,.36)}
+        .ssa-day-agenda-panel{position:fixed;left:0;right:0;bottom:0;width:100%;max-height:82vh;border-right:0;border-bottom:0;border-left:0;border-radius:18px 18px 0 0;transform:none!important;transition:opacity .18s ease}
+        .ssa-day-agenda-open .ssa-day-agenda-panel{transform:none!important}
+        .ssa-day-agenda-backdrop.ssa-day-agenda-open .ssa-day-agenda-panel{transform:none!important}
+        .ssa-day-agenda-header{padding:18px 16px 14px}
+        .ssa-day-agenda-header h3{font-size:22px}
+        .ssa-day-agenda-list{padding:10px}
+        .ssa-day-agenda-summary{grid-template-columns:54px minmax(0,1fr);gap:12px;padding:10px}
+        .ssa-day-agenda-thumb{width:54px;height:54px}
+        .ssa-day-agenda-name{font-size:16px}
+        .ssa-day-agenda-meta{font-size:13px}
+        .ssa-day-agenda-details{padding:0 12px 14px 76px;font-size:14px}
         #events-list .ssa-events-footnote{font-size:14px;margin-top:22px}
       }
       @media(max-width:560px){
