@@ -789,8 +789,9 @@
           html += `<div class="ssa-event-image-wrapper" data-event-id="${eventId}" data-image-url="${event.image_url}">`;
           html += `<img src="${event.image_url}" alt="${event.name}" class="ssa-event-image" />`;
           html += `</div>`;
+        } else {
+          html += `<div class="ssa-event-image-wrapper ssa-event-image-placeholder" aria-hidden="true"></div>`;
         }
-        // No placeholder when showImages is off - this reduces page height
         
         // Event details on the right
         html += `<div class="ssa-event-details">`;
@@ -875,6 +876,34 @@
     });
 
     return html;
+  }
+
+  function formatFilterDateLabel(dateString) {
+    if (!dateString) return '';
+    const date = parseLocalDate(dateString);
+    if (!date) return dateString;
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
+
+  function getLayoutSummary(layout, groupBy) {
+    if (layout === LAYOUTS.GRID) return 'Grid view · 3 columns';
+    if (layout === LAYOUTS.CALENDAR) return 'Calendar view';
+    return `List view · grouped by ${groupBy || 'day'}`;
+  }
+
+  function renderActiveFilters(state) {
+    const chips = [];
+    (state.selectedKeywords || []).forEach(kw => {
+      chips.push(`<button class="ssa-active-filter-chip" data-chip-type="keyword" data-keyword="${kw}">${kw}<span aria-hidden="true">×</span></button>`);
+    });
+    if (state.fromDate) {
+      chips.push(`<button class="ssa-active-filter-chip" data-chip-type="from">From ${formatFilterDateLabel(state.fromDate)}<span aria-hidden="true">×</span></button>`);
+    }
+    if (state.toDate) {
+      chips.push(`<button class="ssa-active-filter-chip" data-chip-type="to">To ${formatFilterDateLabel(state.toDate)}<span aria-hidden="true">×</span></button>`);
+    }
+    if (!chips.length) return '';
+    return `<div class="ssa-active-filters"><span>Showing:</span>${chips.join('')}</div>`;
   }
 
   function renderGridLayout(events, state) {
@@ -1179,46 +1208,44 @@
       eventsWithKeywords: dateFilteredRows.filter(ev => ev.keywords && ev.keywords.length > 0).length
     });
     
-    // Render controls
-    let controlsHTML = '<div class="ssa-controls">';
+    // Render page intro and controls
+    const pageHeaderHTML = `
+      <section class="ssa-page-intro">
+        <h1>Gold Country Events</h1>
+        <p>Drive-worthy happenings in Amador, El Dorado, and nearby foothill country.</p>
+      </section>
+    `;
+
+    let controlsHTML = '<section class="ssa-controls" aria-label="Event filters">';
+    controlsHTML += '<div class="ssa-controls-heading">';
+    controlsHTML += '<span>Filters</span>';
+    controlsHTML += '<h2>Narrow the calendar</h2>';
+    controlsHTML += `<p>Use date presets, keywords, or layout options. ${layout === LAYOUTS.CALENDAR ? 'Click a day to see events.' : 'Active filters appear above the results.'}</p>`;
+    controlsHTML += '</div>';
 
     // Date range filters (prominent section)
     controlsHTML += '<div class="ssa-date-filters-section">';
     controlsHTML += '<div class="ssa-date-filters">';
-    controlsHTML += `<button class="ssa-weekend-btn ssa-this-week-btn" title="Set date range to current week (Monday to Sunday)">📆 This Week</button>`;
-    controlsHTML += `<button class="ssa-weekend-btn ssa-this-weekend-btn" title="Set date range to upcoming weekend">📅 This Weekend</button>`;
-    controlsHTML += `<button class="ssa-weekend-btn ssa-next-weekend-btn" title="Set date range to next weekend">📅 Next Weekend</button>`;
     controlsHTML += '<div class="ssa-date-inputs-row">';
-    controlsHTML += `<label>From: <input type="date" class="ssa-date-input" id="ssa-from-date" value="${fromDate || ''}"></label>`;
-    controlsHTML += `<label>To: <input type="date" class="ssa-date-input" id="ssa-to-date" value="${toDate || ''}"></label>`;
+    controlsHTML += `<label><span>From</span><input type="date" class="ssa-date-input" id="ssa-from-date" value="${fromDate || ''}"></label>`;
+    controlsHTML += `<label><span>To</span><input type="date" class="ssa-date-input" id="ssa-to-date" value="${toDate || ''}" placeholder="Open"></label>`;
     controlsHTML += '</div>';
+    controlsHTML += `<button class="ssa-weekend-btn ssa-this-weekend-btn" title="Set date range to upcoming weekend">This Weekend</button>`;
+    controlsHTML += `<button class="ssa-weekend-btn ssa-next-weekend-btn" title="Set date range to next weekend">Next Weekend</button>`;
+    controlsHTML += `<button class="ssa-weekend-btn ssa-this-week-btn" title="Set date range to current week (Monday to Sunday)">This Week</button>`;
     controlsHTML += `<button class="ssa-clear-dates" title="Clear all filters">Clear</button>`;
     controlsHTML += '</div>';
     controlsHTML += '</div>';
-    
-    // Keyword filters - display all keywords from the system
-    if (allKeywords.length > 0) {
-      controlsHTML += '<div class="ssa-keyword-filters-section">';
-      controlsHTML += '<div class="ssa-keyword-filters">';
-      allKeywords.forEach(kw => {
-        const isSelected = selectedKeywords.includes(kw);
-        controlsHTML += `<button class="ssa-keyword-btn ${isSelected ? 'ssa-keyword-active' : ''}" data-keyword="${kw}">${kw}</button>`;
-      });
-      controlsHTML += '</div>';
-      controlsHTML += '</div>';
-    }
-    
-    // View controls section: View Types + Group By + Display Options (moved below keyword filters)
+
+    // View controls section: layout + display options
     controlsHTML += '<div class="ssa-view-controls-section">';
-    
-    // Left side: View Types and Group By
     controlsHTML += '<div class="ssa-view-controls-left">';
     controlsHTML += '<div class="ssa-layout-switcher-wrapper">';
-    controlsHTML += '<label class="ssa-control-label">View:</label>';
+    controlsHTML += '<label class="ssa-control-label">Layout</label>';
     controlsHTML += '<div class="ssa-layout-switcher">';
-    controlsHTML += `<button class="ssa-layout-btn ${layout === LAYOUTS.LIST ? 'ssa-active' : ''}" data-layout="${LAYOUTS.LIST}" title="List view">📋</button>`;
-    controlsHTML += `<button class="ssa-layout-btn ${layout === LAYOUTS.GRID ? 'ssa-active' : ''}" data-layout="${LAYOUTS.GRID}" title="Grid view">⊞</button>`;
-    controlsHTML += `<button class="ssa-layout-btn ${layout === LAYOUTS.CALENDAR ? 'ssa-active' : ''}" data-layout="${LAYOUTS.CALENDAR}" title="Calendar view">📅</button>`;
+    controlsHTML += `<button class="ssa-layout-btn ${layout === LAYOUTS.LIST ? 'ssa-active' : ''}" data-layout="${LAYOUTS.LIST}" title="List view">List</button>`;
+    controlsHTML += `<button class="ssa-layout-btn ${layout === LAYOUTS.GRID ? 'ssa-active' : ''}" data-layout="${LAYOUTS.GRID}" title="Grid view">Grid</button>`;
+    controlsHTML += `<button class="ssa-layout-btn ${layout === LAYOUTS.CALENDAR ? 'ssa-active' : ''}" data-layout="${LAYOUTS.CALENDAR}" title="Calendar view">Calendar</button>`;
     controlsHTML += '</div>';
     controlsHTML += '</div>';
     
@@ -1227,8 +1254,8 @@
       controlsHTML += '<div class="ssa-group-switcher-wrapper">';
       controlsHTML += '<label class="ssa-control-label">Group:</label>';
       controlsHTML += '<div class="ssa-group-switcher">';
-      controlsHTML += `<button class="ssa-group-btn ${groupBy === 'day' ? 'ssa-active' : ''}" data-group="day" title="Group by day">📆 Day</button>`;
-      controlsHTML += `<button class="ssa-group-btn ${groupBy === 'month' ? 'ssa-active' : ''}" data-group="month" title="Group by month">📅 Month</button>`;
+      controlsHTML += `<button class="ssa-group-btn ${groupBy === 'day' ? 'ssa-active' : ''}" data-group="day" title="Group by day">Day</button>`;
+      controlsHTML += `<button class="ssa-group-btn ${groupBy === 'month' ? 'ssa-active' : ''}" data-group="month" title="Group by month">Month</button>`;
       controlsHTML += '</div>';
       controlsHTML += '</div>';
     }
@@ -1238,18 +1265,37 @@
     const isDarkMode = document.body && document.body.classList.contains('dark-mode');
     controlsHTML += '<div class="ssa-display-options-wrapper">';
     controlsHTML += '<div class="ssa-display-options-switcher">';
-    controlsHTML += `<button class="ssa-show-images-toggle ${showImages ? 'ssa-active' : ''}" id="ssa-show-images-btn" title="Toggle image display">🖼️ Show Images</button>`;
-    controlsHTML += `<button class="ssa-signature-events-toggle ${showSignatureEventsOnly ? 'ssa-active' : ''}" id="ssa-signature-events-btn" title="Show only signature events">⭐ Signature Events</button>`;
-    controlsHTML += '<button class="ssa-dark-mode-toggle" title="Toggle dark mode">' + (isDarkMode ? '☀️' : '🌙') + '</button>';
+    controlsHTML += `<button class="ssa-show-images-toggle ${showImages ? 'ssa-active' : ''}" id="ssa-show-images-btn" title="Toggle image display">Show images</button>`;
+    controlsHTML += `<button class="ssa-signature-events-toggle ${showSignatureEventsOnly ? 'ssa-active' : ''}" id="ssa-signature-events-btn" title="Show only signature events">Signature only</button>`;
+    controlsHTML += '<button class="ssa-dark-mode-toggle" title="Toggle dark mode">' + (isDarkMode ? 'Light' : 'Dark') + '</button>';
     controlsHTML += '</div>';
     controlsHTML += '</div>';
     
     controlsHTML += '</div>';
+
+    // Keyword filters - display all keywords from the system
+    if (allKeywords.length > 0) {
+      controlsHTML += '<div class="ssa-keyword-filters-section">';
+      controlsHTML += '<label class="ssa-control-label">Keywords</label>';
+      controlsHTML += '<div class="ssa-keyword-filters">';
+      allKeywords.forEach(kw => {
+        const isSelected = selectedKeywords.includes(kw);
+        controlsHTML += `<button class="ssa-keyword-btn ${isSelected ? 'ssa-keyword-active' : ''}" data-keyword="${kw}">${kw}</button>`;
+      });
+      controlsHTML += '</div>';
+      controlsHTML += '</div>';
+    }
     
-    controlsHTML += '</div>';
+    controlsHTML += '</section>';
     
-    // Advertisement container at top (shows placeholder when empty for testing)
-    let adHTML = '<div class="ssa-ad-container-top"><div class="ssa-ad-placeholder">Advertisement Space - Ready for content</div></div>';
+    const activeFiltersHTML = renderActiveFilters(state);
+    const resultsHTML = `
+      <section class="ssa-results-summary" aria-label="Event results summary">
+        <span>Events</span>
+        <p>${filteredRows.length} ${filteredRows.length === 1 ? 'event' : 'events'} · ${getLayoutSummary(layout, groupBy)}</p>
+      </section>
+    `;
+    const footerHTML = '<p class="ssa-events-footnote">Confirm dates and ticketing with organizers before driving out. Design tokens support a future Transaction Tracker palette swap.</p>';
     
     // Render events based on layout
     let eventsHTML = '';
@@ -1261,7 +1307,7 @@
       eventsHTML = renderCalendarLayout(filteredRows, state);
     }
     
-    mount.innerHTML = adHTML + controlsHTML + eventsHTML;
+    mount.innerHTML = pageHeaderHTML + controlsHTML + activeFiltersHTML + resultsHTML + eventsHTML + footerHTML;
     
     // Verify keyword cloud was rendered
     const keywordCloud = mount.querySelector('.ssa-keyword-filters');
@@ -1321,6 +1367,27 @@
           ? state.selectedKeywords.filter(k => k !== keyword)
           : [...state.selectedKeywords, keyword];
         await renderEvents(mount, rows, { ...state, selectedKeywords: newSelected });
+      });
+    });
+
+    // Active filter chips
+    mount.querySelectorAll('.ssa-active-filter-chip').forEach(chip => {
+      chip.addEventListener('click', async function() {
+        const chipType = this.dataset.chipType;
+        let newState = { ...state };
+        if (chipType === 'keyword') {
+          const keyword = (this.dataset.keyword || '').toLowerCase().trim();
+          newState.selectedKeywords = (state.selectedKeywords || []).filter(k => k !== keyword);
+        } else if (chipType === 'from') {
+          newState.fromDate = null;
+        } else if (chipType === 'to') {
+          newState.toDate = null;
+        }
+        if ((chipType === 'from' || chipType === 'to') && mount._widgetOpts) {
+          await reloadEvents(mount, newState, mount._widgetOpts);
+        } else {
+          await renderEvents(mount, rows, newState);
+        }
       });
     });
     
@@ -3594,6 +3661,140 @@
       html.dark-mode *,html body.dark-mode *{color:inherit}
     `;
     document.head.appendChild(sqsDarkModeCSS);
+
+    const designCSS = document.createElement('style');
+    designCSS.id = 'ssa-events-design-v2';
+    designCSS.textContent = `
+      :root{
+        --ssa-bg:#f6f2ec;
+        --ssa-surface:#fffdfb;
+        --ssa-surface-soft:#f4efe8;
+        --ssa-text:#1f2633;
+        --ssa-muted:#6f7b91;
+        --ssa-border:#ddd4c8;
+        --ssa-border-soft:#eee7de;
+        --ssa-accent:#a93326;
+        --ssa-accent-soft:#e4b8ae;
+        --ssa-shadow:0 18px 36px rgba(75,55,32,.09);
+        --ssa-font:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+      }
+      html.dark-mode,body.dark-mode{
+        --ssa-bg:#1a130f;
+        --ssa-surface:#241d16;
+        --ssa-surface-soft:#19120e;
+        --ssa-text:#fbf7ef;
+        --ssa-muted:#b6aa9d;
+        --ssa-border:#42372d;
+        --ssa-border-soft:#302821;
+        --ssa-accent:#f07961;
+        --ssa-accent-soft:#7c3d30;
+        --ssa-shadow:none;
+      }
+      #events-list,#events-list *{box-sizing:border-box;font-family:var(--ssa-font);letter-spacing:0}
+      #events-list{max-width:100%;margin:0 auto;padding:48px 0 28px;color:var(--ssa-text)!important;background:var(--ssa-bg)!important}
+      #events-list .ssa-page-intro{max-width:1600px;margin:0 auto 42px;padding:0 64px}
+      #events-list .ssa-page-intro h1{margin:0 0 16px;color:var(--ssa-text)!important;font-size:64px;line-height:1.05;font-weight:800;letter-spacing:.01em}
+      #events-list .ssa-page-intro p{margin:0;color:var(--ssa-muted)!important;font-size:25px;line-height:1.35;font-weight:400}
+      #events-list .ssa-controls{max-width:1600px;margin:0 auto 34px;padding:34px 32px 30px;display:flex;flex-direction:column;gap:26px;background:var(--ssa-surface)!important;border:1px solid var(--ssa-border)!important;border-radius:12px;box-shadow:var(--ssa-shadow)}
+      #events-list .ssa-controls-heading span,#events-list .ssa-results-summary span,#events-list .ssa-control-label{display:block;margin:0 0 8px;color:var(--ssa-muted)!important;font-size:15px;font-weight:800;text-transform:uppercase;letter-spacing:.04em}
+      #events-list .ssa-controls-heading h2{margin:0 0 8px;color:var(--ssa-text)!important;font-size:32px;line-height:1.15;font-weight:800}
+      #events-list .ssa-controls-heading p{margin:0;color:var(--ssa-muted)!important;font-size:21px;line-height:1.35}
+      #events-list .ssa-date-filters-section,#events-list .ssa-view-controls-section,#events-list .ssa-keyword-filters-section{padding:0;background:transparent!important;border:0!important;border-radius:0}
+      #events-list .ssa-date-filters{display:flex;align-items:flex-end;gap:16px;justify-content:flex-start;flex-wrap:wrap}
+      #events-list .ssa-date-inputs-row{display:flex;gap:16px;align-items:flex-end}
+      #events-list .ssa-date-filters label{display:flex;flex-direction:column;align-items:flex-start;gap:8px;color:var(--ssa-muted)!important;font-size:17px;font-weight:700}
+      #events-list .ssa-date-input{width:230px;height:58px;padding:0 16px;background:var(--ssa-surface-soft)!important;border:1px solid var(--ssa-border)!important;border-radius:10px;color:var(--ssa-text)!important;font-size:20px;font-weight:700;box-shadow:none!important}
+      #events-list button{font-family:var(--ssa-font);letter-spacing:0}
+      #events-list .ssa-weekend-btn,#events-list .ssa-clear-dates,#events-list .ssa-layout-btn,#events-list .ssa-group-btn,#events-list .ssa-show-images-toggle,#events-list .ssa-signature-events-toggle,#events-list .ssa-dark-mode-toggle,#events-list .ssa-keyword-btn{height:52px;padding:0 22px;display:inline-flex;align-items:center;justify-content:center;background:var(--ssa-surface)!important;border:1px solid var(--ssa-border-soft)!important;border-radius:10px;color:var(--ssa-muted)!important;font-size:20px;font-weight:700;line-height:1;box-shadow:none!important;transform:none!important;white-space:nowrap}
+      #events-list .ssa-layout-btn.ssa-active,#events-list .ssa-group-btn.ssa-active,#events-list .ssa-keyword-btn.ssa-keyword-active,#events-list .ssa-show-images-toggle.ssa-active,#events-list .ssa-signature-events-toggle.ssa-active{background:rgba(169,51,38,.06)!important;border-color:var(--ssa-accent-soft)!important;color:var(--ssa-accent)!important}
+      #events-list .ssa-weekend-btn:hover,#events-list .ssa-clear-dates:hover,#events-list .ssa-layout-btn:hover,#events-list .ssa-group-btn:hover,#events-list .ssa-show-images-toggle:hover,#events-list .ssa-signature-events-toggle:hover,#events-list .ssa-dark-mode-toggle:hover,#events-list .ssa-keyword-btn:hover{border-color:var(--ssa-accent-soft)!important;color:var(--ssa-accent)!important;background:rgba(169,51,38,.035)!important}
+      #events-list .ssa-view-controls-section{display:flex;align-items:flex-end;justify-content:space-between;gap:24px}
+      #events-list .ssa-view-controls-left{display:flex;align-items:flex-end;gap:28px;flex-wrap:wrap}
+      #events-list .ssa-layout-switcher-wrapper,#events-list .ssa-group-switcher-wrapper{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+      #events-list .ssa-layout-switcher-wrapper ~ .ssa-group-switcher-wrapper{padding-left:0;border-left:0}
+      #events-list .ssa-layout-switcher,#events-list .ssa-group-switcher,#events-list .ssa-display-options-switcher,#events-list .ssa-keyword-filters{display:flex;gap:12px;flex-wrap:wrap}
+      #events-list .ssa-display-options-wrapper{margin-left:auto}
+      #events-list .ssa-keyword-filters-section .ssa-control-label{margin-bottom:12px}
+      #events-list .ssa-keyword-btn{border-radius:10px}
+      #events-list .ssa-active-filters{max-width:1600px;margin:0 auto 38px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;color:var(--ssa-muted)!important;font-size:21px;font-weight:600}
+      #events-list .ssa-active-filter-chip{height:46px;padding:0 16px;display:inline-flex;gap:10px;align-items:center;background:rgba(169,51,38,.04)!important;border:1px solid var(--ssa-accent-soft)!important;border-radius:999px;color:var(--ssa-accent)!important;font-size:17px;font-weight:800}
+      #events-list .ssa-results-summary{max-width:1600px;margin:0 auto 26px;color:var(--ssa-muted)!important}
+      #events-list .ssa-results-summary p{margin:0;color:var(--ssa-muted)!important;font-size:21px;line-height:1.4}
+      #events-list .ssa-day-header,#events-list h3.ssa-day-header,#events-list .ssa-month-header{max-width:1600px;margin:28px auto 18px;padding:0 0 20px;border-bottom:3px solid rgba(169,51,38,.14);color:var(--ssa-accent)!important;font-size:34px!important;line-height:1.15;font-weight:800!important}
+      #events-list .ssa-events-list{max-width:1600px;margin:0 auto 34px;padding:0;display:flex;flex-direction:column;gap:18px}
+      #events-list .ssa-event-item{margin:0;padding:26px 24px;background:var(--ssa-surface)!important;border:1px solid var(--ssa-border-soft)!important;border-radius:10px;box-shadow:none!important}
+      #events-list .ssa-event-content{display:grid;grid-template-columns:auto 1fr;gap:24px;align-items:start}
+      #events-list .ssa-event-image-wrapper{width:112px;height:112px;border-radius:10px;background:var(--ssa-surface-soft)!important;border:1px solid var(--ssa-border-soft)!important;box-shadow:none!important}
+      #events-list .ssa-event-image-placeholder{cursor:default!important}
+      #events-list .ssa-event-details{min-width:0}
+      #events-list .ssa-event-name-wrapper{display:flex;align-items:center;gap:10px;margin:0 0 12px}
+      #events-list .ssa-event-name-wrapper > .ssa-icon-group,#events-list .ssa-title > .ssa-icon-group{display:none!important}
+      #events-list .ssa-info-icon{width:22px;height:22px;min-width:22px;min-height:22px;background:var(--ssa-accent)!important;color:#fff!important;opacity:.9}
+      #events-list .ssa-event-link,#events-list .ssa-event-name-wrapper strong,#events-list .ssa-event-name,#events-list .ssa-title{color:var(--ssa-accent-soft)!important;font-size:26px!important;line-height:1.25;font-weight:800!important;text-decoration:none}
+      #events-list .ssa-event-meta{margin:0;display:flex;flex-direction:column;gap:6px}
+      #events-list .ssa-event-meta-item,#events-list .ssa-event-meta-item *,#events-list .ssa-meta{color:color-mix(in srgb,var(--ssa-muted) 78%,transparent)!important;font-size:20px!important;line-height:1.45;font-weight:500!important}
+      #events-list .ssa-event-meta-item strong{display:none}
+      #events-list .ssa-location{color:inherit!important;text-decoration:none}
+      #events-list .ssa-event-keywords,#events-list .ssa-keywords{margin:16px 0 0;display:flex;gap:8px;flex-wrap:wrap}
+      #events-list .ssa-keyword-tag-clickable,#events-list .ssa-tag-clickable{height:42px;padding:0 18px;display:inline-flex;align-items:center;border:1px solid var(--ssa-border-soft)!important;border-radius:10px;background:var(--ssa-surface)!important;color:color-mix(in srgb,var(--ssa-muted) 60%,transparent)!important;font-size:18px;font-weight:700}
+      #events-list .ssa-grid{max-width:1600px;margin:0 auto 34px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px}
+      #events-list .ssa-card{min-height:440px;display:flex;align-items:flex-end;background:var(--ssa-surface)!important;border:1px solid var(--ssa-border-soft)!important;border-radius:10px;box-shadow:none!important;overflow:hidden}
+      #events-list .ssa-card::before{content:'';position:absolute;left:0;right:0;top:0;height:240px;background:var(--ssa-surface-soft);z-index:0}
+      #events-list .ssa-card-content{position:relative;z-index:1;width:100%;min-height:168px;padding:26px 24px!important;background:var(--ssa-surface)!important}
+      #events-list .ssa-card-head{display:block}
+      #events-list .ssa-title{display:block;margin:0 0 12px}
+      #events-list .ssa-calendar-container{max-width:1600px;margin:0 auto 34px;border:1px solid var(--ssa-border)!important;border-radius:10px;overflow:hidden;background:var(--ssa-surface)!important}
+      #events-list .ssa-calendar-month-header{margin:0;padding:26px 28px;background:linear-gradient(180deg,rgba(169,51,38,.12),rgba(169,51,38,.04));color:var(--ssa-accent)!important;text-align:left;font-size:32px!important;font-weight:800!important}
+      #events-list .ssa-calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:0;background:var(--ssa-border)!important;border:0!important;border-radius:0;box-shadow:none!important}
+      #events-list .ssa-calendar-day-header{padding:16px 8px;background:var(--ssa-surface)!important;color:var(--ssa-muted)!important;font-size:16px;font-weight:800;text-transform:none}
+      #events-list .ssa-calendar-day{min-height:150px;padding:18px;background:var(--ssa-surface)!important;border-top:1px solid var(--ssa-border)!important;border-left:1px solid var(--ssa-border)!important}
+      #events-list .ssa-calendar-day-number{color:var(--ssa-text)!important;font-size:20px;font-weight:800}
+      #events-list .ssa-calendar-info-icon{width:10px;height:10px;min-width:10px;min-height:10px;background:var(--ssa-accent)!important}
+      #events-list .ssa-calendar-info-icon::before{content:''}
+      #events-list .ssa-events-footnote{max-width:1600px;margin:36px auto 0;color:var(--ssa-muted)!important;font-size:21px;line-height:1.45}
+      @media(min-width:821px){
+        #events-list .ssa-event-content{grid-template-columns:112px minmax(0,1fr) minmax(260px,auto)}
+        #events-list .ssa-event-keywords{grid-column:3;grid-row:1;align-self:start;justify-content:flex-end;margin:0}
+      }
+      @media(max-width:820px){
+        #events-list{padding:22px 12px}
+        #events-list .ssa-page-intro{padding:0;margin:0 0 18px}
+        #events-list .ssa-page-intro h1{font-size:30px;line-height:1.08;margin-bottom:10px}
+        #events-list .ssa-page-intro p{font-size:16px;line-height:1.35;max-width:330px}
+        #events-list .ssa-controls{margin:0 0 18px;padding:14px 12px;gap:18px;border-radius:7px}
+        #events-list .ssa-controls-heading h2{font-size:21px}
+        #events-list .ssa-controls-heading p{font-size:14px}
+        #events-list .ssa-date-filters,#events-list .ssa-date-inputs-row,#events-list .ssa-view-controls-section,#events-list .ssa-view-controls-left{display:flex;gap:8px;align-items:flex-end}
+        #events-list .ssa-date-inputs-row{width:100%}
+        #events-list .ssa-date-filters label{flex:1;font-size:13px}
+        #events-list .ssa-date-input{width:100%;height:48px;font-size:14px;padding:0 12px}
+        #events-list .ssa-weekend-btn,#events-list .ssa-clear-dates,#events-list .ssa-layout-btn,#events-list .ssa-group-btn,#events-list .ssa-show-images-toggle,#events-list .ssa-signature-events-toggle,#events-list .ssa-dark-mode-toggle,#events-list .ssa-keyword-btn{height:42px;padding:0 14px;font-size:14px;border-radius:8px}
+        #events-list .ssa-display-options-wrapper{margin-left:0;width:100%}
+        #events-list .ssa-keyword-filters{flex-wrap:nowrap;overflow-x:auto;padding-bottom:2px}
+        #events-list .ssa-active-filters,#events-list .ssa-results-summary,#events-list .ssa-events-footnote{margin-left:0;margin-right:0;font-size:14px}
+        #events-list .ssa-active-filters{margin-bottom:22px}
+        #events-list .ssa-active-filter-chip{height:38px;font-size:14px;padding:0 12px}
+        #events-list .ssa-results-summary p{font-size:14px}
+        #events-list .ssa-day-header,#events-list h3.ssa-day-header,#events-list .ssa-month-header{margin:20px 0 12px;padding-bottom:12px;font-size:20px!important}
+        #events-list .ssa-events-list{margin:0 0 26px;gap:14px}
+        #events-list .ssa-event-item{padding:14px;border-radius:7px}
+        #events-list .ssa-event-content{display:flex;flex-direction:column;gap:14px}
+        #events-list .ssa-event-image-wrapper{width:100%;height:174px}
+        #events-list .ssa-event-link,#events-list .ssa-event-name-wrapper strong,#events-list .ssa-event-name,#events-list .ssa-title{font-size:17px!important}
+        #events-list .ssa-event-meta-item,#events-list .ssa-event-meta-item *,#events-list .ssa-meta{font-size:15px!important}
+        #events-list .ssa-keyword-tag-clickable,#events-list .ssa-tag-clickable{height:34px;font-size:13px;padding:0 12px}
+        #events-list .ssa-grid{grid-template-columns:1fr;gap:14px;margin:0 0 26px}
+        #events-list .ssa-card{min-height:370px}
+        #events-list .ssa-card::before{height:218px}
+        #events-list .ssa-card-content{padding:18px 14px!important}
+        #events-list .ssa-calendar-container{margin:0 0 26px;overflow-x:auto}
+        #events-list .ssa-calendar-month-header{font-size:21px!important;padding:18px 16px}
+        #events-list .ssa-calendar-grid{min-width:720px}
+        #events-list .ssa-calendar-day{min-height:104px;padding:10px}
+        #events-list .ssa-events-footnote{font-size:14px;margin-top:22px}
+      }
+    `;
+    document.head.appendChild(designCSS);
   }
 
   // Helper function to reload events when filters change
@@ -3828,7 +4029,7 @@
     const button = document.querySelector('.ssa-dark-mode-toggle');
     
     if (button) {
-      button.textContent = isDark ? '☀️' : '🌙';
+      button.textContent = isDark ? 'Light' : 'Dark';
     }
     
     localStorage.setItem('ssa-dark-mode', isDark ? 'true' : 'false');
@@ -3845,7 +4046,7 @@
       if (savedDarkMode === 'true') {
         document.body.classList.add('dark-mode');
         document.documentElement.classList.add('dark-mode');
-        button.textContent = '☀️';
+        button.textContent = 'Light';
       }
     }
   }
