@@ -1724,7 +1724,12 @@
         max-height: ${maxH}px;
         border-radius: 6px;
         display: block;
+        cursor: pointer;
       `;
+      img.addEventListener('click', function(e) {
+        e.stopPropagation();
+        closeImagePreview();
+      });
       
       imagePreviewEl.appendChild(closeBtn);
       imagePreviewEl.appendChild(img);
