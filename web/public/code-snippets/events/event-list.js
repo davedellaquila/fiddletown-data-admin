@@ -4099,7 +4099,7 @@
         #events-list .ssa-calendar-day{min-height:72px;padding:6px 4px}
         #events-list .ssa-calendar-day-number{font-size:14px;line-height:1}
         #events-list .ssa-calendar-day-agenda-trigger{margin-top:8px;text-align:center}
-        #events-list .ssa-calendar-event-count{height:20px;max-width:100%;padding:0 5px;font-size:10px;line-height:1;border-radius:999px}
+        #events-list .ssa-calendar-event-count{min-height:24px;max-width:100%;padding:3px 8px;font-size:10px;line-height:1.05;border-radius:999px}
         #events-list .ssa-calendar-event-preview-list{display:none}
         .ssa-day-agenda-backdrop{align-items:flex-end;padding:0;background:rgba(15,23,42,.36)}
         .ssa-day-agenda-panel{position:fixed;left:0;right:0;bottom:0;width:100%;max-height:82vh;border-right:0;border-bottom:0;border-left:0;border-radius:18px 18px 0 0;transform:none!important;transition:opacity .18s ease}
