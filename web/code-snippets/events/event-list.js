@@ -3761,16 +3761,26 @@
         #events-list .ssa-page-intro{padding:0;margin:0 0 18px}
         #events-list .ssa-page-intro h1{font-size:30px;line-height:1.08;margin-bottom:10px}
         #events-list .ssa-page-intro p{font-size:16px;line-height:1.35;max-width:330px}
-        #events-list .ssa-controls{margin:0 0 18px;padding:14px 12px;gap:18px;border-radius:7px}
-        #events-list .ssa-controls-heading h2{font-size:21px}
-        #events-list .ssa-controls-heading p{font-size:14px}
-        #events-list .ssa-date-filters,#events-list .ssa-date-inputs-row,#events-list .ssa-view-controls-section,#events-list .ssa-view-controls-left{display:flex;gap:8px;align-items:flex-end}
-        #events-list .ssa-date-inputs-row{width:100%}
-        #events-list .ssa-date-filters label{flex:1;font-size:13px}
-        #events-list .ssa-date-input{width:100%;height:48px;font-size:14px;padding:0 12px}
-        #events-list .ssa-weekend-btn,#events-list .ssa-clear-dates,#events-list .ssa-layout-btn,#events-list .ssa-group-btn,#events-list .ssa-show-images-toggle,#events-list .ssa-signature-events-toggle,#events-list .ssa-dark-mode-toggle,#events-list .ssa-keyword-btn{height:42px;padding:0 14px;font-size:14px;border-radius:8px}
+        #events-list .ssa-controls{margin:0 0 18px;padding:18px 16px;gap:22px;border-radius:9px}
+        #events-list .ssa-controls-heading span,#events-list .ssa-results-summary span,#events-list .ssa-control-label{font-size:13px;line-height:1.2}
+        #events-list .ssa-controls-heading h2{font-size:24px;line-height:1.12}
+        #events-list .ssa-controls-heading p{font-size:15px;line-height:1.35}
+        #events-list .ssa-date-filters{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;width:100%;align-items:stretch}
+        #events-list .ssa-date-inputs-row{grid-column:1/-1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;width:100%;min-width:0}
+        #events-list .ssa-date-filters label{min-width:0;font-size:13px;gap:7px}
+        #events-list .ssa-date-input{width:100%;min-width:0;height:48px;font-size:15px;padding:0 10px;-webkit-appearance:none;appearance:none}
+        #events-list .ssa-weekend-btn,#events-list .ssa-clear-dates,#events-list .ssa-layout-btn,#events-list .ssa-group-btn,#events-list .ssa-show-images-toggle,#events-list .ssa-signature-events-toggle,#events-list .ssa-dark-mode-toggle,#events-list .ssa-keyword-btn{width:100%;min-width:0;height:46px;padding:0 12px;font-size:14px;border-radius:8px;white-space:normal;text-align:center;line-height:1.15}
+        #events-list .ssa-this-week-btn,#events-list .ssa-clear-dates{grid-column:1/-1}
+        #events-list .ssa-view-controls-section{display:flex;flex-direction:column;align-items:stretch;gap:16px}
+        #events-list .ssa-view-controls-left{display:flex;flex-direction:column;align-items:stretch;gap:16px;width:100%}
+        #events-list .ssa-layout-switcher-wrapper,#events-list .ssa-group-switcher-wrapper{display:flex;flex-direction:column;align-items:stretch;gap:8px;width:100%}
+        #events-list .ssa-layout-switcher{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;width:100%}
+        #events-list .ssa-group-switcher{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;width:100%}
         #events-list .ssa-display-options-wrapper{margin-left:0;width:100%}
-        #events-list .ssa-keyword-filters{flex-wrap:nowrap;overflow-x:auto;padding-bottom:2px}
+        #events-list .ssa-display-options-switcher{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;width:100%}
+        #events-list .ssa-dark-mode-toggle{grid-column:1/-1}
+        #events-list .ssa-keyword-filters{display:flex;flex-wrap:wrap;gap:10px;overflow:visible;padding-bottom:0}
+        #events-list .ssa-keyword-btn{width:auto;min-width:0;flex:1 1 calc(50% - 10px);padding:0 12px}
         #events-list .ssa-active-filters,#events-list .ssa-results-summary,#events-list .ssa-events-footnote{margin-left:0;margin-right:0;font-size:14px}
         #events-list .ssa-active-filters{margin-bottom:22px}
         #events-list .ssa-active-filter-chip{height:38px;font-size:14px;padding:0 12px}
@@ -3792,6 +3802,19 @@
         #events-list .ssa-calendar-grid{min-width:720px}
         #events-list .ssa-calendar-day{min-height:104px;padding:10px}
         #events-list .ssa-events-footnote{font-size:14px;margin-top:22px}
+      }
+      @media(max-width:560px){
+        #events-list{padding:22px 10px}
+        #events-list .ssa-page-intro h1{font-size:29px}
+        #events-list .ssa-controls{padding:18px 14px}
+        #events-list .ssa-date-inputs-row{grid-template-columns:1fr}
+        #events-list .ssa-date-input{font-size:16px}
+        #events-list .ssa-layout-switcher{grid-template-columns:repeat(2,minmax(0,1fr))}
+        #events-list .ssa-layout-btn[data-layout="calendar"]{grid-column:1/-1}
+      }
+      @media(max-width:360px){
+        #events-list .ssa-display-options-switcher,#events-list .ssa-date-filters,#events-list .ssa-group-switcher{grid-template-columns:1fr}
+        #events-list .ssa-keyword-btn{flex-basis:100%}
       }
     `;
     document.head.appendChild(designCSS);
