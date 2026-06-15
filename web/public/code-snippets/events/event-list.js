@@ -1707,6 +1707,7 @@
         top: ${top}px;
         left: ${left}px;
         z-index: 10000;
+        box-sizing: border-box;
         padding: 8px;
         background: rgba(255,255,255,0.98);
         border: 1px solid #d1d5db;
@@ -1754,8 +1755,8 @@
       img.style.cssText = `
         width: auto;
         height: auto;
-        max-width: ${previewW}px;
-        max-height: ${maxH}px;
+        max-width: 100%;
+        max-height: ${Math.max(120, maxH - 18)}px;
         border-radius: 6px;
         display: block;
         cursor: pointer;
