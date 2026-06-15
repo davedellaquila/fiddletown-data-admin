@@ -4073,7 +4073,7 @@
         #events-list .ssa-date-clear-btn{width:46px;height:46px;align-self:center;justify-self:center}
         #events-list .ssa-weekend-btn,#events-list .ssa-clear-dates,#events-list .ssa-layout-btn,#events-list .ssa-group-btn,#events-list .ssa-show-images-toggle,#events-list .ssa-signature-events-toggle,#events-list .ssa-dark-mode-toggle,#events-list .ssa-keyword-btn{width:100%;min-width:0;height:46px;padding:0 12px;font-size:14px;border-radius:8px;white-space:normal;text-align:center;line-height:1.15}
         #events-list .ssa-weekend-btn{padding:0 6px;font-size:12px;white-space:nowrap}
-        #events-list .ssa-clear-dates{width:46px;padding:0;border-color:transparent!important;border-radius:999px;background:transparent!important;font-size:0;color:transparent!important;white-space:nowrap}
+        #events-list .ssa-clear-dates{width:46px;padding:0;border-color:transparent!important;border-radius:999px;background:transparent!important;font-size:0;color:transparent!important;white-space:nowrap;justify-self:center}
         #events-list .ssa-clear-dates:hover{border-color:transparent!important;background:transparent!important}
         #events-list .ssa-clear-dates::before{content:'×';display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:999px;border:1px solid currentColor;color:var(--ssa-muted)!important;font-size:18px;font-weight:800;line-height:1;transition:transform .22s ease,border-color .22s ease,color .22s ease,box-shadow .22s ease}
         #events-list .ssa-clear-dates:hover::before,#events-list .ssa-clear-dates:focus-visible::before{color:var(--ssa-accent)!important;transform:rotate(90deg) scale(1.08);box-shadow:0 0 0 5px rgba(169,51,38,.08)}
