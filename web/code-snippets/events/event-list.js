@@ -4036,7 +4036,7 @@
         #events-list .ssa-sticky-view-section{top:calc(var(--ssa-sticky-date-height,150px) + 8px)}
         #events-list .ssa-sticky-keyword-section{top:calc(var(--ssa-sticky-date-height,150px) + var(--ssa-sticky-view-height,96px) + 16px)}
         #events-list .ssa-date-filters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) 72px;gap:14px 16px;align-items:end;width:100%}
-        #events-list .ssa-date-inputs-row{grid-column:1/-1;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 72px;gap:20px;width:100%;min-width:0}
+        #events-list .ssa-date-inputs-row{grid-column:1/-1;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 72px;gap:32px;width:100%;min-width:0}
         #events-list .ssa-date-filters label{min-width:0;width:100%;position:relative}
         #events-list .ssa-date-inputs-row label:first-of-type{grid-column:1}
         #events-list .ssa-date-inputs-row label:nth-of-type(2){grid-column:2;padding-right:0}
@@ -4067,7 +4067,7 @@
         #events-list .ssa-controls-heading h2{font-size:24px;line-height:1.12}
         #events-list .ssa-controls-heading p{font-size:15px;line-height:1.35}
         #events-list .ssa-date-filters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) 64px;gap:8px;width:100%;align-items:stretch}
-        #events-list .ssa-date-inputs-row{grid-column:1/-1;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 64px;gap:20px;width:100%;min-width:0}
+        #events-list .ssa-date-inputs-row{grid-column:1/-1;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 64px;gap:32px;width:100%;min-width:0}
         #events-list .ssa-date-filters label{min-width:0;font-size:13px;gap:7px}
         #events-list .ssa-date-input{width:100%;min-width:0;height:48px;font-size:15px;padding:0 10px;-webkit-appearance:none;appearance:none}
         #events-list .ssa-date-clear-btn{width:46px;height:46px;align-self:center;justify-self:center}
@@ -4157,7 +4157,7 @@
         #events-list{padding:22px 10px}
         #events-list .ssa-page-intro h1{font-size:29px}
         #events-list .ssa-controls{padding:18px 14px}
-        #events-list .ssa-date-inputs-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 54px;gap:20px}
+        #events-list .ssa-date-inputs-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 54px;gap:28px}
         #events-list .ssa-date-input{height:46px;font-size:13.5px;padding:0 8px}
         #events-list .ssa-date-clear-btn{width:38px;height:46px;justify-self:center}
         #events-list .ssa-date-filters{grid-template-columns:repeat(3,minmax(0,1fr)) 54px;gap:7px}
