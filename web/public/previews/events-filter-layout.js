@@ -1339,7 +1339,6 @@
     
     controlsHTML += '</section>';
 
-    const activeFiltersHTML = renderActiveFilters(state);
     const stickyActiveFiltersHTML = renderActiveFilters(state, 'ssa-sticky-active-filters');
 
     let stickyControlsHTML = '<section class="ssa-sticky-filter-bar" aria-label="Sticky event filters">';
@@ -1378,7 +1377,7 @@
       eventsHTML = renderCalendarLayout(filteredRows, state);
     }
     
-    mount.innerHTML = pageHeaderHTML + controlsHTML + stickyControlsHTML + activeFiltersHTML + eventsHTML + footerHTML;
+    mount.innerHTML = pageHeaderHTML + controlsHTML + stickyControlsHTML + eventsHTML + footerHTML;
     
     // Verify keyword cloud was rendered
     const keywordCloud = mount.querySelector('.ssa-keyword-filters');
