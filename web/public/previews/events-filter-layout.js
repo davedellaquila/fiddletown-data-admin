@@ -1343,9 +1343,9 @@
     viewControlsHTML += '<div class="ssa-layout-switcher-wrapper">';
     viewControlsHTML += '<label class="ssa-control-label">Layout</label>';
     viewControlsHTML += '<div class="ssa-layout-switcher">';
-    viewControlsHTML += `<button class="ssa-layout-btn ${layout === LAYOUTS.LIST ? 'ssa-active' : ''}" data-layout="${LAYOUTS.LIST}" title="List view">List</button>`;
-    viewControlsHTML += `<button class="ssa-layout-btn ${layout === LAYOUTS.GRID ? 'ssa-active' : ''}" data-layout="${LAYOUTS.GRID}" title="Grid view">Grid</button>`;
-    viewControlsHTML += `<button class="ssa-layout-btn ${layout === LAYOUTS.CALENDAR ? 'ssa-active' : ''}" data-layout="${LAYOUTS.CALENDAR}" title="Calendar view">Calendar</button>`;
+    viewControlsHTML += `<button class="ssa-layout-btn ssa-layout-icon-btn ${layout === LAYOUTS.LIST ? 'ssa-active' : ''}" data-layout="${LAYOUTS.LIST}" title="List view" aria-label="List view"><span class="ssa-layout-icon ssa-layout-icon-list" aria-hidden="true"></span></button>`;
+    viewControlsHTML += `<button class="ssa-layout-btn ssa-layout-icon-btn ${layout === LAYOUTS.GRID ? 'ssa-active' : ''}" data-layout="${LAYOUTS.GRID}" title="Grid view" aria-label="Grid view"><span class="ssa-layout-icon ssa-layout-icon-grid" aria-hidden="true"></span></button>`;
+    viewControlsHTML += `<button class="ssa-layout-btn ssa-layout-icon-btn ${layout === LAYOUTS.CALENDAR ? 'ssa-active' : ''}" data-layout="${LAYOUTS.CALENDAR}" title="Calendar view" aria-label="Calendar view"><span class="ssa-layout-icon ssa-layout-icon-calendar" aria-hidden="true"></span></button>`;
     viewControlsHTML += '</div>';
     viewControlsHTML += '</div>';
     
@@ -1359,19 +1359,29 @@
       viewControlsHTML += '</div>';
       viewControlsHTML += '</div>';
     }
+    viewControlsHTML += `<span class="ssa-selection-count" aria-label="${filteredRows.length} ${filteredRows.length === 1 ? 'event' : 'events'} in current selection">${filteredRows.length} ${filteredRows.length === 1 ? 'event' : 'events'}</span>`;
     viewControlsHTML += '</div>';
     viewControlsHTML += '</section>';
 
     // Keyword filters - display all keywords from the system
     let keywordControlsHTML = '';
     if (allKeywords.length > 0) {
+      const selectedKeywordSet = new Set(selectedKeywords);
+      const unselectedKeywords = allKeywords.filter(kw => !selectedKeywordSet.has(kw));
+      const selectedKeywordRows = allKeywords.filter(kw => selectedKeywordSet.has(kw));
       keywordControlsHTML += '<section class="ssa-control-panel ssa-keyword-filters-section ssa-sticky-control-section ssa-sticky-keyword-section" aria-label="Keyword filters">';
       keywordControlsHTML += '<label class="ssa-control-label">Keywords</label>';
-      keywordControlsHTML += '<div class="ssa-keyword-filters">';
-      allKeywords.forEach(kw => {
-        const isSelected = selectedKeywords.includes(kw);
-        keywordControlsHTML += `<button class="ssa-keyword-btn ${isSelected ? 'ssa-keyword-active' : ''}" data-keyword="${kw}">${kw}</button>`;
+      keywordControlsHTML += '<div class="ssa-keyword-filter-rows">';
+      keywordControlsHTML += '<div class="ssa-keyword-filters ssa-keyword-row ssa-keyword-row-available" aria-label="Available keywords">';
+      unselectedKeywords.forEach(kw => {
+        keywordControlsHTML += `<button class="ssa-keyword-btn" data-keyword="${kw}">${kw}</button>`;
       });
+      keywordControlsHTML += '</div>';
+      keywordControlsHTML += '<div class="ssa-keyword-filters ssa-keyword-row ssa-keyword-row-selected" aria-label="Selected keywords">';
+      selectedKeywordRows.forEach(kw => {
+        keywordControlsHTML += `<button class="ssa-keyword-btn ssa-keyword-active ssa-keyword-remove-btn" data-keyword="${kw}">${kw}<span class="ssa-keyword-remove-icon" aria-hidden="true">×</span></button>`;
+      });
+      keywordControlsHTML += '</div>';
       keywordControlsHTML += '</div>';
       keywordControlsHTML += '</section>';
     }
@@ -3948,13 +3958,27 @@
       #events-list .ssa-layout-switcher-wrapper,#events-list .ssa-group-switcher-wrapper{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
       #events-list .ssa-layout-switcher-wrapper ~ .ssa-group-switcher-wrapper{padding-left:0;border-left:0}
       #events-list .ssa-layout-switcher,#events-list .ssa-group-switcher,#events-list .ssa-display-options-switcher,#events-list .ssa-keyword-filters{display:flex;gap:12px;flex-wrap:wrap}
+      #events-list .ssa-layout-icon-btn{width:64px;min-width:64px;padding:0}
+      #events-list .ssa-layout-icon{position:relative;width:26px;height:26px;display:inline-block;color:currentColor}
+      #events-list .ssa-layout-icon-list::before{content:'';position:absolute;left:8px;top:5px;width:15px;height:3px;border-radius:999px;background:currentColor;box-shadow:0 7px 0 currentColor,0 14px 0 currentColor}
+      #events-list .ssa-layout-icon-list::after{content:'';position:absolute;left:3px;top:5px;width:3px;height:3px;border-radius:999px;background:currentColor;box-shadow:0 7px 0 currentColor,0 14px 0 currentColor}
+      #events-list .ssa-layout-icon-grid::before{content:'';position:absolute;left:4px;top:4px;width:7px;height:7px;border-radius:2px;background:currentColor;box-shadow:11px 0 0 currentColor,0 11px 0 currentColor,11px 11px 0 currentColor}
+      #events-list .ssa-layout-icon-grid::after{content:'';position:absolute;left:15px;top:15px;width:7px;height:7px;border-radius:2px;background:transparent}
+      #events-list .ssa-layout-icon-calendar{border:2px solid currentColor;border-radius:6px}
+      #events-list .ssa-layout-icon-calendar::before{content:'';position:absolute;left:-2px;right:-2px;top:6px;height:2px;background:currentColor}
+      #events-list .ssa-layout-icon-calendar::after{content:'';position:absolute;left:5px;top:-5px;width:3px;height:7px;border-radius:999px;background:currentColor;box-shadow:10px 0 0 currentColor,0 14px 0 -1px currentColor,7px 14px 0 -1px currentColor,14px 14px 0 -1px currentColor}
+      #events-list .ssa-selection-count{height:52px;padding:0 18px;display:inline-flex;align-items:center;justify-content:center;align-self:flex-end;border:1px solid var(--ssa-border-soft)!important;border-radius:10px;background:var(--ssa-surface)!important;color:var(--ssa-muted)!important;font-size:20px;font-weight:800;line-height:1;white-space:nowrap}
       #events-list .ssa-display-options-switcher .ssa-signature-events-toggle:only-child{min-width:180px}
       #events-list .ssa-display-options-wrapper{margin-left:auto}
       #events-list .ssa-keyword-filters-section .ssa-control-label{margin-bottom:12px}
       #events-list .ssa-sticky-keyword-section.ssa-is-stuck .ssa-control-label{margin-bottom:0}
-      #events-list .ssa-sticky-keyword-section.ssa-is-stuck .ssa-keyword-filters{flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;padding-bottom:2px;scrollbar-width:none}
-      #events-list .ssa-sticky-keyword-section.ssa-is-stuck .ssa-keyword-filters::-webkit-scrollbar{display:none}
-      #events-list .ssa-sticky-keyword-section.ssa-is-stuck .ssa-keyword-btn{flex:0 0 auto;width:auto}
+      #events-list .ssa-keyword-filter-rows{display:flex;flex-direction:column;gap:10px;min-width:0}
+      #events-list .ssa-keyword-row{flex-wrap:nowrap!important;justify-content:flex-start;overflow-x:auto;overflow-y:hidden;padding-bottom:2px;scrollbar-width:none}
+      #events-list .ssa-keyword-row::-webkit-scrollbar{display:none}
+      #events-list .ssa-keyword-row-selected:empty{display:none}
+      #events-list .ssa-keyword-btn{flex:0 0 auto;width:auto}
+      #events-list .ssa-keyword-remove-btn{gap:8px;padding-right:12px}
+      #events-list .ssa-keyword-remove-icon{width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;border:1px solid currentColor;border-radius:999px;font-size:17px;font-weight:900;line-height:1}
       #events-list .ssa-keyword-btn{border-radius:10px}
       #events-list .ssa-sticky-filter-bar{display:none}
       #events-list .ssa-active-filters{max-width:1600px;margin:0 auto 38px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;color:var(--ssa-muted)!important;font-size:21px;font-weight:600}
@@ -4079,10 +4103,14 @@
         #events-list .ssa-clear-dates:hover::before,#events-list .ssa-clear-dates:focus-visible::before{color:var(--ssa-accent)!important;transform:rotate(90deg) scale(1.08);box-shadow:0 0 0 5px rgba(169,51,38,.08)}
         #events-list .ssa-clear-dates:active::before{transform:rotate(90deg) scale(.92)}
         #events-list .ssa-view-controls-section{display:flex;flex-direction:column;align-items:stretch;gap:16px}
-        #events-list .ssa-view-controls-left{display:flex;flex-direction:column;align-items:stretch;gap:16px;width:100%}
+        #events-list .ssa-view-controls-left{display:grid;grid-template-columns:minmax(0,2fr) minmax(92px,.85fr);align-items:end;gap:16px;width:100%}
         #events-list .ssa-layout-switcher-wrapper,#events-list .ssa-group-switcher-wrapper{display:flex;flex-direction:column;align-items:stretch;gap:8px;width:100%}
+        #events-list .ssa-layout-switcher-wrapper{grid-column:1/-1}
+        #events-list .ssa-group-switcher-wrapper{grid-column:1}
         #events-list .ssa-layout-switcher{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;width:100%}
+        #events-list .ssa-layout-icon-btn{width:100%;min-width:0}
         #events-list .ssa-group-switcher{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;width:100%}
+        #events-list .ssa-selection-count{grid-column:2;width:100%;height:46px;padding:0 10px;font-size:13px;border-radius:8px;align-self:end}
         #events-list .ssa-display-options-wrapper{margin-left:0;width:100%}
         #events-list .ssa-display-options-switcher{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;width:100%}
         #events-list .ssa-display-options-switcher .ssa-signature-events-toggle:only-child{grid-column:1/-1;min-width:0}
@@ -4090,6 +4118,8 @@
         #events-list .ssa-theme-icon{width:18px;height:18px}
         #events-list .ssa-keyword-filters{display:flex;flex-wrap:wrap;gap:10px;overflow:visible;padding-bottom:0}
         #events-list .ssa-keyword-btn{width:auto;min-width:0;flex:1 1 calc(50% - 10px);padding:0 12px}
+        #events-list .ssa-keyword-row{flex-wrap:nowrap!important;overflow-x:auto;overflow-y:hidden}
+        #events-list .ssa-keyword-row .ssa-keyword-btn{flex:0 0 auto;width:auto;min-width:max-content}
         #events-list .ssa-sticky-filter-bar{display:none}
         #events-list .ssa-sticky-date-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 42px;gap:8px;align-items:center;width:100%}
         #events-list .ssa-sticky-preset-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) 42px;gap:8px;width:100%}
@@ -4167,6 +4197,7 @@
         #events-list .ssa-clear-dates{width:38px}
         #events-list .ssa-display-options-switcher,#events-list .ssa-group-switcher{grid-template-columns:1fr}
         #events-list .ssa-keyword-btn{flex-basis:100%}
+        #events-list .ssa-keyword-row .ssa-keyword-btn{flex:0 0 auto;width:auto;min-width:max-content}
       }
     `;
     document.head.appendChild(designCSS);
