@@ -3968,7 +3968,7 @@
       #events-list .ssa-calendar-day-has-events:hover{background:color-mix(in srgb,var(--ssa-accent) 4%,var(--ssa-surface))!important}
       #events-list .ssa-calendar-day-number{color:var(--ssa-text)!important;font-size:20px;font-weight:800}
       #events-list .ssa-calendar-day-agenda-trigger{width:100%;margin-top:10px;padding:0;border:0;background:transparent;color:inherit;text-align:left;cursor:pointer}
-      #events-list .ssa-calendar-event-count{display:inline-flex;height:28px;padding:0 10px;align-items:center;justify-content:center;box-sizing:border-box;text-align:center;border:1px solid var(--ssa-accent-soft)!important;border-radius:999px;background:rgba(169,51,38,.07)!important;color:var(--ssa-accent)!important;font-size:13px;font-weight:800}
+      #events-list .ssa-calendar-event-count{display:inline-flex;height:28px;padding:0 10px;align-items:center;justify-content:center;box-sizing:border-box;text-align:center;border:1px solid var(--ssa-accent-soft)!important;border-radius:12px;background:rgba(169,51,38,.07)!important;color:var(--ssa-accent)!important;font-size:13px;font-weight:800}
       #events-list .ssa-calendar-event-preview-list{display:flex;flex-direction:column;gap:5px;margin-top:10px}
       #events-list .ssa-calendar-event-preview,#events-list .ssa-calendar-event-more{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ssa-muted)!important;font-size:14px;font-weight:700;line-height:1.25}
       #events-list .ssa-calendar-info-icon{width:10px;height:10px;min-width:10px;min-height:10px;background:var(--ssa-accent)!important}
@@ -4099,7 +4099,7 @@
         #events-list .ssa-calendar-day{min-height:72px;padding:6px 4px}
         #events-list .ssa-calendar-day-number{font-size:14px;line-height:1}
         #events-list .ssa-calendar-day-agenda-trigger{margin-top:8px;display:flex;justify-content:center;text-align:center}
-        #events-list .ssa-calendar-event-count{min-height:26px;max-width:calc(100% - 8px);padding:4px 8px;font-size:10px;line-height:1.08;border-radius:999px;white-space:normal}
+        #events-list .ssa-calendar-event-count{min-height:26px;max-width:calc(100% - 8px);padding:4px 8px;font-size:10px;line-height:1.08;border-radius:10px;white-space:normal}
         #events-list .ssa-calendar-event-preview-list{display:none}
         .ssa-day-agenda-backdrop{align-items:flex-end;padding:0;background:rgba(15,23,42,.36)}
         .ssa-day-agenda-panel{position:fixed;left:0;right:0;bottom:0;width:100%;max-height:82vh;border-right:0;border-bottom:0;border-left:0;border-radius:18px 18px 0 0;transform:none!important;transition:opacity .18s ease}
