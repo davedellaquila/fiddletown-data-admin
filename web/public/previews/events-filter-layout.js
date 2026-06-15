@@ -4065,8 +4065,8 @@
       .ssa-day-agenda-actions a:hover{background:rgba(169,51,38,.1)}
       #events-list .ssa-events-footnote{max-width:1600px;margin:36px auto 0;color:var(--ssa-muted)!important;font-size:21px;line-height:1.45}
       @media(min-width:821px){
-        #events-list .ssa-event-content{grid-template-columns:112px minmax(0,1fr) minmax(260px,auto)}
-        #events-list .ssa-event-keywords{grid-column:3;grid-row:1;align-self:start;justify-content:flex-end;margin:0}
+        #events-list .ssa-event-content{grid-template-columns:112px minmax(0,1fr) minmax(240px,340px)}
+        #events-list .ssa-event-keywords{grid-column:3;grid-row:1;width:100%;max-width:340px;align-self:start;justify-content:flex-start;margin:0;overflow:hidden}
       }
       @media(min-width:960px){
         #events-list .ssa-sticky-view-section{top:calc(var(--ssa-sticky-date-height,150px) + 8px)}
