@@ -29,7 +29,7 @@
     @media (min-width: 960px) {
       #events-list .ssa-date-inputs-row {
         display: grid !important;
-        grid-template-columns: minmax(0, 1fr) 56px minmax(0, 1fr) 72px !important;
+        grid-template-columns: minmax(0, 1fr) 72px minmax(0, 1fr) 82px !important;
         gap: 0 !important;
       }
 
@@ -54,7 +54,7 @@
 <body>
   <div id="events-list"></div>
 
-  <script src="./events-filter-layout.js?v=sticky-summary-row"></script>
+  <script src="./events-filter-layout.js?v=date-row-label-gap"></script>
   <script>
     SSWidgets.renderEvents({
       mount: '#events-list',
