@@ -1760,11 +1760,16 @@
         border-radius: 6px;
         display: block;
         cursor: pointer;
+        touch-action: manipulation;
       `;
-      img.addEventListener('click', function(e) {
+      const closePreviewFromImage = function(e) {
+        e.preventDefault();
         e.stopPropagation();
         closeImagePreview();
-      });
+      };
+      img.addEventListener('click', closePreviewFromImage);
+      img.addEventListener('pointerup', closePreviewFromImage);
+      img.addEventListener('touchend', closePreviewFromImage, { passive: false });
       
       imagePreviewEl.appendChild(closeBtn);
       imagePreviewEl.appendChild(img);
