@@ -969,6 +969,20 @@
     return `<div class="ssa-active-filters${extraClass ? ` ${extraClass}` : ''}"><span>Showing:</span>${chips.join('')}</div>`;
   }
 
+  function syncStickyControlOffsets(mount) {
+    const update = () => {
+      const dateSection = mount.querySelector('.ssa-sticky-date-section');
+      if (!dateSection) return;
+      const height = Math.ceil(dateSection.getBoundingClientRect().height);
+      mount.style.setProperty('--ssa-sticky-date-height', `${height}px`);
+    };
+    requestAnimationFrame(update);
+    if (!mount._stickyOffsetResizeHandler) {
+      mount._stickyOffsetResizeHandler = () => requestAnimationFrame(update);
+      window.addEventListener('resize', mount._stickyOffsetResizeHandler, { passive: true });
+    }
+  }
+
   function renderGridLayout(events, state) {
     if (events.length === 0) {
       return '<div class="ssa-empty">No events found.</div>';
@@ -1273,7 +1287,7 @@
 
     const isDarkMode = document.body && document.body.classList.contains('dark-mode');
 
-    let controlsHTML = '<section class="ssa-controls" aria-label="Event filters">';
+    let controlsHTML = '<section class="ssa-controls ssa-controls-intro" aria-label="Event filters">';
     controlsHTML += '<div class="ssa-controls-heading">';
     controlsHTML += '<div class="ssa-controls-heading-top">';
     controlsHTML += '<span>Filters</span>';
@@ -1282,88 +1296,61 @@
     controlsHTML += '<h2>Narrow the calendar</h2>';
     controlsHTML += `<p>Use date presets, keywords, or layout options. ${layout === LAYOUTS.CALENDAR ? 'Click a day to see events.' : 'Active filters appear above the results.'}</p>`;
     controlsHTML += '</div>';
+    controlsHTML += '</section>';
 
     // Date range filters (prominent section)
-    controlsHTML += '<div class="ssa-date-filters-section">';
-    controlsHTML += '<div class="ssa-date-filters">';
-    controlsHTML += '<div class="ssa-date-inputs-row">';
-    controlsHTML += `<label><span>From</span><input type="date" class="ssa-date-input ssa-from-date-input" id="ssa-from-date" value="${fromDate || ''}"></label>`;
-    controlsHTML += `<label><span>To</span><input type="date" class="ssa-date-input ssa-to-date-input" id="ssa-to-date" value="${toDate || ''}" placeholder="Open"></label>`;
-    controlsHTML += `<button class="ssa-date-clear-btn ssa-clear-to-date" title="Clear To date" aria-label="Clear To date"></button>`;
-    controlsHTML += '</div>';
-    controlsHTML += `<button class="ssa-weekend-btn ssa-this-weekend-btn" title="Set date range to upcoming weekend">This Weekend</button>`;
-    controlsHTML += `<button class="ssa-weekend-btn ssa-next-weekend-btn" title="Set date range to next weekend">Next Weekend</button>`;
-    controlsHTML += `<button class="ssa-weekend-btn ssa-this-week-btn" title="Set date range to current week (Monday to Sunday)">This Week</button>`;
-    controlsHTML += `<button class="ssa-clear-dates" title="Clear all filters" aria-label="Clear all filters">Clear</button>`;
-    controlsHTML += '</div>';
-    controlsHTML += '</div>';
+    let dateControlsHTML = '<section class="ssa-control-panel ssa-date-filters-section ssa-sticky-control-section ssa-sticky-date-section" aria-label="Date filters">';
+    dateControlsHTML += '<div class="ssa-date-filters">';
+    dateControlsHTML += '<div class="ssa-date-inputs-row">';
+    dateControlsHTML += `<label><span>From</span><input type="date" class="ssa-date-input ssa-from-date-input" id="ssa-from-date" value="${fromDate || ''}"></label>`;
+    dateControlsHTML += `<label><span>To</span><input type="date" class="ssa-date-input ssa-to-date-input" id="ssa-to-date" value="${toDate || ''}" placeholder="Open"></label>`;
+    dateControlsHTML += `<button class="ssa-date-clear-btn ssa-clear-to-date" title="Clear To date" aria-label="Clear To date"></button>`;
+    dateControlsHTML += '</div>';
+    dateControlsHTML += `<button class="ssa-weekend-btn ssa-this-weekend-btn" title="Set date range to upcoming weekend">This Weekend</button>`;
+    dateControlsHTML += `<button class="ssa-weekend-btn ssa-next-weekend-btn" title="Set date range to next weekend">Next Weekend</button>`;
+    dateControlsHTML += `<button class="ssa-weekend-btn ssa-this-week-btn" title="Set date range to current week (Monday to Sunday)">This Week</button>`;
+    dateControlsHTML += `<button class="ssa-clear-dates" title="Clear all filters" aria-label="Clear all filters">Clear</button>`;
+    dateControlsHTML += '</div>';
+    dateControlsHTML += '</section>';
 
     // View controls section: layout + display options
-    controlsHTML += '<div class="ssa-view-controls-section">';
-    controlsHTML += '<div class="ssa-view-controls-left">';
-    controlsHTML += '<div class="ssa-layout-switcher-wrapper">';
-    controlsHTML += '<label class="ssa-control-label">Layout</label>';
-    controlsHTML += '<div class="ssa-layout-switcher">';
-    controlsHTML += `<button class="ssa-layout-btn ${layout === LAYOUTS.LIST ? 'ssa-active' : ''}" data-layout="${LAYOUTS.LIST}" title="List view">List</button>`;
-    controlsHTML += `<button class="ssa-layout-btn ${layout === LAYOUTS.GRID ? 'ssa-active' : ''}" data-layout="${LAYOUTS.GRID}" title="Grid view">Grid</button>`;
-    controlsHTML += `<button class="ssa-layout-btn ${layout === LAYOUTS.CALENDAR ? 'ssa-active' : ''}" data-layout="${LAYOUTS.CALENDAR}" title="Calendar view">Calendar</button>`;
-    controlsHTML += '</div>';
-    controlsHTML += '</div>';
+    let viewControlsHTML = '<section class="ssa-control-panel ssa-view-controls-section ssa-sticky-control-section ssa-sticky-view-section" aria-label="Layout controls">';
+    viewControlsHTML += '<div class="ssa-view-controls-left">';
+    viewControlsHTML += '<div class="ssa-layout-switcher-wrapper">';
+    viewControlsHTML += '<label class="ssa-control-label">Layout</label>';
+    viewControlsHTML += '<div class="ssa-layout-switcher">';
+    viewControlsHTML += `<button class="ssa-layout-btn ${layout === LAYOUTS.LIST ? 'ssa-active' : ''}" data-layout="${LAYOUTS.LIST}" title="List view">List</button>`;
+    viewControlsHTML += `<button class="ssa-layout-btn ${layout === LAYOUTS.GRID ? 'ssa-active' : ''}" data-layout="${LAYOUTS.GRID}" title="Grid view">Grid</button>`;
+    viewControlsHTML += `<button class="ssa-layout-btn ${layout === LAYOUTS.CALENDAR ? 'ssa-active' : ''}" data-layout="${LAYOUTS.CALENDAR}" title="Calendar view">Calendar</button>`;
+    viewControlsHTML += '</div>';
+    viewControlsHTML += '</div>';
     
     // Grouping switcher (only show for list layout)
     if (layout === LAYOUTS.LIST) {
-      controlsHTML += '<div class="ssa-group-switcher-wrapper">';
-      controlsHTML += '<label class="ssa-control-label">Group</label>';
-      controlsHTML += '<div class="ssa-group-switcher">';
-      controlsHTML += `<button class="ssa-group-btn ${groupBy === 'day' ? 'ssa-active' : ''}" data-group="day" title="Group by day">Day</button>`;
-      controlsHTML += `<button class="ssa-group-btn ${groupBy === 'month' ? 'ssa-active' : ''}" data-group="month" title="Group by month">Month</button>`;
-      controlsHTML += '</div>';
-      controlsHTML += '</div>';
+      viewControlsHTML += '<div class="ssa-group-switcher-wrapper">';
+      viewControlsHTML += '<label class="ssa-control-label">Group</label>';
+      viewControlsHTML += '<div class="ssa-group-switcher">';
+      viewControlsHTML += `<button class="ssa-group-btn ${groupBy === 'day' ? 'ssa-active' : ''}" data-group="day" title="Group by day">Day</button>`;
+      viewControlsHTML += `<button class="ssa-group-btn ${groupBy === 'month' ? 'ssa-active' : ''}" data-group="month" title="Group by month">Month</button>`;
+      viewControlsHTML += '</div>';
+      viewControlsHTML += '</div>';
     }
-    controlsHTML += '</div>';
-    
-    controlsHTML += '</div>';
+    viewControlsHTML += '</div>';
+    viewControlsHTML += '</section>';
 
     // Keyword filters - display all keywords from the system
+    let keywordControlsHTML = '';
     if (allKeywords.length > 0) {
-      controlsHTML += '<div class="ssa-keyword-filters-section">';
-      controlsHTML += '<label class="ssa-control-label">Keywords</label>';
-      controlsHTML += '<div class="ssa-keyword-filters">';
+      keywordControlsHTML += '<section class="ssa-control-panel ssa-keyword-filters-section" aria-label="Keyword filters">';
+      keywordControlsHTML += '<label class="ssa-control-label">Keywords</label>';
+      keywordControlsHTML += '<div class="ssa-keyword-filters">';
       allKeywords.forEach(kw => {
         const isSelected = selectedKeywords.includes(kw);
-        controlsHTML += `<button class="ssa-keyword-btn ${isSelected ? 'ssa-keyword-active' : ''}" data-keyword="${kw}">${kw}</button>`;
+        keywordControlsHTML += `<button class="ssa-keyword-btn ${isSelected ? 'ssa-keyword-active' : ''}" data-keyword="${kw}">${kw}</button>`;
       });
-      controlsHTML += '</div>';
-      controlsHTML += '</div>';
+      keywordControlsHTML += '</div>';
+      keywordControlsHTML += '</section>';
     }
-    
-    controlsHTML += '</section>';
-
-    const stickyActiveFiltersHTML = renderActiveFilters(state, 'ssa-sticky-active-filters');
-
-    let stickyControlsHTML = '<section class="ssa-sticky-filter-bar" aria-label="Sticky event filters">';
-    stickyControlsHTML += '<div class="ssa-sticky-date-row">';
-    stickyControlsHTML += `<input type="date" class="ssa-date-input ssa-sticky-date-input ssa-from-date-input" aria-label="From date" value="${fromDate || ''}">`;
-    stickyControlsHTML += `<input type="date" class="ssa-date-input ssa-sticky-date-input ssa-to-date-input" aria-label="To date" value="${toDate || ''}" placeholder="Open">`;
-    stickyControlsHTML += `<button class="ssa-date-clear-btn ssa-clear-to-date" title="Clear To date" aria-label="Clear To date"></button>`;
-    stickyControlsHTML += '</div>';
-    stickyControlsHTML += '<div class="ssa-sticky-preset-row">';
-    stickyControlsHTML += `<button class="ssa-weekend-btn ssa-this-weekend-btn" title="Set date range to upcoming weekend">This Weekend</button>`;
-    stickyControlsHTML += `<button class="ssa-weekend-btn ssa-next-weekend-btn" title="Set date range to next weekend">Next Weekend</button>`;
-    stickyControlsHTML += `<button class="ssa-weekend-btn ssa-this-week-btn" title="Set date range to current week (Monday to Sunday)">This Week</button>`;
-    stickyControlsHTML += `<button class="ssa-clear-dates" title="Clear all filters" aria-label="Clear all filters">Clear</button>`;
-    stickyControlsHTML += '</div>';
-    stickyControlsHTML += '<div class="ssa-sticky-summary-row">';
-    stickyControlsHTML += `<span class="ssa-sticky-count">${filteredRows.length} ${filteredRows.length === 1 ? 'event' : 'events'}</span>`;
-    stickyControlsHTML += `<button class="ssa-sticky-summary-btn ssa-sticky-layout-cycle" data-layout="${layout}" title="Change view">${getLayoutButtonLabel(layout)}</button>`;
-    if (layout === LAYOUTS.LIST) {
-      stickyControlsHTML += `<button class="ssa-sticky-summary-btn ssa-sticky-group-cycle" data-group="${groupBy || 'day'}" title="Change grouping">${getLayoutSupplementLabel(layout, groupBy)}</button>`;
-    } else {
-      stickyControlsHTML += `<span class="ssa-sticky-supplement">${getLayoutSupplementLabel(layout, groupBy)}</span>`;
-    }
-    stickyControlsHTML += '</div>';
-    stickyControlsHTML += stickyActiveFiltersHTML;
-    stickyControlsHTML += '</section>';
 
     const footerHTML = '<p class="ssa-events-footnote">Confirm dates and ticketing with organizers before driving out.</p>';
     
@@ -1377,7 +1364,8 @@
       eventsHTML = renderCalendarLayout(filteredRows, state);
     }
     
-    mount.innerHTML = pageHeaderHTML + controlsHTML + stickyControlsHTML + eventsHTML + footerHTML;
+    mount.innerHTML = pageHeaderHTML + controlsHTML + dateControlsHTML + viewControlsHTML + keywordControlsHTML + eventsHTML + footerHTML;
+    syncStickyControlOffsets(mount);
     
     // Verify keyword cloud was rendered
     const keywordCloud = mount.querySelector('.ssa-keyword-filters');
@@ -3895,13 +3883,17 @@
       #events-list .ssa-page-intro{max-width:1600px;margin:0 auto 42px;padding:0 64px}
       #events-list .ssa-page-intro h1{margin:0 0 16px;color:var(--ssa-text)!important;font-size:64px;line-height:1.05;font-weight:800;letter-spacing:.01em}
       #events-list .ssa-page-intro p{margin:0;color:var(--ssa-muted)!important;font-size:25px;line-height:1.35;font-weight:400}
-      #events-list .ssa-controls{max-width:1600px;margin:0 auto 34px;padding:34px 32px 30px;display:flex;flex-direction:column;gap:26px;background:var(--ssa-surface)!important;border:1px solid var(--ssa-border)!important;border-radius:12px;box-shadow:var(--ssa-shadow)}
+      #events-list .ssa-controls{max-width:1600px;margin:0 auto 18px;padding:34px 32px 30px;display:flex;flex-direction:column;gap:26px;background:var(--ssa-surface)!important;border:1px solid var(--ssa-border)!important;border-radius:12px;box-shadow:var(--ssa-shadow)}
+      #events-list .ssa-control-panel{max-width:1600px;margin:0 auto 18px;padding:20px 32px;background:color-mix(in srgb,var(--ssa-surface) 96%,transparent)!important;border:1px solid var(--ssa-border)!important;border-radius:12px;box-shadow:var(--ssa-shadow);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+      #events-list .ssa-sticky-control-section{position:sticky;z-index:38}
+      #events-list .ssa-sticky-date-section{top:0;z-index:40}
+      #events-list .ssa-sticky-view-section{top:calc(var(--ssa-sticky-date-height,156px) + 8px);z-index:39}
       #events-list .ssa-controls-heading-top{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:0 0 8px}
       #events-list .ssa-controls-heading span,#events-list .ssa-results-summary span,#events-list .ssa-control-label{display:block;margin:0 0 8px;color:var(--ssa-muted)!important;font-size:15px;font-weight:800;text-transform:uppercase;letter-spacing:.04em}
       #events-list .ssa-controls-heading-top > span{margin:0}
       #events-list .ssa-controls-heading h2{margin:0 0 8px;color:var(--ssa-text)!important;font-size:32px;line-height:1.15;font-weight:800}
       #events-list .ssa-controls-heading p{margin:0;color:var(--ssa-muted)!important;font-size:21px;line-height:1.35}
-      #events-list .ssa-date-filters-section,#events-list .ssa-view-controls-section,#events-list .ssa-keyword-filters-section{padding:0;background:transparent!important;border:0!important;border-radius:0}
+      #events-list .ssa-date-filters-section,#events-list .ssa-view-controls-section,#events-list .ssa-keyword-filters-section{background:color-mix(in srgb,var(--ssa-surface) 96%,transparent)!important}
       #events-list .ssa-date-filters{display:flex;align-items:flex-end;gap:16px;justify-content:flex-start;flex-wrap:wrap}
       #events-list .ssa-date-inputs-row{display:flex;gap:16px;align-items:flex-end}
       #events-list .ssa-date-filters label{display:flex;flex-direction:column;align-items:flex-start;gap:8px;color:var(--ssa-muted)!important;font-size:17px;font-weight:700}
@@ -4007,6 +3999,7 @@
         #events-list .ssa-event-keywords{grid-column:3;grid-row:1;align-self:start;justify-content:flex-end;margin:0}
       }
       @media(min-width:960px){
+        #events-list .ssa-sticky-view-section{top:calc(var(--ssa-sticky-date-height,150px) + 8px)}
         #events-list .ssa-date-filters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) 44px;gap:14px 16px;align-items:end;width:100%}
         #events-list .ssa-date-inputs-row{grid-column:1/-1;display:grid;grid-template-columns:minmax(0,1fr) 34px minmax(0,1fr) 44px;gap:0;width:100%;min-width:0}
         #events-list .ssa-date-filters label{min-width:0;width:100%;position:relative}
@@ -4029,6 +4022,9 @@
         #events-list .ssa-page-intro h1{font-size:30px;line-height:1.08;margin-bottom:10px}
         #events-list .ssa-page-intro p{font-size:16px;line-height:1.35;max-width:330px}
         #events-list .ssa-controls{margin:0 0 18px;padding:18px 16px;gap:22px;border-radius:9px}
+        #events-list .ssa-control-panel{margin:0 0 12px;padding:10px;border-radius:9px;box-shadow:0 12px 26px rgba(15,23,42,.10)}
+        #events-list .ssa-sticky-date-section{top:0}
+        #events-list .ssa-sticky-view-section{top:calc(var(--ssa-sticky-date-height,108px) + 8px)}
         #events-list .ssa-controls-heading-top{gap:10px;margin-bottom:10px}
         #events-list .ssa-controls-heading span,#events-list .ssa-results-summary span,#events-list .ssa-control-label{font-size:13px;line-height:1.2}
         #events-list .ssa-controls-heading-top > span{margin:0}
@@ -4058,7 +4054,7 @@
         #events-list .ssa-theme-icon{width:18px;height:18px}
         #events-list .ssa-keyword-filters{display:flex;flex-wrap:wrap;gap:10px;overflow:visible;padding-bottom:0}
         #events-list .ssa-keyword-btn{width:auto;min-width:0;flex:1 1 calc(50% - 10px);padding:0 12px}
-        #events-list .ssa-sticky-filter-bar{position:sticky;top:0;z-index:40;margin:0 0 18px;padding:10px;display:flex;flex-direction:column;gap:8px;background:color-mix(in srgb,var(--ssa-surface) 94%,transparent)!important;border:1px solid var(--ssa-border-soft)!important;border-radius:9px;box-shadow:0 12px 26px rgba(15,23,42,.12);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+        #events-list .ssa-sticky-filter-bar{display:none}
         #events-list .ssa-sticky-date-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 42px;gap:8px;align-items:center;width:100%}
         #events-list .ssa-sticky-preset-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) 42px;gap:8px;width:100%}
         #events-list .ssa-sticky-summary-row{display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1fr) minmax(0,1.15fr);gap:8px;width:100%;align-items:center}
