@@ -1366,12 +1366,6 @@
     stickyControlsHTML += stickyActiveFiltersHTML;
     stickyControlsHTML += '</section>';
 
-    const resultsHTML = `
-      <section class="ssa-results-summary" aria-label="Event results summary">
-        <span>Events</span>
-        <p>${filteredRows.length} ${filteredRows.length === 1 ? 'event' : 'events'} · ${getLayoutSummary(layout, groupBy)}</p>
-      </section>
-    `;
     const footerHTML = '<p class="ssa-events-footnote">Confirm dates and ticketing with organizers before driving out.</p>';
     
     // Render events based on layout
@@ -1384,7 +1378,7 @@
       eventsHTML = renderCalendarLayout(filteredRows, state);
     }
     
-    mount.innerHTML = pageHeaderHTML + controlsHTML + stickyControlsHTML + activeFiltersHTML + resultsHTML + eventsHTML + footerHTML;
+    mount.innerHTML = pageHeaderHTML + controlsHTML + stickyControlsHTML + activeFiltersHTML + eventsHTML + footerHTML;
     
     // Verify keyword cloud was rendered
     const keywordCloud = mount.querySelector('.ssa-keyword-filters');
