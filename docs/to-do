@@ -1,1 +1,15 @@
-[  ] make repeat events smarter. if an event is set to weekly, it should appear every week until the end date.
+# Informal notes (legacy)
+
+Migrate items to the proper doc system:
+
+- **Large features / PRDs** → [future-enhancements/](./future-enhancements/)
+- **UX polish / bugs / small improvements** → [backlog/](./backlog/)
+- **Active work** → [features/](./features/)
+
+## Migrated
+
+- [x] Smarter repeat events → [FE-002 future-enhancements/smarter-repeat-events.md](./future-enhancements/smarter-repeat-events.md)
+
+## Remaining
+
+*(none)*

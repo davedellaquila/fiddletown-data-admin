@@ -1,0 +1,45 @@
+---
+description: Multi-agent collaboration — read and update the shared team workspace
+alwaysApply: true
+---
+
+# Team Collaboration
+
+This project uses a **shared markdown workspace** for Product, UX, and Engineering agents.
+
+## Start of every session
+
+1. Read `docs/TEAM_WORKSPACE.md` — especially **Active Work** and **Team Log**.
+2. If a feature is active, open its spec in `docs/features/<name>.md`.
+3. Respect role boundaries: PM (scope/AC), UX (§4 Design), Dev (§5 Engineering).
+
+## End of every session (if you changed scope, design, or code)
+
+1. Add a **Team Log** row in `docs/TEAM_WORKSPACE.md` (newest first).
+2. Update the feature spec section you own.
+3. Record material decisions in the feature spec §6 or workspace **Decision log**.
+
+## New features
+
+- Specs live in `docs/features/` using `_TEMPLATE.md`.
+- Follow `docs/features/README.md` for status workflow.
+- Do not start implementation until acceptance criteria (§3) exist and status is at least `Review`.
+
+## Handoff rule
+
+When your work unblocks another role, set **Action needed** in the Team Log to that role (PM, UX, or Dev).
+
+## Documentation (PM-owned)
+
+The **PM agent** maintains requirements and project documentation:
+
+- `docs/README.md` — documentation index
+- `docs/TEAM_WORKSPACE.md` — active work and team log
+- `docs/DECISIONS.md` — major decisions
+- `docs/features/` — feature requirements
+- `docs/backlog/` — assessments and deferred work
+- `docs/future-enhancements/` — large PRDs not yet scheduled (registry + specs)
+
+**UX and Dev:** Do not restructure docs. Add findings to your feature spec section or request a Team Log entry. PM will formalize assessments and broadcast decisions.
+
+**Major decisions:** PM records in `docs/DECISIONS.md` and announces in Team Log. If you make a scope/architecture choice, leave a Team Log note tagged `Decision:` for PM to capture.

@@ -26,4 +26,8 @@ Database migrations are located in the `migrations/` directory and should be run
 
 ## Documentation
 
-Additional documentation can be found in the `docs/` directory.
+See **[docs/README.md](docs/README.md)** for the full documentation index.
+
+- **[Team workspace](docs/TEAM_WORKSPACE.md)** — active work and team log (all agents)
+- **[Decisions](docs/DECISIONS.md)** — major project decisions
+- **[Future enhancements](docs/future-enhancements/)** — large PRDs not yet scheduled

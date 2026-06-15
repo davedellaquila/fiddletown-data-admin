@@ -63,6 +63,9 @@ SSA Admin is a dual-platform admin application for managing Sierra Sacramento Va
 ## Important Files
 
 ### Documentation
+- `docs/README.md` - **Documentation index** (start here)
+- `docs/TEAM_WORKSPACE.md` - Team collaboration and active work
+- `docs/DECISIONS.md` - Major project decisions
 - `docs/SHARED_LOGIC.md` - Business logic contracts
 - `docs/API_CONTRACTS.md` - API query patterns
 - `docs/TYPE_SYNC.md` - Type synchronization guide
