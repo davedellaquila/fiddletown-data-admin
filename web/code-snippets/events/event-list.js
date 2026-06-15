@@ -1099,170 +1099,132 @@
 
   function renderCalendarLayout(events, state) {
     const { fromDate = null, toDate = null } = state;
-    
-    // Determine which month to display
-    let displayDate;
-    if (fromDate) {
-      displayDate = parseLocalDate(fromDate) || new Date();
-    } else if (toDate) {
-      displayDate = parseLocalDate(toDate) || new Date();
-    } else {
-      displayDate = new Date();
+    const normalizedFromDate = normalizeDateString(fromDate);
+    const normalizedToDate = normalizeDateString(toDate);
+    const rangeStart = normalizedFromDate ? parseLocalDate(normalizedFromDate) : null;
+    const rangeEnd = normalizedToDate ? parseLocalDate(normalizedToDate) : null;
+    const eventsByDate = {};
+    let firstEventDate = null;
+    let lastEventDate = null;
+
+    function rememberEventDate(date) {
+      if (!firstEventDate || date < firstEventDate) firstEventDate = new Date(date);
+      if (!lastEventDate || date > lastEventDate) lastEventDate = new Date(date);
     }
-    
-    // Get first day of month and number of days
-    const year = displayDate.getFullYear();
-    const month = displayDate.getMonth();
-    const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
-    const daysInMonth = lastDay.getDate();
-    const startingDayOfWeek = firstDay.getDay(); // 0 = Sunday, 6 = Saturday
-    
-    // Group events by day
-    const eventsByDay = {};
+
     events.forEach(event => {
-      if (!event.start_date) {
-        // Skip undated events for calendar view
-        return;
-      }
-      
-      // Parse dates in local timezone to avoid timezone shifts
+      if (!event.start_date) return;
+
       const startDate = parseLocalDate(event.start_date);
       const endDate = event.end_date ? parseLocalDate(event.end_date) : startDate;
-      
       if (!startDate) return;
-      
-      // Only include events that fall within the displayed month
-      const monthStart = new Date(year, month, 1);
-      const monthEnd = new Date(year, month + 1, 0);
-      
-      // Check if event overlaps with this month
-      if (endDate < monthStart || startDate > monthEnd) {
-        return;
-      }
-      
-      // Iterate through each day the event is active within this month
-      const currentDate = new Date(Math.max(startDate, monthStart));
-      const maxDate = new Date(Math.min(endDate, monthEnd));
-      
-      while (currentDate <= maxDate) {
-        const day = currentDate.getDate();
-        // Use local date components to create date key, avoiding timezone shifts
+
+      const clippedStart = rangeStart && startDate < rangeStart ? new Date(rangeStart) : new Date(startDate);
+      const clippedEnd = rangeEnd && endDate > rangeEnd ? new Date(rangeEnd) : new Date(endDate);
+      if (clippedEnd < clippedStart) return;
+
+      const currentDate = new Date(clippedStart);
+      while (currentDate <= clippedEnd) {
         const dateKey = formatLocalDateString(currentDate);
-        
-        // Check if this day falls within the date range filter
-        if (fromDate || toDate) {
-          // Normalize date strings for comparison
-          const normalizedFromDate = normalizeDateString(fromDate);
-          const normalizedToDate = normalizeDateString(toDate);
-          const dayDateStr = dateKey; // dateKey is already YYYY-MM-DD format
-          
-          if (normalizedFromDate && dayDateStr < normalizedFromDate) {
-            currentDate.setDate(currentDate.getDate() + 1);
-            continue;
-          }
-          if (normalizedToDate && dayDateStr > normalizedToDate) {
-            currentDate.setDate(currentDate.getDate() + 1);
-            continue;
-          }
-        }
-        
-        if (!eventsByDay[day]) {
-          eventsByDay[day] = [];
-        }
-        
-        // Only add the event once per day
-        if (!eventsByDay[day].some(e => e.id === event.id)) {
-          eventsByDay[day].push({
+        if (!eventsByDate[dateKey]) eventsByDate[dateKey] = [];
+        if (!eventsByDate[dateKey].some(e => e.id === event.id)) {
+          eventsByDate[dateKey].push({
             ...event,
             _dateKey: dateKey
           });
         }
-        
-        // Move to next day
+        rememberEventDate(currentDate);
         currentDate.setDate(currentDate.getDate() + 1);
       }
     });
-    
-    // Build calendar HTML
-    const monthName = displayDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-    let html = `<div class="ssa-calendar-container">`;
-    html += `<h3 class="ssa-calendar-month-header">${monthName}</h3>`;
-    html += `<div class="ssa-calendar-grid">`;
-    
-    // Day headers
-    const dayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    dayHeaders.forEach(day => {
-      html += `<div class="ssa-calendar-day-header">${day}</div>`;
-    });
-    
-    // Empty cells for days before month starts
-    for (let i = 0; i < startingDayOfWeek; i++) {
-      html += `<div class="ssa-calendar-day ssa-calendar-day-empty"></div>`;
+
+    let firstMonthDate = firstEventDate;
+    let lastMonthDate = lastEventDate;
+
+    if (!firstMonthDate || !lastMonthDate) {
+      if (rangeStart) {
+        firstMonthDate = rangeStart;
+        lastMonthDate = rangeEnd || rangeStart;
+      } else if (rangeEnd) {
+        firstMonthDate = rangeEnd;
+        lastMonthDate = rangeEnd;
+      } else {
+        firstMonthDate = new Date();
+        lastMonthDate = firstMonthDate;
+      }
     }
-    
-    // Days of the month
-    for (let day = 1; day <= daysInMonth; day++) {
-      const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-      
-      // Check if this day is outside the date filter range (only when both fromDate and toDate are set)
-      let isOutOfRange = false;
-      if (fromDate && toDate) {
-        // Normalize date strings for comparison
-        const normalizedFromDate = normalizeDateString(fromDate);
-        const normalizedToDate = normalizeDateString(toDate);
-        if (normalizedFromDate && normalizedToDate) {
-          isOutOfRange = dateKey < normalizedFromDate || dateKey > normalizedToDate;
+
+    const firstMonth = new Date(firstMonthDate.getFullYear(), firstMonthDate.getMonth(), 1);
+    const lastMonth = new Date(lastMonthDate.getFullYear(), lastMonthDate.getMonth(), 1);
+    const monthDates = [];
+    const cursor = new Date(firstMonth);
+    while (cursor <= lastMonth) {
+      monthDates.push(new Date(cursor));
+      cursor.setMonth(cursor.getMonth() + 1);
+    }
+
+    function renderCalendarMonth(displayDate) {
+      const year = displayDate.getFullYear();
+      const month = displayDate.getMonth();
+      const firstDay = new Date(year, month, 1);
+      const lastDay = new Date(year, month + 1, 0);
+      const daysInMonth = lastDay.getDate();
+      const startingDayOfWeek = firstDay.getDay(); // 0 = Sunday, 6 = Saturday
+
+      const monthName = displayDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+      let html = `<div class="ssa-calendar-container">`;
+      html += `<h3 class="ssa-calendar-month-header">${monthName}</h3>`;
+      html += `<div class="ssa-calendar-grid">`;
+
+      const dayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      dayHeaders.forEach(day => {
+        html += `<div class="ssa-calendar-day-header">${day}</div>`;
+      });
+
+      for (let i = 0; i < startingDayOfWeek; i++) {
+        html += `<div class="ssa-calendar-day ssa-calendar-day-empty"></div>`;
+      }
+
+      for (let day = 1; day <= daysInMonth; day++) {
+        const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        const isBeforeRange = normalizedFromDate && dateKey < normalizedFromDate;
+        const isAfterRange = normalizedToDate && dateKey > normalizedToDate;
+        const isOutOfRange = Boolean(isBeforeRange || isAfterRange);
+        const dayEvents = isOutOfRange ? [] : (eventsByDate[dateKey] || []);
+        const outOfRangeClass = isOutOfRange ? ' ssa-calendar-day-out-of-range' : '';
+        const hasEventsClass = dayEvents.length > 0 ? ' ssa-calendar-day-has-events' : '';
+
+        html += `<div class="ssa-calendar-day${outOfRangeClass}${hasEventsClass}" data-date="${dateKey}">`;
+        html += `<div class="ssa-calendar-day-number">${day}</div>`;
+
+        if (dayEvents.length > 0) {
+          const previewEvents = dayEvents.slice(0, 2);
+          html += `<button class="ssa-calendar-day-agenda-trigger" data-date="${dateKey}" type="button" aria-label="Open ${dayEvents.length} ${dayEvents.length === 1 ? 'event' : 'events'} on ${formatDayHeader(dateKey)}">`;
+          html += `<span class="ssa-calendar-event-count">${dayEvents.length} ${dayEvents.length === 1 ? 'event' : 'events'}</span>`;
+          html += `<span class="ssa-calendar-event-preview-list">`;
+          previewEvents.forEach(event => {
+            html += `<span class="ssa-calendar-event-preview">${escapeHtml(event.name || 'Untitled event')}</span>`;
+          });
+          if (dayEvents.length > previewEvents.length) {
+            html += `<span class="ssa-calendar-event-more">+${dayEvents.length - previewEvents.length} more</span>`;
+          }
+          html += `</span></button>`;
         }
+
+        html += `</div>`;
       }
-      
-      // Filter dayEvents to only include events for days within the date range
-      let dayEvents = eventsByDay[day] || [];
-      if (fromDate || toDate) {
-        // Normalize date strings for comparison
-        const normalizedFromDate = normalizeDateString(fromDate);
-        const normalizedToDate = normalizeDateString(toDate);
-        
-        dayEvents = dayEvents.filter(event => {
-          const eventDateStr = event._dateKey || dateKey; // Already YYYY-MM-DD format
-          if (normalizedFromDate && eventDateStr < normalizedFromDate) return false;
-          if (normalizedToDate && eventDateStr > normalizedToDate) return false;
-          return true;
-        });
+
+      const totalCells = startingDayOfWeek + daysInMonth;
+      const remainingCells = 42 - totalCells; // 6 rows * 7 days = 42 cells
+      for (let i = 0; i < remainingCells && totalCells + i < 42; i++) {
+        html += `<div class="ssa-calendar-day ssa-calendar-day-empty"></div>`;
       }
-      
-      const outOfRangeClass = isOutOfRange ? ' ssa-calendar-day-out-of-range' : '';
-      const hasEventsClass = dayEvents.length > 0 ? ' ssa-calendar-day-has-events' : '';
-      html += `<div class="ssa-calendar-day${outOfRangeClass}${hasEventsClass}" data-date="${dateKey}">`;
-      html += `<div class="ssa-calendar-day-number">${day}</div>`;
-      
-      if (dayEvents.length > 0) {
-        const previewEvents = dayEvents.slice(0, 2);
-        html += `<button class="ssa-calendar-day-agenda-trigger" data-date="${dateKey}" type="button" aria-label="Open ${dayEvents.length} ${dayEvents.length === 1 ? 'event' : 'events'} on ${formatDayHeader(dateKey)}">`;
-        html += `<span class="ssa-calendar-event-count">${dayEvents.length} ${dayEvents.length === 1 ? 'event' : 'events'}</span>`;
-        html += `<span class="ssa-calendar-event-preview-list">`;
-        previewEvents.forEach(event => {
-          html += `<span class="ssa-calendar-event-preview">${escapeHtml(event.name || 'Untitled event')}</span>`;
-        });
-        if (dayEvents.length > previewEvents.length) {
-          html += `<span class="ssa-calendar-event-more">+${dayEvents.length - previewEvents.length} more</span>`;
-        }
-        html += `</span></button>`;
-      }
-      
-      html += `</div>`;
+
+      html += `</div></div>`;
+      return html;
     }
-    
-    // Empty cells for days after month ends
-    const totalCells = startingDayOfWeek + daysInMonth;
-    const remainingCells = 42 - totalCells; // 6 rows * 7 days = 42 cells
-    for (let i = 0; i < remainingCells && totalCells + i < 42; i++) {
-      html += `<div class="ssa-calendar-day ssa-calendar-day-empty"></div>`;
-    }
-    
-    html += `</div></div>`;
-    
-    return html;
+
+    return monthDates.map(renderCalendarMonth).join('');
   }
 
   async function renderEvents(mount, rows, state) {
