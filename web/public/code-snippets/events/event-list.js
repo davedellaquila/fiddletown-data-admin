@@ -3903,11 +3903,13 @@
       #events-list .ssa-sticky-control-section{position:sticky;z-index:38}
       #events-list .ssa-sticky-date-section{top:0;z-index:40}
       #events-list .ssa-sticky-view-section{top:calc(var(--ssa-sticky-date-height,156px) + 8px);z-index:39}
-      #events-list .ssa-sticky-date-section.ssa-is-stuck .ssa-date-filters label span,#events-list .ssa-sticky-view-section.ssa-is-stuck .ssa-control-label{display:none!important}
-      #events-list .ssa-sticky-date-section.ssa-is-stuck .ssa-date-filters label{gap:0}
-      #events-list .ssa-sticky-view-section.ssa-is-stuck .ssa-layout-switcher-wrapper,#events-list .ssa-sticky-view-section.ssa-is-stuck .ssa-group-switcher-wrapper{gap:0}
       #events-list .ssa-controls-heading-top{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:0 0 8px}
       #events-list .ssa-controls-heading span,#events-list .ssa-results-summary span,#events-list .ssa-control-label{display:block;margin:0 0 8px;color:var(--ssa-muted)!important;font-size:15px;font-weight:800;text-transform:uppercase;letter-spacing:.04em}
+      #events-list .ssa-sticky-date-section .ssa-date-filters label,#events-list .ssa-sticky-view-section .ssa-layout-switcher-wrapper,#events-list .ssa-sticky-view-section .ssa-group-switcher-wrapper{transition:gap .24s ease}
+      #events-list .ssa-sticky-date-section .ssa-date-filters label span,#events-list .ssa-sticky-view-section .ssa-control-label{max-height:22px;overflow:hidden;opacity:1;transform:translateY(0);transition:opacity .18s ease,transform .24s ease,max-height .24s ease,margin .24s ease}
+      #events-list .ssa-sticky-date-section.ssa-is-stuck .ssa-date-filters label span,#events-list .ssa-sticky-view-section.ssa-is-stuck .ssa-control-label{max-height:0;margin:0!important;opacity:0;transform:translateY(-5px);pointer-events:none}
+      #events-list .ssa-sticky-date-section.ssa-is-stuck .ssa-date-filters label{gap:0}
+      #events-list .ssa-sticky-view-section.ssa-is-stuck .ssa-layout-switcher-wrapper,#events-list .ssa-sticky-view-section.ssa-is-stuck .ssa-group-switcher-wrapper{gap:0}
       #events-list .ssa-controls-heading-top > span{margin:0}
       #events-list .ssa-controls-heading h2{margin:0 0 8px;color:var(--ssa-text)!important;font-size:32px;line-height:1.15;font-weight:800}
       #events-list .ssa-controls-heading p{margin:0;color:var(--ssa-muted)!important;font-size:21px;line-height:1.35}
