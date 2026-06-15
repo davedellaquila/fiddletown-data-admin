@@ -1,38 +1,44 @@
+# Event Selection & Email (Squarespace)
+
+| Field | Value |
+|-------|-------|
+| **ID** | FE-004 |
+| **Status** | Specced |
+| **Priority** | TBD (after Event Triage M1) |
+| **Effort** | Medium |
+| **Platforms** | Squarespace public widget + Supabase Edge Function |
+| **Product area** | Events / public site |
+| **Created** | 2026-06-15 (imported) |
+| **Original source** | `~/.cursor/plans/event_selection_and_email_notification_for_squarespace_users_61698064.plan.md` |
+| **Related** | [TODO.md](../../TODO.md) Event Management (print/email selections) |
+
 ---
-name: Event selection and email notification for Squarespace users
-overview: Implement a feature allowing Squarespace site visitors to select events they're interested in during their session and receive an email with details of their selected events. No account creation required - users simply provide their email address.
-todos:
-  - id: add-todo-item
-    content: Add event selection email feature to TODO.md under Event Management section
-    status: pending
-  - id: create-edge-function
-    content: Create Supabase Edge Function supabase/functions/send-event-email/index.ts for sending emails
-    status: pending
-  - id: create-email-template
-    content: Create HTML email template supabase/functions/send-event-email/email-template.html
-    status: pending
-  - id: add-selection-ui
-    content: Add event selection UI (checkboxes/buttons) to event-list.html files
-    status: pending
-  - id: add-selection-logic
-    content: Add selection state management (sessionStorage) to event-list.js files
-    status: pending
-  - id: add-email-modal
-    content: Add email request modal/dialog to event-list.html files
-    status: pending
-  - id: implement-api-call
-    content: Implement API call to Edge Function in event-list.js files
-    status: pending
-  - id: configure-email-service
-    content: Configure email service (Resend/SendGrid/etc.) and set up Edge Function environment variables
-    status: pending
-  - id: test-feature
-    content: Test event selection, email sending, error handling, and mobile responsiveness
-    status: pending
-  - id: create-documentation
-    content: Create docs/EVENT_SELECTION_EMAIL.md with setup and usage instructions
-    status: pending
-isProject: false
+
+## Summary
+
+Let Squarespace visitors select events during a session (no account) and receive an email with selected event details. Uses `sessionStorage`, updates `event-list.js` / `event-list.html`, and a Supabase Edge Function (`send-event-email`) with Resend/SendGrid/etc.
+
+---
+
+## Implementation checklist
+
+- [ ] Edge Function `supabase/functions/send-event-email/`
+- [ ] HTML email template
+- [ ] Selection UI + sessionStorage in event-list snippets
+- [ ] Email request modal
+- [ ] API call from client
+- [ ] Email service configuration + rate limiting
+- [ ] `docs/EVENT_SELECTION_EMAIL.md` (setup guide)
+- [ ] Tests (single/multi select, errors, mobile)
+
+---
+
+## Promotion criteria
+
+- [ ] Event Triage M1 shipped (D-008)
+- [ ] Email provider chosen (Resend recommended in plan)
+- [ ] PM confirms scope vs print-only item in TODO.md
+
 ---
 
 # Event Selection and Email Notification Feature

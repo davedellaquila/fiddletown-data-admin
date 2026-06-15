@@ -8,8 +8,8 @@ Migrate items to the proper doc system:
 
 ## Migrated
 
-- [x] Smarter repeat events → [FE-002 future-enhancements/smarter-repeat-events.md](./future-enhancements/smarter-repeat-events.md)
+- [x] Smarter repeat events → [FE-002 future-enhancements/smarter-repeat-events.md](./future-enhancements/smarter-repeat-events.md) (full PRD imported)
 
 ## Remaining
 
-*(none)*
+*(none — see [TODO.md](../TODO.md) for informal feature ideas)*

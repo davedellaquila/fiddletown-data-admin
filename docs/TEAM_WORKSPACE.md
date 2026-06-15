@@ -70,6 +70,8 @@ Add a row to the **Team Log** using this format:
 |------|-----|-------|
 | Ad Management System (FE-001) | [ad-management-system.md](./future-enhancements/ad-management-system.md) | PRD review + scope adjustments before promotion to `features/` |
 | iPad parity (FE-003) | [ipad-shared-logic-architecture.md](./future-enhancements/ipad-shared-logic-architecture.md) | Foundation shipped; Events/Routes parity + new web features TBD |
+| Event selection email (FE-004) | [event-selection-email.md](./future-enhancements/event-selection-email.md) | Squarespace widget + Edge Function |
+| Repeat events expansion (FE-002) | [smarter-repeat-events.md](./future-enhancements/smarter-repeat-events.md) | Client-side recurrence expansion |
 
 ### Backlog (parallel)
 
@@ -83,6 +85,7 @@ Newest entries at the top.
 
 | Date | Role | Topic | Message | Action needed |
 |------|------|-------|---------|---------------|
+| 2026-06-15 | PM | Cursor plans scan | Reviewed 25 plans in `~/.cursor/plans/`. Imported 2 new (FE-004 event email, FE-002 repeat events full spec). 21 excluded (other projects). Audit: `_SCANNED_PLANS.md`. | None |
 | 2026-06-15 | PM | Future enhancements | Added FE-003 iPad shared logic & parity plan. Foundation largely complete per IMPLEMENTATION_SUMMARY; remaining work = iOS feature gaps + sync for new web features. | None |
 | 2026-06-15 | PM | Decision: priority | **Event Triage M1 first.** Ad Management (FE-001) deferred — PRD review/adjustments before any implementation. See D-008. | UX — triage §4; Dev — schema check |
 | 2026-06-15 | PM | Future enhancements | Created `docs/future-enhancements/` registry. Imported Ad Management PRD as FE-001; migrated repeat-events idea as FE-002. | None |

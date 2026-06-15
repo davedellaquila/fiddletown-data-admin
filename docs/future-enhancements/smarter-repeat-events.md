@@ -1,35 +1,42 @@
+# Smarter Repeat Events
+
+| Field | Value |
+|-------|-------|
+| **ID** | FE-002 |
+| **Status** | Specced |
+| **Priority** | TBD (after Event Triage M1) |
+| **Effort** | Medium |
+| **Platforms** | Web admin + public event-list + iOS |
+| **Product area** | Events |
+| **Created** | 2026-06-15 (imported; upgraded from idea) |
+| **Original source** | `~/.cursor/plans/implement_repeating_events_functionality_14eb70ac.plan.md` |
+| **Related** | [docs/to-do](../to-do) (migrated), [TODO.md](../../TODO.md) |
+
 ---
-name: Implement repeating events functionality
-overview: Implement smart repeating events that automatically expand recurring events (e.g., weekly) into multiple instances appearing every week until the end date. This will work in both the admin interface and public-facing event displays.
-todos:
-  - id: create-ts-utility
-    content: Create web/shared/utils/recurrenceUtils.ts with expandRecurringEvent function
-    status: pending
-  - id: update-docs
-    content: Add recurrence expansion contract to docs/SHARED_LOGIC.md
-    status: pending
-  - id: update-types-docs
-    content: Update recurrence field documentation in web/shared/types/models.ts
-    status: pending
-  - id: update-web-admin
-    content: Add expansion logic to web/src/features/Events.tsx load function
-    status: pending
-  - id: update-public-js
-    content: Add expansion to web/code-snippets/events/event-list.js and public version
-    status: pending
-  - id: update-public-html
-    content: Add expansion to web/code-snippets/events/event-list.html and public version
-    status: pending
-  - id: create-swift-utility
-    content: Create ios/SSA-Admin/Shared/Utils/RecurrenceUtils.swift matching TypeScript implementation
-    status: pending
-  - id: update-swift-docs
-    content: Document Swift utility in ios/SSA-Admin/Shared/Utils/README.md
-    status: pending
-  - id: update-ios-view
-    content: Add expansion logic to ios/SSA-Admin/Features/Events/EventsView.swift
-    status: pending
-isProject: false
+
+## Summary
+
+Expand recurring events (`weekly`, `monthly`, `daily`) client-side into multiple instances from `start_date` through `end_date`. Shared `recurrenceUtils.ts` + Swift `RecurrenceUtils.swift`; apply in Events admin, public `event-list.js`, and iOS EventsView.
+
+---
+
+## Implementation checklist
+
+- [ ] `web/shared/utils/recurrenceUtils.ts` — `expandRecurringEvent()`
+- [ ] `docs/SHARED_LOGIC.md` — recurrence contract
+- [ ] `web/shared/types/models.ts` — recurrence JSDoc
+- [ ] `web/src/features/Events.tsx` — expansion in load()
+- [ ] `web/code-snippets/events/event-list.js` (+ public copies)
+- [ ] `ios/.../RecurrenceUtils.swift` + EventsView.swift
+- [ ] Cross-platform test cases (weekly Jan 1–31 → ~4 instances)
+
+---
+
+## Promotion criteria
+
+- [ ] Event Triage M1 shipped
+- [ ] Editing behavior for recurring parents agreed (MVP: edit parent, re-expand on load)
+
 ---
 
 # Implement Repeating Events Feature

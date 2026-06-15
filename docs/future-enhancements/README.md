@@ -22,8 +22,9 @@ Major capabilities and product ideas that are **documented but not scheduled** f
 | ID | Enhancement | Status | Priority | Effort | Doc |
 |----|-------------|--------|----------|--------|-----|
 | FE-001 | Ad Management System | Under review (deferred) | After Event Triage M1 | ~13 weeks (7 phases) | [ad-management-system.md](./ad-management-system.md) |
+| FE-004 | Event selection & email | Specced | After Event Triage M1 | Medium | [event-selection-email.md](./event-selection-email.md) |
 | FE-003 | iPad shared logic & parity | Specced (foundation done) | After Event Triage M1 | Large | [ipad-shared-logic-architecture.md](./ipad-shared-logic-architecture.md) |
-| FE-002 | Smarter repeat events | Idea | TBD | Small | [smarter-repeat-events.md](./smarter-repeat-events.md) |
+| FE-002 | Smarter repeat events | Specced | After Event Triage M1 | Medium | [smarter-repeat-events.md](./smarter-repeat-events.md) |
 
 ### Status definitions
 
@@ -46,6 +47,7 @@ Major capabilities and product ideas that are **documented but not scheduled** f
 3. If importing an external doc (Cursor plan, stakeholder PRD), copy content into the repo and note **Original source** path
 4. Add registry row
 5. Log in [TEAM_WORKSPACE.md](../TEAM_WORKSPACE.md) Team Log if team should know
+6. Update [_SCANNED_PLANS.md](./_SCANNED_PLANS.md) if scanning `~/.cursor/plans/`
 
 ## Promoting to active work
 
