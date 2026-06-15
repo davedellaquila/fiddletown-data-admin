@@ -972,14 +972,29 @@
   function syncStickyControlOffsets(mount) {
     const update = () => {
       const dateSection = mount.querySelector('.ssa-sticky-date-section');
+      const viewSection = mount.querySelector('.ssa-sticky-view-section');
       if (!dateSection) return;
+      const dateRect = dateSection.getBoundingClientRect();
+      const dateIsStuck = dateRect.top <= 1;
+      dateSection.classList.toggle('ssa-is-stuck', dateIsStuck);
+
       const height = Math.ceil(dateSection.getBoundingClientRect().height);
       mount.style.setProperty('--ssa-sticky-date-height', `${height}px`);
+
+      if (viewSection) {
+        const viewRect = viewSection.getBoundingClientRect();
+        const viewStickyTop = height + 8;
+        viewSection.classList.toggle('ssa-is-stuck', viewRect.top <= viewStickyTop + 1);
+      }
     };
     requestAnimationFrame(update);
     if (!mount._stickyOffsetResizeHandler) {
       mount._stickyOffsetResizeHandler = () => requestAnimationFrame(update);
       window.addEventListener('resize', mount._stickyOffsetResizeHandler, { passive: true });
+    }
+    if (!mount._stickyOffsetScrollHandler) {
+      mount._stickyOffsetScrollHandler = () => requestAnimationFrame(update);
+      window.addEventListener('scroll', mount._stickyOffsetScrollHandler, { passive: true });
     }
   }
 
@@ -3888,6 +3903,9 @@
       #events-list .ssa-sticky-control-section{position:sticky;z-index:38}
       #events-list .ssa-sticky-date-section{top:0;z-index:40}
       #events-list .ssa-sticky-view-section{top:calc(var(--ssa-sticky-date-height,156px) + 8px);z-index:39}
+      #events-list .ssa-sticky-date-section.ssa-is-stuck .ssa-date-filters label span,#events-list .ssa-sticky-view-section.ssa-is-stuck .ssa-control-label{display:none!important}
+      #events-list .ssa-sticky-date-section.ssa-is-stuck .ssa-date-filters label{gap:0}
+      #events-list .ssa-sticky-view-section.ssa-is-stuck .ssa-layout-switcher-wrapper,#events-list .ssa-sticky-view-section.ssa-is-stuck .ssa-group-switcher-wrapper{gap:0}
       #events-list .ssa-controls-heading-top{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:0 0 8px}
       #events-list .ssa-controls-heading span,#events-list .ssa-results-summary span,#events-list .ssa-control-label{display:block;margin:0 0 8px;color:var(--ssa-muted)!important;font-size:15px;font-weight:800;text-transform:uppercase;letter-spacing:.04em}
       #events-list .ssa-controls-heading-top > span{margin:0}
