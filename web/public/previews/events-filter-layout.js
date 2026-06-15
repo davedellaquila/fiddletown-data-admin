@@ -3901,6 +3901,7 @@
       #events-list .ssa-date-filters{display:flex;align-items:flex-end;gap:16px;justify-content:flex-start;flex-wrap:wrap}
       #events-list .ssa-date-inputs-row{display:flex;gap:16px;align-items:flex-end}
       #events-list .ssa-date-filters label{display:flex;flex-direction:column;align-items:flex-start;gap:8px;color:var(--ssa-muted)!important;font-size:17px;font-weight:700}
+      #events-list .ssa-date-filters label span{display:none!important}
       #events-list .ssa-date-input{width:230px;height:58px;padding:0 16px;background:var(--ssa-surface-soft)!important;border:1px solid var(--ssa-border)!important;border-radius:10px;color:var(--ssa-text)!important;font-size:20px;font-weight:700;box-shadow:none!important}
       #events-list button{font-family:var(--ssa-font);letter-spacing:0}
       #events-list .ssa-weekend-btn,#events-list .ssa-clear-dates,#events-list .ssa-date-clear-btn,#events-list .ssa-layout-btn,#events-list .ssa-group-btn,#events-list .ssa-show-images-toggle,#events-list .ssa-signature-events-toggle,#events-list .ssa-dark-mode-toggle,#events-list .ssa-keyword-btn{height:52px;padding:0 22px;display:inline-flex;align-items:center;justify-content:center;background:var(--ssa-surface)!important;border:1px solid var(--ssa-border-soft)!important;border-radius:10px;color:var(--ssa-muted)!important;font-size:20px;font-weight:700;line-height:1;box-shadow:none!important;transform:none!important;white-space:nowrap}
@@ -4034,8 +4035,8 @@
       @media(min-width:960px){
         #events-list .ssa-sticky-view-section{top:calc(var(--ssa-sticky-date-height,150px) + 8px)}
         #events-list .ssa-sticky-keyword-section{top:calc(var(--ssa-sticky-date-height,150px) + var(--ssa-sticky-view-height,96px) + 16px)}
-        #events-list .ssa-date-filters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) 44px;gap:14px 16px;align-items:end;width:100%}
-        #events-list .ssa-date-inputs-row{grid-column:1/-1;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 56px;gap:10px;width:100%;min-width:0}
+        #events-list .ssa-date-filters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) 72px;gap:14px 16px;align-items:end;width:100%}
+        #events-list .ssa-date-inputs-row{grid-column:1/-1;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 72px;gap:10px;width:100%;min-width:0}
         #events-list .ssa-date-filters label{min-width:0;width:100%;position:relative}
         #events-list .ssa-date-inputs-row label:first-of-type{grid-column:1}
         #events-list .ssa-date-inputs-row label:nth-of-type(2){grid-column:2;padding-right:0}
@@ -4065,8 +4066,8 @@
         #events-list .ssa-controls-heading-top > span{margin:0}
         #events-list .ssa-controls-heading h2{font-size:24px;line-height:1.12}
         #events-list .ssa-controls-heading p{font-size:15px;line-height:1.35}
-        #events-list .ssa-date-filters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) 46px;gap:8px;width:100%;align-items:stretch}
-        #events-list .ssa-date-inputs-row{grid-column:1/-1;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 56px;gap:10px;width:100%;min-width:0}
+        #events-list .ssa-date-filters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) 64px;gap:8px;width:100%;align-items:stretch}
+        #events-list .ssa-date-inputs-row{grid-column:1/-1;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 64px;gap:10px;width:100%;min-width:0}
         #events-list .ssa-date-filters label{min-width:0;font-size:13px;gap:7px}
         #events-list .ssa-date-input{width:100%;min-width:0;height:48px;font-size:15px;padding:0 10px;-webkit-appearance:none;appearance:none}
         #events-list .ssa-date-clear-btn{width:44px;height:48px;justify-self:center}
@@ -4156,10 +4157,10 @@
         #events-list{padding:22px 10px}
         #events-list .ssa-page-intro h1{font-size:29px}
         #events-list .ssa-controls{padding:18px 14px}
-        #events-list .ssa-date-inputs-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 46px;gap:8px}
+        #events-list .ssa-date-inputs-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 54px;gap:8px}
         #events-list .ssa-date-input{height:46px;font-size:13.5px;padding:0 8px}
         #events-list .ssa-date-clear-btn{width:38px;height:46px;justify-self:center}
-        #events-list .ssa-date-filters{grid-template-columns:repeat(3,minmax(0,1fr)) 38px;gap:7px}
+        #events-list .ssa-date-filters{grid-template-columns:repeat(3,minmax(0,1fr)) 54px;gap:7px}
         #events-list .ssa-weekend-btn{height:44px;font-size:10.5px;padding:0 3px}
         #events-list .ssa-clear-dates{width:38px;height:44px}
         #events-list .ssa-layout-switcher{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
@@ -4168,7 +4169,7 @@
       @media(max-width:360px){
         #events-list .ssa-layout-switcher{gap:6px}
         #events-list .ssa-layout-btn{font-size:12px;padding:0 6px}
-        #events-list .ssa-date-filters{grid-template-columns:repeat(3,minmax(0,1fr)) 38px;gap:6px}
+        #events-list .ssa-date-filters{grid-template-columns:repeat(3,minmax(0,1fr)) 54px;gap:6px}
         #events-list .ssa-weekend-btn{font-size:10px}
         #events-list .ssa-clear-dates{width:38px}
         #events-list .ssa-display-options-switcher,#events-list .ssa-group-switcher{grid-template-columns:1fr}
