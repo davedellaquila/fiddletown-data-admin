@@ -1473,6 +1473,7 @@
         const newSelected = isCurrentlySelected
           ? state.selectedKeywords.filter(k => k !== keyword)
           : [...state.selectedKeywords, keyword];
+        this.blur();
         await renderEvents(mount, rows, { ...state, selectedKeywords: newSelected });
       });
     });
@@ -3989,7 +3990,7 @@
       #events-list .ssa-keyword-btn{flex:0 0 auto;width:auto}
       #events-list .ssa-keyword-remove-btn{gap:8px;padding-right:12px}
       #events-list .ssa-keyword-remove-icon{width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;border:1px solid currentColor;border-radius:999px;font-size:17px;font-weight:900;line-height:1}
-      #events-list .ssa-keyword-row-available .ssa-keyword-btn.ssa-keyword-active{background:var(--ssa-surface)!important;border-color:var(--ssa-border-soft)!important;color:var(--ssa-muted)!important}
+      #events-list .ssa-keyword-row-available .ssa-keyword-btn:hover,#events-list .ssa-keyword-row-available .ssa-keyword-btn:focus,#events-list .ssa-keyword-row-available .ssa-keyword-btn:focus-visible,#events-list .ssa-keyword-row-available .ssa-keyword-btn:active,#events-list .ssa-keyword-row-available .ssa-keyword-btn.ssa-keyword-active{background:var(--ssa-surface)!important;border-color:var(--ssa-border-soft)!important;color:var(--ssa-muted)!important;box-shadow:none!important}
       #events-list .ssa-keyword-btn{border-radius:10px}
       #events-list .ssa-sticky-filter-bar{display:none}
       #events-list .ssa-active-filters{max-width:1600px;margin:0 auto 38px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;color:var(--ssa-muted)!important;font-size:21px;font-weight:600}
