@@ -16,7 +16,7 @@
 
 ## Summary
 
-Let Squarespace visitors select events during a session (no account) and receive an email with selected event details. Uses `sessionStorage`, updates `event-list.js` / `event-list.html`, and a Supabase Edge Function (`send-event-email`) with Resend/SendGrid/etc.
+Let Squarespace visitors select events during a session (no account) and receive an email with selected event details. Uses `sessionStorage`, updates the hosted `event-list.js` widget, and a Supabase Edge Function (`send-event-email`) with Resend/SendGrid/etc.
 
 ---
 
@@ -101,10 +101,8 @@ Create a Supabase Edge Function that:
 
 ### 3. Update Event Widget UI - Add Selection Capability
 
-**Files**: 
+**Files** (deploy via [EVENTS_PUBLISHING.md](../EVENTS_PUBLISHING.md)):
 
-- `web/code-snippets/events/event-list.html`
-- `web/public/code-snippets/events/event-list.html`
 - `web/code-snippets/events/event-list.js`
 - `web/public/code-snippets/events/event-list.js`
 
@@ -240,10 +238,8 @@ Document:
 ### Modified Files
 
 - `TODO.md` - Add new TODO item
-- `web/code-snippets/events/event-list.html` - Add selection UI and email modal
-- `web/public/code-snippets/events/event-list.html` - Same updates
-- `web/code-snippets/events/event-list.js` - Add selection logic and email API call
-- `web/public/code-snippets/events/event-list.js` - Same updates
+- `web/code-snippets/events/event-list.js` - Add selection UI, email modal, and API call
+- `web/public/code-snippets/events/event-list.js` - Same updates (sync before deploy)
 
 ## Implementation Notes
 

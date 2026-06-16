@@ -84,11 +84,91 @@ Status is communicated with badge color + label (emoji optional in legacy UI; pr
 
 ### 3.3 Semantic feedback
 
-| Type | Background | Border | Text |
-|------|------------|--------|------|
-| Success toast | `#ECFDF5` | `#A7F3D0` | `#065F46` |
-| Error toast / banner | `#FEF2F2` | `#FECACA` | `#991B1B` |
-| Info banner | `#EFF6FF` | `#BFDBFE` | `#1E40AF` |
+| Type | Background (light) | Border (light) | Text (light) | Background (dark) | Border (dark) | Text (dark) |
+|------|------------------|----------------|--------------|-------------------|---------------|-------------|
+| Success toast | `#ECFDF5` | `#A7F3D0` | `#065F46` | `#064E3B` | `#047857` | `#A7F3D0` |
+| Error toast / banner | `#FEF2F2` | `#FECACA` | `#991B1B` | `#7F1D1D` | `#991B1B` | `#FECACA` |
+| Info banner / selection bar | `#EFF6FF` | `#BFDBFE` | `#1E40AF` | `#1E3A8A` | `#1D4ED8` | `#BFDBFE` |
+
+### 3.4 Dark mode
+
+Dark mode is **required** for every surface, component, and dialog. It is not an optional theme.
+
+#### Web implementation
+
+- Toggle sets `document.documentElement.setAttribute('data-theme', 'dark' | 'light')`.
+- Persist preference in `localStorage` key `darkMode`.
+- All new styles must use CSS variables from §3.1 — never hardcode light-only hex in components.
+- `color-scheme: dark` on `html[data-theme="dark"]` (already in `index.css`).
+
+```css
+/* Token pattern — every semantic color needs both blocks */
+:root {
+  --background: #ffffff;
+  --foreground: #1f2937;
+  --card: #ffffff;
+  /* … */
+}
+html[data-theme="dark"] {
+  --background: #111827;
+  --foreground: #f9fafb;
+  --card: #1f2937;
+  /* … */
+}
+```
+
+#### Surfaces in dark mode
+
+| Surface | Token / value | Notes |
+|---------|---------------|-------|
+| App background | `--background` `#111827` | Main content area |
+| Sidebar | `--sidebar` `#1F2937` | Same as card in dark |
+| Toolbar | `--muted` `#1F2937` | Sticky toolbar background |
+| Table body | `#1F2937` | Match `--card` |
+| Table header | `#374151` | One step lighter than body |
+| Row border | `#374151` | `--border` |
+| Dialog | `--card` `#1F2937` | **No white dialogs** — `ModalDialog` must respect `darkMode` |
+| Dialog overlay | `rgba(0, 0, 0, 0.5)` | Same in both themes |
+| Input / select / textarea | bg `#374151`, border `#4B5563` | Already in `index.css` |
+
+#### Interactive states (dark)
+
+| Control | Default | Hover | Active / focus |
+|---------|---------|-------|----------------|
+| Secondary button | `#374151` bg, `#4B5563` border | `#4B5563` bg | `#1F2937` bg |
+| Primary button | `#3B82F6` | `#2563EB` | `#1D4ED8` |
+| Sidebar nav (inactive) | `#374151` | `#4B5563` | — |
+| Sidebar nav (active) | `#3B82F6` | no hover override | — |
+| Icon button | `#374151` | `#4B5563` | focus ring `#60A5FA` |
+| Disabled button | `#1F2937` bg, `#6B7280` text | — | — |
+
+#### Filter chips (dark)
+
+- Chip background: `#1E3A8A`
+- Chip text: `#93C5FD`
+- Chip border (optional): `#1D4ED8`
+
+#### Scrollbars (dark)
+
+- Track: `#1F2937`
+- Thumb: `#4B5563` (hover `#6B7280`)
+
+#### iOS implementation
+
+- `preferredColorScheme(darkMode ? .dark : .light)` on root view.
+- Persist `darkMode` in `UserDefaults` / app state (match web `localStorage`).
+- Replace system `.green` / `.orange` / `.gray` status colors with shared hex from §3.2.
+- Use semantic `Color` extensions backed by the same token table when `DesignTokens` ships.
+
+#### Dark mode checklist (every new UI)
+
+- [ ] Background, text, and borders use theme tokens
+- [ ] Dialogs and sheets match `--card`, not system white
+- [ ] Status badges use dark row from §3.2
+- [ ] Toasts/banners use dark row from §3.3
+- [ ] Focus ring visible on dark backgrounds (`#60A5FA`)
+- [ ] Placeholder text `#9CA3AF` minimum contrast
+- [ ] Verified in Pencil dark gallery frame and in running app
 
 ---
 
@@ -168,6 +248,8 @@ box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 
 
 Visual specs live in [ssa-admin-style-guide.pen](./ssa-admin-style-guide.pen). Summary below.
 
+**Pencil:** Frames prefixed `Light ·` use `theme: Light`; frames prefixed `Dark ·` use `theme: Dark`. Badge, toast, and form components bind to theme variables so they adapt when the parent frame theme changes. Scroll to **Dark · App shell preview** and **Dark · Component gallery** for the dark reference.
+
 ### 7.1 App shell
 
 - **Sidebar:** Product title “SSA Admin” + subtitle “Fiddletown Data”; account email below; nav items; sign out; optional shortcut hint footer.
@@ -230,7 +312,14 @@ Background `--info-muted`, border `--info` at 20% opacity.
 
 ### 7.8 Filter chips
 
-Active filters as removable pills (`#DBEAFE` / `#1D4ED8`). “Clear all” as text button.
+Active filters as removable pills.
+
+| Mode | Background | Text |
+|------|------------|------|
+| Light | `#DBEAFE` | `#1D4ED8` |
+| Dark | `#1E3A8A` | `#93C5FD` |
+
+“Clear all” uses `--primary` text in both themes.
 
 ### 7.9 Dialogs
 
@@ -319,7 +408,7 @@ When building or refactoring UI:
 |-----|--------------|
 | [platform-ux-assessment.md](../backlog/platform-ux-assessment.md) | Prioritized gaps vs this guide |
 | [ssa-admin-ux-mockups.pen](./ssa-admin-ux-mockups.pen) | Screen-level proposed UI |
-| [ssa-admin-style-guide.pen](./ssa-admin-style-guide.pen) | Token swatches + component gallery |
+| [ssa-admin-style-guide.pen](./ssa-admin-style-guide.pen) | Token swatches + light/dark component galleries |
 | [TEAM_WORKSPACE.md](../TEAM_WORKSPACE.md) | Active design/engineering handoffs |
 
 ---
@@ -328,4 +417,5 @@ When building or refactoring UI:
 
 | Date | Change |
 |------|--------|
+| 2026-06-15 | Dark mode §3.4 — tokens, surfaces, states, iOS, checklist; feedback/chips dual-theme tables |
 | 2026-06-15 | Initial style guide (UX first pass) |

@@ -5,6 +5,8 @@
  * This file serves as the single entry point for importing types.
  */
 
+import type { Status, Difficulty, Location, EventRow, RouteRow } from './models'
+
 export * from './models'
 
 /**
@@ -21,6 +23,17 @@ export const STATUS_VALUES = ['draft', 'published', 'archived'] as const
  * Valid difficulty values
  */
 export const DIFFICULTY_VALUES = ['easy', 'moderate', 'challenging'] as const
+
+export const EVENT_CANDIDATE_STATUS_VALUES = [
+  'new',
+  'needs_review',
+  'approved',
+  'published',
+  'rejected',
+  'duplicate',
+] as const
+
+export const CANDIDATE_PRIORITY_VALUES = ['A', 'B', 'C', 'Watch'] as const
 
 /**
  * Default status for new records

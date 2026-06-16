@@ -107,3 +107,32 @@ Testable conditions for **done**. PM owns this list; Dev and UX reference it for
 ## 7. Source material
 
 *Optional: summary of imported doc or links. Prefer structured sections above over raw dumps.*
+
+---
+
+## 8. Test plan (QA)
+
+*QA fills when Dev hands off build. PM uses for ship sign-off.*
+
+### Test environment
+
+- 
+
+### Critical paths
+
+| ID | Scenario | Steps | Expected | Pass? |
+|----|----------|-------|----------|-------|
+| TP-1 | | | | |
+
+### Regression / edge cases
+
+- 
+
+### QA sign-off
+
+| Field | Value |
+|-------|-------|
+| **Tester** | QA |
+| **Date** | |
+| **Result** | Pass / Fail / Blocked |
+| **Notes** | |

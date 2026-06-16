@@ -35,3 +35,11 @@ React + Vite web application for managing SSA data.
 - RLS policies must be created in your Supabase project as provided earlier.
 - This application includes management screens for Wineries, Events, Routes, and Locations.
 
+## Public events widget (Squarespace)
+
+The Sports Car Adventures events calendar is **not** pasted inline into Squarespace. Production loads `event-list.js` from GitHub Pages; Squarespace only provides a mount div and `SSWidgets.renderEvents(...)`.
+
+- **Source:** `code-snippets/events/event-list.js` (sync to `public/code-snippets/events/event-list.js` before deploy)
+- **Publishing:** [docs/EVENTS_PUBLISHING.md](../docs/EVENTS_PUBLISHING.md)
+- **Local preview:** open `code-snippets/events/event-list-dev.html`
+

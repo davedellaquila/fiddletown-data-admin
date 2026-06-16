@@ -121,14 +121,12 @@ Modify the `load()` function to expand recurring events after fetching from data
 - Handle date filters correctly with expanded instances
 - Ensure sorting still works correctly
 
-### 4. Update Public-Facing Event Code Snippets
+### 4. Update public event widget
 
-**Files**: 
+**Files** (hosted on GitHub Pages — see [EVENTS_PUBLISHING.md](../EVENTS_PUBLISHING.md)):
 
 - `web/code-snippets/events/event-list.js`
 - `web/public/code-snippets/events/event-list.js`
-- `web/code-snippets/events/event-list.html`
-- `web/public/code-snippets/events/event-list.html`
 
 Add the same expansion logic to the public-facing event list:
 
@@ -136,7 +134,7 @@ Add the same expansion logic to the public-facing event list:
 2. Expand recurring events using the same utility
 3. Display all instances in the list/calendar views
 
-**Note**: These files may need the utility function copied inline or bundled, depending on how they're deployed.
+Copy recurrence helpers inline or into the widget bundle as needed; production loads a single `event-list.js` file.
 
 ### 5. Update TypeScript Types Documentation
 
@@ -192,9 +190,7 @@ Test cases to verify:
 - `web/shared/types/models.ts` - Update recurrence field documentation
 - `web/src/features/Events.tsx` - Add expansion logic to load function
 - `web/code-snippets/events/event-list.js` - Add expansion to public event list
-- `web/public/code-snippets/events/event-list.js` - Add expansion to public event list
-- `web/code-snippets/events/event-list.html` - Add expansion to public event list HTML
-- `web/public/code-snippets/events/event-list.html` - Add expansion to public event list HTML
+- `web/public/code-snippets/events/event-list.js` - Synced deploy copy
 - `ios/SSA-Admin/Shared/Utils/README.md` - Document Swift utility
 - `ios/SSA-Admin/Features/Events/EventsView.swift` - Add expansion logic
 

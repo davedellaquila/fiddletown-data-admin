@@ -5,13 +5,13 @@ alwaysApply: true
 
 # Team Collaboration
 
-This project uses a **shared markdown workspace** for Product, UX, and Engineering agents.
+This project uses a **shared markdown workspace** for Product, UX, Engineering, and QA agents.
 
 ## Start of every session
 
 1. Read `docs/TEAM_WORKSPACE.md` — especially **Active Work** and **Team Log**.
 2. If a feature is active, open its spec in `docs/features/<name>.md`.
-3. Respect role boundaries: PM (scope/AC), UX (§4 Design), Dev (§5 Engineering).
+3. Respect role boundaries: PM (scope/AC), UX (§4 Design), Dev (§5 Engineering), QA (§8 Test plan).
 
 ## End of every session (if you changed scope, design, or code)
 
@@ -27,7 +27,11 @@ This project uses a **shared markdown workspace** for Product, UX, and Engineeri
 
 ## Handoff rule
 
-When your work unblocks another role, set **Action needed** in the Team Log to that role (PM, UX, or Dev).
+When your work unblocks another role, set **Action needed** in the Team Log to that role (PM, UX, Dev, or QA).
+
+## Active assignments
+
+Before starting other work, check **Agent assignments** in `docs/TEAM_WORKSPACE.md` Active Work. If you are **Dev**, **UX**, or **QA** and assignments list you, complete those deliverables first and log completion in Team Log.
 
 ## Documentation (PM-owned)
 

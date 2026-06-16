@@ -1,16 +1,11 @@
 <!-- 
-  SSA Events Widget - Squarespace Code Injection
+  SSA Events Widget — LEGACY inline bundle
   
-  This widget fetches events from a Supabase database and displays them with filtering and layout options.
-  Features:
-  - Fetches upcoming events from the 'events' table
-  - Multiple layout options: list (by month), grid tiles
-  - Keyword filtering
-  - Date range filtering (from/to dates)
-  - Includes caching for better performance
-  - Handles loading states and error conditions
+  Production uses a thin Squarespace loader + hosted script:
+  https://davedellaquila.github.io/fiddletown-data-admin/code-snippets/events/event-list.js
   
-  Usage: Include this code in Squarespace Code Injection and it will render events in the #events-list div
+  Edit web/code-snippets/events/event-list.js and deploy via GitHub Pages.
+  Keep this file only for emergency rollback. See docs/EVENTS_PUBLISHING.md.
 -->
 
 <!-- 1) One-time: widget script -->

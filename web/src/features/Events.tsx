@@ -194,6 +194,15 @@ function toCSV(rows: any[], headers: string[]): string {
   return lines.join('\n')
 }
 
+function parseBooleanField(value: unknown): boolean {
+  return value === true || value === 'true' || value === '1' || value === 1
+}
+
+function eventIdsMatch(a: EventRow['id'], b: EventRow['id']): boolean {
+  if (a == null || b == null) return false
+  return String(a) === String(b)
+}
+
 /**
  * Download CSV template file
  * 
@@ -295,6 +304,13 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
   const importFileInputRef = useRef<HTMLInputElement>(null)
   const [imageHover, setImageHover] = useState(false)
   const [editing, setEditing] = useState<EventRow | null>(null)
+  const rowsRef = useRef<EventRow[]>([])
+  const allRowsRef = useRef<EventRow[]>([])
+  const editingRef = useRef<EventRow | null>(null)
+
+  useEffect(() => {
+    editingRef.current = editing
+  }, [editing])
   const [q, setQ] = useState('')
   const [from, setFrom] = useState(() => {
     // Default to today's date in YYYY-MM-DD format
@@ -570,6 +586,7 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
     // When unchecked, don't filter - show all events
     
     setRows(filtered)
+    rowsRef.current = filtered
   }
 
   const load = async () => {
@@ -599,7 +616,10 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
     const { data, error } = await query
       if (error) throw error
       const allEvents = (data ?? []) as EventRow[]
-      
+      allEvents.forEach(event => {
+        event.is_signature_event = parseBooleanField(event.is_signature_event)
+      })
+
       // Load keywords for each event
       const eventIds = allEvents.map(e => e.id).filter((id): id is number => id !== undefined)
       if (eventIds.length > 0) {
@@ -667,6 +687,7 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
       }
       
       setAllRows(allEvents)
+      allRowsRef.current = allEvents
       
       // Load all keywords for autocomplete
       await loadKeywords()
@@ -678,6 +699,59 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
       setError(e?.message || 'Failed to load events')
     } finally {
     setLoading(false)
+    }
+  }
+
+  const patchEventInLists = (eventId: EventRow['id'], patch: Partial<EventRow>) => {
+    const apply = (list: EventRow[]) =>
+      list.map(row => (eventIdsMatch(row.id, eventId) ? { ...row, ...patch } : row))
+    setRows(prev => {
+      const next = apply(prev)
+      rowsRef.current = next
+      return next
+    })
+    setAllRows(prev => {
+      const next = apply(prev)
+      allRowsRef.current = next
+      return next
+    })
+    setEditing(prev => {
+      if (!prev || !eventIdsMatch(prev.id, eventId)) return prev
+      const next = { ...prev, ...patch }
+      editingRef.current = next
+      return next
+    })
+  }
+
+  const openEventForEdit = (row: EventRow) => {
+    const latest = allRowsRef.current.find(e => eventIdsMatch(e.id, row.id)) ?? row
+    const next = { ...latest }
+    editingRef.current = next
+    setEditing(next)
+  }
+
+  const setSignatureEventFlag = async (eventId: EventRow['id'], newValue: boolean) => {
+    if (eventId == null) return
+
+    patchEventInLists(eventId, { is_signature_event: newValue })
+
+    try {
+      const { data, error } = await supabase
+        .from('events')
+        .update({ is_signature_event: newValue })
+        .eq('id', eventId)
+        .select('id, is_signature_event')
+        .single()
+
+      if (error) throw error
+      if (!data) throw new Error('Update did not affect any rows')
+
+      patchEventInLists(eventId, { is_signature_event: parseBooleanField(data.is_signature_event) })
+    } catch (err: unknown) {
+      console.error('Error updating signature event:', err)
+      const message = err instanceof Error ? err.message : 'Unknown error'
+      alert(`Failed to update signature event: ${message}`)
+      await load()
     }
   }
 
@@ -702,7 +776,8 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       deleted_at: null,
-      keywords: []
+      keywords: [],
+      is_signature_event: false,
     })
   }
 
@@ -1218,11 +1293,12 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
   }
 
   const save = async (options?: { suppressClose?: boolean }) => {
-    if (!editing) return
-    const payload = { ...editing }
+    const current = editingRef.current ?? editing
+    if (!current) return
+    const payload = { ...current }
     const keywordsToSave = payload.keywords || []
 
-    console.log('Save function - editing state:', editing)
+    console.log('Save function - editing state:', current)
     console.log('Save function - start_date:', payload.start_date, 'type:', typeof payload.start_date)
     console.log('Save function - end_date:', payload.end_date, 'type:', typeof payload.end_date)
     console.log('Save function - start_time:', payload.start_time, 'type:', typeof payload.start_time)
@@ -1293,6 +1369,8 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
       const { data, error } = await supabase.from('events').insert(insertable).select().single()
       if (error) { alert(error.message); return }
       payload.id = data!.id
+      editingRef.current = { ...payload }
+      setEditing({ ...payload })
     }
 
     // Handle keywords: create missing keywords and update relationships
@@ -1360,9 +1438,14 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
           console.log('Successfully saved keyword relationships:', junctionRecords)
         }
       }
+
+      patchEventInLists(payload.id, { keywords: normalizedKeywords })
     }
 
-    if (!options?.suppressClose) setEditing(null)
+    if (!options?.suppressClose) {
+      editingRef.current = null
+      setEditing(null)
+    }
     await load()
   }
 
@@ -2350,7 +2433,7 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
             .map((r) => (
             <tr 
               key={r.id ?? r.slug ?? r.name}
-              onClick={() => setEditing(r)}
+              onClick={() => openEventForEdit(r)}
               style={{
                 cursor: 'pointer',
                 transition: 'background-color 0.2s ease'
@@ -2558,40 +2641,9 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
                 <input
                   type="checkbox"
                   checked={r.is_signature_event === true}
-                  onChange={async (e) => {
+                  onChange={(e) => {
                     e.stopPropagation()
-                    const newValue = e.target.checked
-                    // Optimistically update the UI
-                    const updatedRows = rows.map(row => 
-                      row.id === r.id ? { ...row, is_signature_event: newValue } : row
-                    )
-                    const updatedAllRows = allRows.map(row => 
-                      row.id === r.id ? { ...row, is_signature_event: newValue } : row
-                    )
-                    setRows(updatedRows)
-                    setAllRows(updatedAllRows)
-                    
-                    // Save to database
-                    try {
-                      const { error } = await supabase
-                        .from('events')
-                        .update({ is_signature_event: newValue })
-                        .eq('id', r.id)
-                      
-                      if (error) {
-                        console.error('Error updating signature event:', error)
-                        alert(`Failed to update signature event: ${error.message}`)
-                        // Revert optimistic update
-                        setRows(rows)
-                        setAllRows(allRows)
-                      }
-                    } catch (err: any) {
-                      console.error('Error updating signature event:', err)
-                      alert(`Failed to update signature event: ${err.message}`)
-                      // Revert optimistic update
-                      setRows(rows)
-                      setAllRows(allRows)
-                    }
+                    void setSignatureEventFlag(r.id, e.target.checked)
                   }}
                   style={{
                     accentColor: darkMode ? '#3b82f6' : '#3b82f6',
@@ -2713,7 +2765,7 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
             <div
               key={r.id ?? r.slug ?? r.name}
               className="data-card"
-              onClick={() => setEditing(r)}
+              onClick={() => openEventForEdit(r)}
               style={{
                 cursor: 'pointer',
                 background: darkMode ? '#1f2937' : '#ffffff',
@@ -2896,8 +2948,13 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
           overlayLeftOffsetPx={sidebarCollapsed ? 60 : 220}
           editing={editing}
           rows={rows}
+          getNavigationRows={() => rowsRef.current}
           saveFunction={save}
-          setEditing={(item) => setEditing(item as EventRow | null)}
+          setEditing={(item) => {
+            const next = item as EventRow | null
+            editingRef.current = next
+            setEditing(next)
+          }}
           itemType="event"
         >
           <div style={{ padding: '32px' }}>
@@ -3294,7 +3351,14 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
               <KeywordSelector
                 label="Keywords"
                 value={editing?.keywords || []}
-                onChange={(keywords) => setEditing({...editing!, keywords})}
+                onChange={(keywords) => {
+                  setEditing(prev => {
+                    if (!prev) return prev
+                    const next = { ...prev, keywords }
+                    editingRef.current = next
+                    return next
+                  })
+                }}
                 existingKeywords={existingKeywords}
                 darkMode={darkMode}
                 editingId={editing?.id?.toString()}

@@ -14,6 +14,8 @@ interface AutoSaveEditDialogProps<T extends Record<string, any>> {
   // Auto-save navigation props
   editing: T | null
   rows: T[]
+  /** Fresh row list after save (avoids stale keywords/fields when navigating) */
+  getNavigationRows?: () => T[]
   saveFunction: (options?: { suppressClose?: boolean }) => Promise<void>
   setEditing: (item: T | null) => void
   itemType: string // e.g., "event", "location", "route"
@@ -30,6 +32,7 @@ export default function AutoSaveEditDialog<T extends Record<string, any>>({
   overlayLeftOffsetPx = 220,
   editing,
   rows,
+  getNavigationRows,
   saveFunction,
   setEditing,
   itemType
@@ -74,15 +77,21 @@ export default function AutoSaveEditDialog<T extends Record<string, any>>({
     return () => clearTimeout(t)
   }, [editing?.id, isOpen])
 
+  const resolveNavRows = () => getNavigationRows?.() ?? rows
+
+  const findRowIndex = (list: T[], id: T['id']) =>
+    list.findIndex(r => String(r.id) === String(id))
+
   // Enhanced navigation functions with loading state
   const navigateToNext = async () => {
     if (!editing?.id || rows.length === 0) return
     setIsNavigating(true)
     try {
       await saveFunction({ suppressClose: true })
-      const currentIndex = rows.findIndex(r => r.id === editing.id)
-      if (currentIndex >= 0 && currentIndex < rows.length - 1) {
-        setEditing(rows[currentIndex + 1])
+      const navRows = resolveNavRows()
+      const currentIndex = findRowIndex(navRows, editing.id)
+      if (currentIndex >= 0 && currentIndex < navRows.length - 1) {
+        setEditing(navRows[currentIndex + 1])
       }
     } catch (error) {
       console.error('Error during navigation to next:', error)
@@ -97,9 +106,10 @@ export default function AutoSaveEditDialog<T extends Record<string, any>>({
     setIsNavigating(true)
     try {
       await saveFunction({ suppressClose: true })
-      const currentIndex = rows.findIndex(r => r.id === editing.id)
+      const navRows = resolveNavRows()
+      const currentIndex = findRowIndex(navRows, editing.id)
       if (currentIndex > 0) {
-        setEditing(rows[currentIndex - 1])
+        setEditing(navRows[currentIndex - 1])
       }
     } catch (error) {
       console.error('Error during navigation to previous:', error)
@@ -154,8 +164,12 @@ export default function AutoSaveEditDialog<T extends Record<string, any>>({
       await saveFunction()
       return
     }
-    // Close on Escape key
+    // Close on Escape key (skip when dismissing an autocomplete list)
     if (e.key === 'Escape' && !busy) {
+      const target = e.target as HTMLElement
+      if (target.closest('[role="combobox"]') || target.closest('[role="listbox"]')) {
+        return
+      }
       await handleClose()
     }
   }

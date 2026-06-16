@@ -5,17 +5,21 @@
  * - Authentication state and magic link login flow
  * - Global UI state (dark mode, sidebar collapse)
  * - View navigation between different admin modules
- * - Keyboard shortcuts for quick navigation
+ * - Keyboard shortcuts for quick navigation and sidebar toggle (⌘B)
  * 
  * The app supports two modes:
- * - Development mode: Bypasses authentication for local development
+ * - Development mode: App shell loads without login; modules that need RLS (e.g. Candidates) prompt for magic link
  * - Production mode: Requires Supabase authentication via magic link
  * 
  * @module App
  */
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
+import { useSupabaseSession } from './hooks/useSupabaseSession'
+import { IS_DEVELOPMENT_MODE } from './lib/devMode'
+import { sendMagicLinkEmail } from './lib/magicLinkAuth'
 import { supabase } from './lib/supabaseClient'
 import Events from './features/Events'
+import EventCandidates from './features/EventCandidates'
 import Locations from './features/Locations'
 import Routes from './features/Routes'
 import OCRTest from './features/OCRTest'
@@ -24,19 +28,7 @@ import OCRTest from './features/OCRTest'
  * Available view types for navigation
  * Each view corresponds to a different admin module
  */
-type View = 'locations' | 'events' | 'routes' | 'ocr-test'
-
-/**
- * Development mode flag - determines if authentication is bypassed
- * 
- * In development mode:
- * - Authentication is bypassed with a mock session
- * - Sign out button becomes a reload button
- * - Useful for rapid development without auth setup
- * 
- * Set via environment variables: VITE_DEV or NODE_ENV=development
- */
-const IS_DEVELOPMENT_MODE = import.meta.env.DEV || import.meta.env.MODE === 'development'
+type View = 'locations' | 'events' | 'candidates' | 'routes' | 'ocr-test'
 
 /**
  * Main App component
@@ -48,9 +40,8 @@ const IS_DEVELOPMENT_MODE = import.meta.env.DEV || import.meta.env.MODE === 'dev
 export default function App() {
   console.log('App component rendering...')
   
-  // Authentication state
-  // In dev mode, use a mock session to bypass auth
-  const [session, setSession] = useState<any>(IS_DEVELOPMENT_MODE ? { user: { email: 'dev@localhost' } } : null)
+  const { session, loading: authLoading, isAuthenticated } = useSupabaseSession()
+  const canAccessApp = IS_DEVELOPMENT_MODE || isAuthenticated
   
   // Magic link email form state
   const [email, setEmail] = useState('')
@@ -64,7 +55,7 @@ export default function App() {
   const [view, setView] = useState<View>(() => {
     const saved = localStorage.getItem('selectedView')
     // Validate that saved value is a valid View type
-    if (saved && ['locations', 'events', 'routes', 'ocr-test'].includes(saved)) {
+    if (saved && ['locations', 'events', 'candidates', 'routes', 'ocr-test'].includes(saved)) {
       return saved as View
     }
     return 'locations'
@@ -84,52 +75,25 @@ export default function App() {
   // Track if user manually collapsed sidebar (vs auto-collapse)
   const [userManuallyCollapsed, setUserManuallyCollapsed] = useState(false)
 
-  /**
-   * Authentication setup effect
-   * 
-   * In production mode:
-   * - Checks for existing session on mount
-   * - Subscribes to auth state changes (login/logout)
-   * - Updates session state when auth state changes
-   * 
-   * In development mode:
-   * - Skips all auth setup
-   * - Uses mock session from initial state
-   */
-  useEffect(() => {
-    // In development mode, skip authentication setup
-    if (IS_DEVELOPMENT_MODE) {
-      console.log('Development mode: Authentication bypassed')
-      return
-    }
-    
-    console.log('Setting up auth...')
-    try {
-      // Check for existing session on mount
-      supabase.auth.getSession().then(({ data }) => {
-        console.log('Session data:', data)
-        setSession(data.session)
-      })
-      // Subscribe to auth state changes (login, logout, token refresh)
-      const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
-        console.log('Auth state changed:', s)
-        setSession(s)
-      })
-      // Cleanup: unsubscribe when component unmounts
-      return () => sub.subscription.unsubscribe()
-    } catch (error) {
-      console.error('Auth setup error:', error)
-    }
+  const toggleSidebar = useCallback(() => {
+    setSidebarCollapsed((prev) => {
+      const newState = !prev
+      setUserManuallyCollapsed(newState)
+      localStorage.setItem('sidebarCollapsed', JSON.stringify(newState))
+      return newState
+    })
   }, [])
 
   /**
    * Global keyboard shortcuts for quick module navigation
    * 
-   * Shortcuts (Cmd/Ctrl + number):
+   * Shortcuts (Cmd/Ctrl + key):
    * - ⌘/Ctrl + 1: Navigate to Locations
    * - ⌘/Ctrl + 2: Navigate to Events
    * - ⌘/Ctrl + 3: Navigate to Routes
    * - ⌘/Ctrl + 4: Navigate to OCR Test
+   * - ⌘/Ctrl + 5: Navigate to Candidates
+   * - ⌘/Ctrl + B: Toggle sidebar
    * 
    * These shortcuts work globally when the app is focused
    */
@@ -141,10 +105,17 @@ export default function App() {
       if (e.key === '2') { e.preventDefault(); setView('events') }
       if (e.key === '3') { e.preventDefault(); setView('routes') }
       if (e.key === '4') { e.preventDefault(); setView('ocr-test') }
+      if (e.key === '5') { e.preventDefault(); setView('candidates') }
+      if (e.key === 'b' || e.key === 'B') {
+        const target = e.target as HTMLElement
+        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return
+        e.preventDefault()
+        toggleSidebar()
+      }
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [])
+  }, [toggleSidebar])
 
   /**
    * Restore last used email from localStorage
@@ -264,23 +235,12 @@ export default function App() {
     
     try {
       setSending(true)
-      // Request magic link via Supabase
-      const { error } = await supabase.auth.signInWithOtp({ email: trimmed })
-      if (error) {
-        const msg = error.message || ''
-        // Suppress Supabase security/rate limit messaging – treat as soft success
-        // These messages are often false positives and don't indicate actual failures
-        if (/security|rate|seconds|wait/i.test(msg)) {
-          setErrorMsg(null)
-        } else {
-          setErrorMsg(msg)
-          return
-        }
+      const result = await sendMagicLinkEmail(trimmed)
+      if (result.ok === false) {
+        setErrorMsg(result.message)
+        return
       }
-      // Save email for next time
-      localStorage.setItem('lastEmail', trimmed)
       setSent({ to: trimmed })
-      // Show brief success feedback
       setJustSent(true)
       setTimeout(() => { setJustSent(false) }, 1200)
     } finally {
@@ -290,8 +250,15 @@ export default function App() {
 
   
 
-  // In development mode, always show the app content
-  if (!session && !IS_DEVELOPMENT_MODE) {
+  if (authLoading) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: darkMode ? '#111827' : '#ffffff', color: darkMode ? '#f9fafb' : '#1f2937' }}>
+        Loading…
+      </div>
+    )
+  }
+
+  if (!canAccessApp) {
     return (
       <div style={{ position: 'relative', minHeight: '100vh', overflow: 'hidden', background: darkMode ? '#0b1020' : '#0b1020' }}>
         {/* Modern layered gradient background */}
@@ -419,17 +386,14 @@ export default function App() {
         <div style={{ marginBottom: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: sidebarCollapsed ? 'center' : 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
             {!sidebarCollapsed && (
-              <strong style={{ color: darkMode ? '#f9fafb' : '#1f2937', fontSize: '14px', wordBreak: 'break-word' }}>{session.user?.email}</strong>
+              <strong style={{ color: darkMode ? '#f9fafb' : '#1f2937', fontSize: '14px', wordBreak: 'break-word' }}>
+                {session?.user?.email ?? (IS_DEVELOPMENT_MODE ? 'Dev (not signed in)' : '')}
+              </strong>
             )}
             <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
               <button 
                 className="sidebar-control-btn"
-                onClick={() => {
-                  const newState = !sidebarCollapsed
-                  setSidebarCollapsed(newState)
-                  setUserManuallyCollapsed(newState)
-                  localStorage.setItem('sidebarCollapsed', JSON.stringify(newState))
-                }}
+                onClick={toggleSidebar}
                 style={{
                   border: 'none',
                   fontSize: '18px',
@@ -443,7 +407,7 @@ export default function App() {
                   minWidth: '32px',
                   height: '32px'
                 }}
-                title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+                title={sidebarCollapsed ? 'Expand sidebar (⌘B)' : 'Collapse sidebar (⌘B)'}
               >
                 {sidebarCollapsed ? '→' : '←'}
               </button>
@@ -473,8 +437,7 @@ export default function App() {
             <button 
               className="btn sidebar-action-btn" 
               onClick={() => {
-                if (IS_DEVELOPMENT_MODE) {
-                  // In development mode, just reload the page
+                if (IS_DEVELOPMENT_MODE && !isAuthenticated) {
                   window.location.reload()
                 } else {
                   supabase.auth.signOut()
@@ -488,7 +451,7 @@ export default function App() {
                 color: darkMode ? '#f9fafb' : '#374151'
               }}
             >
-              {IS_DEVELOPMENT_MODE ? 'Reload (Dev)' : 'Sign out'}
+              {IS_DEVELOPMENT_MODE && !isAuthenticated ? 'Reload (Dev)' : 'Sign out'}
             </button>
           )}
         </div>
@@ -538,6 +501,28 @@ export default function App() {
             {!sidebarCollapsed && <span>Events</span>}
           </button>
           <button 
+            className={`btn sidebar-nav-btn ${view === 'candidates' ? 'active' : ''}`}
+            onClick={() => setView('candidates')}
+            title="Go to Candidates (⌘5 / Ctrl5)"
+            style={{
+              background: view === 'candidates' ? (darkMode ? '#3b82f6' : '#3b82f6') : (darkMode ? '#374151' : '#ffffff'),
+              border: `1px solid ${view === 'candidates' ? '#3b82f6' : (darkMode ? '#4b5563' : '#d1d5db')}`,
+              color: view === 'candidates' ? 'white' : (darkMode ? '#f9fafb' : '#374151'),
+              textAlign: sidebarCollapsed ? 'center' : 'left',
+              padding: sidebarCollapsed ? '12px' : '12px 16px',
+              borderRadius: '8px',
+              marginBottom: '8px',
+              width: sidebarCollapsed ? '44px' : '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
+              gap: sidebarCollapsed ? '0' : '8px'
+            }}
+          >
+            <span>📥</span>
+            {!sidebarCollapsed && <span>Candidates</span>}
+          </button>
+          <button 
             className={`btn sidebar-nav-btn ${view === 'routes' ? 'active' : ''}`}
             onClick={() => setView('routes')}
             title="Go to Routes (⌘3 / Ctrl3)"
@@ -562,7 +547,7 @@ export default function App() {
           <button 
             className={`btn sidebar-nav-btn ${view === 'ocr-test' ? 'active' : ''}`}
             onClick={() => setView('ocr-test')}
-            title="OCR Test Page (⌘4 / Ctrl4)"
+            title="Go to OCR Test (⌘4 / Ctrl4)"
             style={{
               background: view === 'ocr-test' ? (darkMode ? '#3b82f6' : '#3b82f6') : (darkMode ? '#374151' : '#ffffff'),
               border: `1px solid ${view === 'ocr-test' ? '#3b82f6' : (darkMode ? '#4b5563' : '#d1d5db')}`,
@@ -631,6 +616,7 @@ export default function App() {
         />
         {view === 'locations' && <Locations darkMode={darkMode} sidebarCollapsed={sidebarCollapsed} />}
         {view === 'events' && <Events darkMode={darkMode} sidebarCollapsed={sidebarCollapsed} />}
+        {view === 'candidates' && <EventCandidates darkMode={darkMode} sidebarCollapsed={sidebarCollapsed} />}
         {view === 'routes' && <Routes darkMode={darkMode} sidebarCollapsed={sidebarCollapsed} />}
         {view === 'ocr-test' && <OCRTest darkMode={darkMode} />}
       </main>

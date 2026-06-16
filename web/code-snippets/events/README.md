@@ -1,52 +1,84 @@
-# Events Code Snippets
+# Events widget (Squarespace)
 
-This directory contains code snippets for displaying events on Squarespace.
+Public events calendar for Sports Car Adventures. Data from Supabase; UI from a GitHub Pages–hosted script loaded by Squarespace.
+
+**Full publishing guide:** [docs/EVENTS_PUBLISHING.md](../../../docs/EVENTS_PUBLISHING.md)
+
+---
 
 ## Files
 
-- **`event-list.html`** - The complete code to paste into Squarespace Code Injection
-- **`event-list-dev.html`** - Local development preview (open in browser)
-- **`event-list.js`** - Separated JavaScript for easier editing during development
+| File | Role |
+|------|------|
+| **`event-list.js`** | Primary source — edit this file |
+| **`../public/code-snippets/events/event-list.js`** | Deploy copy (must match before push) |
+| **`event-list-dev.html`** | Local browser preview |
+| **`event-list.html`** | Legacy full inline bundle — emergency rollback only |
 
-## Development Workflow
+Other files in this folder (`hover-tiles*.html`, `dark-mode-injection.html`, etc.) are experiments or alternates; production uses the hosted `event-list.js` pattern.
 
-### Option 1: Local Development (Recommended)
+---
 
-1. **Open the dev file** in your browser:
-   ```bash
-   open code-snippets/events/event-list-dev.html
-   ```
-   Or just double-click `event-list-dev.html` in Finder
+## Development workflow
 
-2. **Edit the JavaScript**:
-   - Make changes to `event-list.js`
-   - Refresh the browser to see changes
-   - Use browser DevTools (F12) to debug
+### 1. Local preview
 
-3. **When ready to deploy**:
-   - Copy the code from `event-list.html` 
-   - Paste into Squarespace: Settings → Advanced → Code Injection → Footer
+```bash
+open web/code-snippets/events/event-list-dev.html
+```
 
-### Option 2: Direct Editing
+Or double-click `event-list-dev.html`. It loads `event-list.js` and calls `SSWidgets.renderEvents()` the same way Squarespace does.
 
-1. Edit `event-list.html` directly
-2. Copy the code between the comment markers
-3. Paste into Squarespace Code Injection
+### 2. Edit JavaScript
 
-## Tips
+- Change `event-list.js` in this directory.
+- Refresh the browser to test.
+- Use DevTools for layout, filters, and Supabase fetch debugging.
 
-- The dev file uses the same JavaScript but loads it as a separate file for easier editing
-- You can use browser DevTools to inspect and debug
-- Changes to `event-list.js` are immediate (just refresh)
-- The final `event-list.html` bundles everything into one file for Squarespace
+### 3. Sync and deploy
 
-## Structure
+```bash
+cp web/code-snippets/events/event-list.js web/public/code-snippets/events/event-list.js
+diff web/code-snippets/events/event-list.js web/public/code-snippets/events/event-list.js  # should be silent
+```
 
-The code is organized into:
-- **Widget initialization** - Sets up the widget and handles caching
-- **Data fetching** - Fetches events and keywords from Supabase
-- **Rendering** - List and grid layout renderers
-- **Filtering** - Keyword and date range filtering
-- **Event handlers** - Layout switching, filtering, hover previews
-- **Styling** - Injected CSS styles
+Then commit, push to `main`, and confirm GitHub Pages serves the update. See [EVENTS_PUBLISHING.md](../../../docs/EVENTS_PUBLISHING.md) for the full checklist.
 
+---
+
+## Production Squarespace block
+
+Squarespace only needs a mount element, the hosted script, and an init call:
+
+```html
+<div id="events-list"></div>
+<script src="https://davedellaquila.github.io/fiddletown-data-admin/code-snippets/events/event-list.js"></script>
+<script>
+  SSWidgets.renderEvents({
+    mount: '#events-list',
+    url: 'https://ydftcebaftngcdjvxrgl.supabase.co',
+    key: '…',  // anon key in Squarespace
+    limit: 200
+  });
+</script>
+```
+
+Do not paste `event-list.html` into Code Injection for routine updates.
+
+---
+
+## Code structure (inside `event-list.js`)
+
+- Widget initialization and `sessionStorage` caching
+- Supabase fetch (events, then keywords / `event_keywords`)
+- Client-side date and keyword filtering
+- List, grid, and calendar renderers
+- Event handlers (layout, filters, info popovers, pull-to-refresh)
+- Injected CSS
+
+---
+
+## Live URLs
+
+- Page: https://sportscaradventures.com/events
+- Script: https://davedellaquila.github.io/fiddletown-data-admin/code-snippets/events/event-list.js

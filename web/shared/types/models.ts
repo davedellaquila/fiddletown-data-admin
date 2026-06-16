@@ -30,6 +30,22 @@ export type Status = 'draft' | 'published' | 'archived'
 export type Difficulty = 'easy' | 'moderate' | 'challenging'
 
 /**
+ * Event candidate review status (discovery → triage workflow).
+ */
+export type EventCandidateStatus =
+  | 'new'
+  | 'needs_review'
+  | 'approved'
+  | 'published'
+  | 'rejected'
+  | 'duplicate'
+
+/**
+ * Curator priority for discovered events.
+ */
+export type CandidatePriority = 'A' | 'B' | 'C' | 'Watch'
+
+/**
  * Location model representing wineries, parks, or other points of interest
  * 
  * @property id - Unique identifier (UUID string)
@@ -75,6 +91,7 @@ export interface Location {
  * @property start_time - Time string (HH:MM) for event start
  * @property end_time - Time string (HH:MM) for event end
  * @property location - Location name or address
+ * @property short_description - Brief listing description (publish validation in M2)
  * @property recurrence - Recurrence pattern (e.g., "weekly", "monthly")
  * @property website_url - Event website URL (normalized with https:// if missing)
  * @property image_url - Event image URL
@@ -101,6 +118,7 @@ export interface EventRow {
   start_time?: string | null
   end_time?: string | null
   location?: string | null
+  short_description?: string | null
   recurrence?: string | null
   website_url?: string | null
   image_url?: string | null
@@ -113,6 +131,42 @@ export interface EventRow {
   deleted_at?: string | null
   keywords?: string[]
   is_signature_event?: boolean | null
+}
+
+/**
+ * Discovered event candidate awaiting curator review.
+ * @see docs/features/event-candidate-review.md
+ */
+export interface EventCandidate {
+  id: string
+  source_id?: string | null
+  source_name?: string | null
+  source_url: string
+  candidate_key: string
+  title: string
+  host_org?: string | null
+  start_date?: string | null
+  end_date?: string | null
+  start_time?: string | null
+  end_time?: string | null
+  location?: string | null
+  short_description?: string | null
+  description?: string | null
+  image_url?: string | null
+  website_url?: string | null
+  raw_text?: string | null
+  extraction_confidence?: number | null
+  priority: CandidatePriority
+  status: EventCandidateStatus
+  duplicate_event_id?: string | null
+  reviewed_at?: string | null
+  review_notes?: string | null
+  discovered_at: string
+  last_seen_at: string
+  created_at: string
+  updated_at: string
+  /** Joined from events when duplicate_event_id is set */
+  duplicate_event_name?: string | null
 }
 
 /**

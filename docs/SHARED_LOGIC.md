@@ -37,6 +37,24 @@ This document defines the business logic contracts that both the web (TypeScript
 - TypeScript: `web/shared/utils/slugify.ts`
 - Swift: `ios/SSA-Admin/Shared/Utils/StringUtils.swift`
 
+### Candidate approve slug (Event Triage)
+
+**Contract**: When approving a candidate as a draft event, generate slug from **title + start date**.
+
+**Rules**:
+1. Apply [Slug Generation](#slug-generation) to `title`
+2. Append `-` + ISO date `YYYY-MM-DD`, or `undated` if `start_date` is null
+3. On collision with existing `events.slug`, append `-2`, `-3`, … until unique
+4. Implemented atomically in Postgres: `approve_event_candidate_as_draft` RPC (`migrations/004_event_candidates_admin_rls.sql`)
+
+**Examples**:
+- `"Lavender Blue Days"` + `2026-06-20` → `"lavender-blue-days-2026-06-20"`
+- Collision → `"lavender-blue-days-2026-06-20-2"`
+
+**Implementation Reference**:
+- TypeScript preview: `web/shared/utils/eventSlug.ts` → `generateEventSlug()`
+- Database: `public.approve_event_candidate_as_draft(uuid)`
+
 ---
 
 ## Date Formatting
@@ -269,6 +287,32 @@ This document defines the business logic contracts that both the web (TypeScript
 - All fetch queries must filter out deleted records
 - Delete operations update `deleted_at` instead of removing records
 
+### Scraped text normalization (Event Triage)
+
+**Contract**: Convert monitor/scrape pipeline text in `short_description` and `description` to readable plain text for admin editing.
+
+**When to apply**:
+- **On read** (web): `normalizeCandidateDescriptions()` in `eventCandidateQueries.ts` when mapping candidates from Supabase.
+- **One-time DB cleanup**: migration `005_clean_candidate_description_text.sql` on actionable queue (`status IN ('new','needs_review')`).
+- **On save** (optional future): normalize before persisting so DB stays clean.
+
+**Rules** (order matters):
+1. Unescape backslash sequences: `\n`, `\r`, `\t`, `\'`, `\"`
+2. Decode HTML entities (case-insensitive): `&lt;`, `&gt;`, `&quot;`, `&apos;`, `&#39;`, `&amp;`
+3. Strip HTML tags (`<...>`)
+4. Trim whitespace; empty result → `null`
+
+**Example**:
+- Input: `&lt;p&gt;Join us where you\'ll learn!&lt;/p&gt;\n`
+- Output: `Join us where you'll learn!`
+
+**Implementation reference**:
+- TypeScript: `web/shared/utils/normalizeCandidateText.ts` (`normalizeScrapedText`, `normalizeCandidateDescriptions`)
+- SQL: `public.normalize_scraped_text()` in `migrations/005_clean_candidate_description_text.sql`
+- iOS: deferred (M1 web-only)
+
+**Upstream**: Fix monitor ingestion to store clean text; admin normalization is a safety net.
+
 ---
 
 ## Testing Requirements
@@ -298,6 +342,26 @@ Both platforms must pass the following test cases for each utility function:
 - [ ] "  example.com  " → "https://example.com"
 - [ ] null → ""
 - [ ] "" → ""
+
+---
+
+## Scraped text normalization (Event Triage)
+
+**Contract**: Normalize monitor-scraped `short_description` and `description` for human editing.
+
+**Rules** (order matters):
+1. Unescape `\n`, `\r`, `\t`, `\'`, `\"` to real characters
+2. Decode HTML entities: `&lt;`, `&gt;`, `&quot;`, `&apos;`, `&#39;`, `&amp;`
+3. Strip HTML tags (`<p>`, etc.)
+4. Trim whitespace; empty → `null`
+
+**Example**:
+- Input: `&lt;p&gt;…you\'ll…&lt;/p&gt;\n`
+- Output: `…you'll…` (plain text)
+
+**Implementation**:
+- TypeScript: `web/shared/utils/normalizeCandidateText.ts`
+- DB one-time cleanup: `migrations/005_clean_candidate_description_text.sql` (`normalize_scraped_text()`)
 
 ---
 

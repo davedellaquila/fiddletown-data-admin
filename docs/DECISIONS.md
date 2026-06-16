@@ -8,6 +8,7 @@ Major project decisions. Searchable history — for day-to-day handoffs see [TEA
 
 | Date | ID | Decision | Rationale | Impact | By |
 |------|-----|----------|-----------|--------|-----|
+| 2026-06-15 | D-009 | Add **QA agent** for feature verification before ship | Event Triage has 13 ACs + DB/RPC checks; Dev should not self-sign-off M1 | QA owns spec §8; engaged at Dev handoff | PM |
 | 2026-06-15 | D-008 | **Event Triage M1 before Ad Management** | User priority; ad PRD needs review/adjustments before build | FE-001 stays parked; active work = event-candidate-review M1 | PM |
 | 2026-06-15 | D-007 | **Future enhancements** live in `docs/future-enhancements/` | Large PRDs (e.g. Ad Management) tracked separately from backlog and active features | Import external specs into repo; promote to `features/` when scheduled | PM |
 | 2026-06-15 | D-006 | PM agent owns all requirements and project documentation maintenance | User assignment; single owner keeps docs consistent and team informed | PM updates indexes, specs, DECISIONS, TEAM_WORKSPACE; UX/Dev contribute via Team Log | PM |

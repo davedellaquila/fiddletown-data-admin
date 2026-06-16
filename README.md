@@ -28,6 +28,8 @@ Database migrations are located in the `migrations/` directory and should be run
 
 See **[docs/README.md](docs/README.md)** for the full documentation index.
 
+- **[Agent onboarding](docs/AGENT_ONBOARDING.md)** — rules and responsibilities for new agents
 - **[Team workspace](docs/TEAM_WORKSPACE.md)** — active work and team log (all agents)
 - **[Decisions](docs/DECISIONS.md)** — major project decisions
+- **[Events publishing](docs/EVENTS_PUBLISHING.md)** — Squarespace public widget + GitHub Pages deploy
 - **[Future enhancements](docs/future-enhancements/)** — large PRDs not yet scheduled

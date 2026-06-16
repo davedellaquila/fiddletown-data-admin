@@ -50,6 +50,7 @@ Examples: `event-calendar-view.md`, `bulk-location-import.md`
 | §5 Engineering | Dev |
 | §6 Decision log | Any role |
 | §7 Implementation checklist | Dev (PM signs off) |
+| §8 Test plan | QA (PM signs off) |
 
 ## Relationship to other docs
 

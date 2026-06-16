@@ -9,6 +9,7 @@ Master index for all project documentation. **Maintained by PM** — see [DOCUME
 | Doc | Purpose | Audience |
 |-----|---------|----------|
 | [TEAM_WORKSPACE.md](./TEAM_WORKSPACE.md) | Live collaboration hub — active work, team log, open questions | PM, UX, Dev (every session) |
+| [AGENT_ONBOARDING.md](./AGENT_ONBOARDING.md) | Brief intro — rules and responsibilities for new agents | All (first session) |
 | [DECISIONS.md](./DECISIONS.md) | Major project decisions (searchable history) | All |
 | [SSA-Admin-PRD.md](./SSA-Admin-PRD.md) | Product requirements document (baseline scope) | PM, UX |
 
@@ -55,8 +56,11 @@ See [future-enhancements/README.md](./future-enhancements/README.md) for registr
 | Asset | Description |
 |-------|-------------|
 | [design/STYLE_GUIDE.md](./design/STYLE_GUIDE.md) | **Style guide** — tokens, typography, components, accessibility (UX-owned) |
+| [design/STYLE_GUIDE_V2_PROPOSAL.md](./design/STYLE_GUIDE_V2_PROPOSAL.md) | **Style guide v2 proposal** — assessment + modern refresh (for review, not implemented) |
+| [design/ssa-admin-v2-style-guide.pen](./design/ssa-admin-v2-style-guide.pen) | Pencil presentation deck — v2 tokens, components, before/after, light + dark |
 | [design/ssa-admin-style-guide.pen](./design/ssa-admin-style-guide.pen) | Pencil component gallery (colors, type, buttons, badges, forms) |
-| [design/ssa-admin-ux-mockups.pen](./design/ssa-admin-ux-mockups.pen) | Pencil screen mockups (UX-owned) |
+| [design/event-triage-mockups.pen](./design/event-triage-mockups.pen) | Event Triage M1 mockups (queue, split panel, actions) |
+| [design/ssa-admin-ux-mockups.pen](./design/ssa-admin-ux-mockups.pen) | Platform UX mockups (UX-owned) |
 
 ---
 
@@ -77,6 +81,7 @@ See [future-enhancements/README.md](./future-enhancements/README.md) for registr
 
 | Doc | Purpose |
 |-----|---------|
+| [EVENTS_PUBLISHING.md](./EVENTS_PUBLISHING.md) | Public events widget — Squarespace loader, GitHub Pages, Supabase |
 | [SUPABASE_CONFIG.md](./SUPABASE_CONFIG.md) | Supabase setup |
 | [DEVELOPMENT_AUTH.md](./DEVELOPMENT_AUTH.md) | Dev auth bypass |
 | [MIGRATION_GUIDE.md](./MIGRATION_GUIDE.md) | Database migrations |
@@ -101,6 +106,7 @@ See [future-enhancements/README.md](./future-enhancements/README.md) for registr
 | Feature specs §1–3 (requirements) | PM | UX, Dev (comments via Team Log) |
 | Feature specs §4 (design) | UX | PM (scope alignment) |
 | Feature specs §5 (engineering) | Dev | PM (scope tracking) |
+| Feature specs §8 (test plan) | QA | PM (ship sign-off) |
 | SHARED_LOGIC, API_*, TYPE_SYNC | Dev | PM updates when business rules change |
 | TEAM_WORKSPACE, DECISIONS, this index | PM | All (Team Log entries) |
 | Backlog / assessments | PM (from UX/Dev input) | UX, Dev (source material) |

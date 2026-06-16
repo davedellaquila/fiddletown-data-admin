@@ -206,22 +206,23 @@
 <body>
   <h1>Events List - Development Preview</h1>
   <div class="dev-info">
-    <strong>Development Mode:</strong> This is a local preview. Changes here won't affect Squarespace until you copy the code.
+    <strong>Development Mode:</strong> Local preview using the same loader pattern as production Squarespace.
     <br><br>
-    <strong>To update Squarespace:</strong>
+    <strong>To deploy UI changes:</strong>
     <ol style="margin: 8px 0; padding-left: 20px;">
-      <li>Open <code>code-snippets/events/event-list.html</code></li>
-      <li>Copy everything between the comment markers</li>
-      <li>Paste into Squarespace Code Injection (Settings → Advanced → Code Injection → Footer)</li>
+      <li>Edit <code>code-snippets/events/event-list.js</code></li>
+      <li>Copy to <code>public/code-snippets/events/event-list.js</code> (must match)</li>
+      <li>Commit and push to <code>main</code> — GitHub Pages deploys from <code>web/dist</code></li>
+      <li>Verify <a href="https://davedellaquila.github.io/fiddletown-data-admin/code-snippets/events/event-list.js">hosted script</a> and hard-refresh the live Events page</li>
     </ol>
+    See <code>docs/EVENTS_PUBLISHING.md</code> for the full workflow. Do not paste <code>event-list.html</code> into Squarespace for routine updates.
   </div>
 
   <!-- Events will render here -->
   <div id="events-list"></div>
 
-  <!-- Include the event list script - using renamed file to force fresh load -->
-  <!-- FORCE RELOAD: Using new filename to bypass cache completely -->
-  <script src="event-list-v2.js"></script>
+  <!-- Include the hosted widget script (same file as GitHub Pages) -->
+  <script src="event-list.js"></script>
   <script>
     // Check for saved dark mode preference and apply it
     const savedDarkMode = localStorage.getItem('ssa-dark-mode');

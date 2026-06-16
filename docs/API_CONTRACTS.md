@@ -536,6 +536,42 @@ query = query
 
 ---
 
+## Event candidates (admin triage)
+
+**Tables**: `event_candidates`, `event_sources` (no `deleted_at` — do not use base soft-delete filter).
+
+**RLS**: `authenticated` SELECT/UPDATE on `event_candidates`; `authenticated` SELECT on `event_sources`. No `anon` policies.
+
+### List candidates
+
+```typescript
+supabase.from('event_candidates').select('id, title, status, ...')
+  .in('status', ['new', 'needs_review']) // optional tab filter
+```
+
+Sort client-side per AC-3: `sortCandidates()` in `web/shared/utils/candidateSort.ts`.
+
+### Save / reject
+
+```typescript
+supabase.from('event_candidates').update({ title, ... }).eq('id', id)
+supabase.from('event_candidates').update({ status: 'rejected', reviewed_at, review_notes }).eq('id', id)
+```
+
+### Approve as draft (RPC)
+
+```typescript
+const { data: eventId } = await supabase.rpc('approve_event_candidate_as_draft', {
+  p_candidate_id: candidateId,
+})
+```
+
+Atomic insert into `events` (`status = draft`) + candidate `status = approved`. See `migrations/004_event_candidates_admin_rls.sql`.
+
+**Helpers**: `web/shared/api/eventCandidateQueries.ts`
+
+---
+
 ## Testing Requirements
 
 Both platforms must test:

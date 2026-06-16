@@ -40,7 +40,7 @@ const IS_DEVELOPMENT_MODE = import.meta.env.DEV || import.meta.env.MODE === 'dev
 - `web/src/App.tsx` - Bypasses login screen in development mode
 
 **Behavior**:
-- In development (`npm run dev`): App shows content directly without authentication
+- In development (`npm run dev`): App loads without a login gate; Candidates (and other authenticated-only tables) show a sign-in prompt until you complete a magic link
 - In production (`npm run build`): App shows login screen and requires magic link authentication
 
 ## Enabling Authentication for Production
@@ -89,10 +89,11 @@ To test the authentication flow:
 
 ## Notes
 
-- Development mode bypasses authentication but still connects to Supabase
-- All API queries will work normally
-- The app will show "dev@localhost" as the user email in development mode (web)
-- Sign out button shows "Reload (Dev)" in development mode (web)
+- Development mode skips the login gate but still connects to Supabase
+- Sign in via magic link when working on Candidates (or other authenticated-only data)
+- **Cursor Simple Browser:** email links open your default browser by default — copy the magic link and paste it into the Simple Browser address bar or the Candidates “Open link here” field
+- The app shows your work email in the sidebar once signed in
+- Sign out clears the Supabase session; other modules that allow anonymous read still work unsigned
 
 ## Security
 
