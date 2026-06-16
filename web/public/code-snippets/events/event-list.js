@@ -3892,6 +3892,7 @@
         --ssa-border-soft:#eee7de;
         --ssa-accent:#a93326;
         --ssa-accent-soft:#e4b8ae;
+        --ssa-event-title:#8f2c22;
         --ssa-shadow:0 18px 36px rgba(75,55,32,.09);
         --ssa-font:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
       }
@@ -3905,6 +3906,7 @@
         --ssa-border-soft:#302821;
         --ssa-accent:#f07961;
         --ssa-accent-soft:#7c3d30;
+        --ssa-event-title:#ffad9b;
         --ssa-keyword-tag-fg:#d4cec6;
         --ssa-keyword-tag-border:#9a9288;
         --ssa-shadow:none;
@@ -4024,7 +4026,7 @@
       #events-list .ssa-event-name-wrapper{display:flex;align-items:center;gap:10px;margin:0 0 12px}
       #events-list .ssa-event-name-wrapper > .ssa-icon-group,#events-list .ssa-title > .ssa-icon-group{display:none!important}
       #events-list .ssa-info-icon{width:22px;height:22px;min-width:22px;min-height:22px;background:var(--ssa-accent)!important;color:#fff!important;opacity:.9}
-      #events-list .ssa-event-link,#events-list .ssa-event-name-wrapper strong,#events-list .ssa-event-name,#events-list .ssa-title{color:var(--ssa-accent-soft)!important;font-size:26px!important;line-height:1.25;font-weight:800!important;text-decoration:none}
+      #events-list .ssa-event-link,#events-list .ssa-event-name-wrapper strong,#events-list .ssa-event-name,#events-list .ssa-title{color:var(--ssa-event-title)!important;font-size:26px!important;line-height:1.25;font-weight:800!important;text-decoration:none}
       #events-list .ssa-event-meta{margin:0;display:flex;flex-direction:column;gap:6px}
       #events-list .ssa-event-meta-item,#events-list .ssa-event-meta-item *,#events-list .ssa-meta{color:color-mix(in srgb,var(--ssa-muted) 78%,transparent)!important;font-size:20px!important;line-height:1.45;font-weight:500!important}
       #events-list .ssa-event-meta-item strong{display:none}
@@ -4074,7 +4076,7 @@
       .ssa-day-agenda-thumb img{width:100%;height:100%;display:block;object-fit:cover}
       .ssa-day-agenda-thumb-empty{cursor:default}
       .ssa-day-agenda-main{min-width:0;display:flex;flex-direction:column;gap:5px}
-      .ssa-day-agenda-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ssa-accent-soft,#7f251d);font-size:19px;font-weight:900;line-height:1.2}
+      .ssa-day-agenda-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ssa-event-title,var(--ssa-accent,#a93326));font-size:19px;font-weight:900;line-height:1.2}
       .ssa-day-agenda-meta{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ssa-muted,#6b7280);font-size:15px;font-weight:700;line-height:1.35}
       .ssa-day-agenda-details{padding:0 14px 16px 90px;color:var(--ssa-muted,#6b7280);font-size:15px;line-height:1.55}
       .ssa-day-agenda-details p{margin:0 0 12px}

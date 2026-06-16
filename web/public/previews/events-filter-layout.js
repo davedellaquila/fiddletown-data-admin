@@ -1297,7 +1297,7 @@
     dateControlsHTML += '<div class="ssa-date-inputs-row">';
     dateControlsHTML += `<label><span>From</span><input type="date" class="ssa-date-input ssa-from-date-input" id="ssa-from-date" value="${fromDate || ''}"></label>`;
     dateControlsHTML += `<label><span>To</span><input type="date" class="ssa-date-input ssa-to-date-input" id="ssa-to-date" value="${toDate || ''}" placeholder="Open"></label>`;
-    dateControlsHTML += `<button class="ssa-date-clear-btn ssa-clear-to-date" title="Clear To date" aria-label="Clear To date"></button>`;
+    dateControlsHTML += `<button type="button" class="ssa-date-clear-btn ssa-clear-to-date" title="Clear To date" aria-label="Clear To date"></button>`;
     dateControlsHTML += '</div>';
     dateControlsHTML += '</div>';
     dateControlsHTML += '</section>';
@@ -1395,6 +1395,12 @@
   }
 
   function attachEventHandlers(mount, rows, state) {
+    const getState = () => mount._currentState || state
+    const commitState = (nextState) => {
+      mount._currentState = nextState
+      return nextState
+    }
+
     mount.querySelectorAll('.ssa-filter-menu').forEach(menu => {
       menu.addEventListener('toggle', function() {
         if (!this.open) return;
@@ -1462,15 +1468,17 @@
     mount.querySelectorAll('.ssa-active-filter-chip').forEach(chip => {
       chip.addEventListener('click', async function() {
         const chipType = this.dataset.chipType;
-        let newState = { ...state };
+        const currentState = getState();
+        let newState = { ...currentState };
         if (chipType === 'keyword') {
           const keyword = (this.dataset.keyword || '').toLowerCase().trim();
-          newState.selectedKeywords = (state.selectedKeywords || []).filter(k => k !== keyword);
+          newState.selectedKeywords = (currentState.selectedKeywords || []).filter(k => k !== keyword);
         } else if (chipType === 'from') {
           newState.fromDate = null;
         } else if (chipType === 'to') {
           newState.toDate = null;
         }
+        newState = commitState(newState);
         if ((chipType === 'from' || chipType === 'to') && mount._widgetOpts) {
           await reloadEvents(mount, newState, mount._widgetOpts);
         } else {
@@ -1490,8 +1498,7 @@
     fromInputs.forEach(input => {
       input.addEventListener('change', async function() {
         const newFromDate = this.value || null;
-        const newState = { ...state, fromDate: newFromDate };
-        setFromInputs(newFromDate);
+        const newState = commitState({ ...getState(), fromDate: newFromDate });
         // Reload events if date filter changed
         if (mount._widgetOpts) {
           reloadEvents(mount, newState, mount._widgetOpts);
@@ -1505,8 +1512,7 @@
     toInputs.forEach(input => {
       input.addEventListener('change', async function() {
         const newToDate = this.value || null;
-        const newState = { ...state, toDate: newToDate };
-        setToInputs(newToDate);
+        const newState = commitState({ ...getState(), toDate: newToDate });
         // Reload events if date filter changed
         if (mount._widgetOpts) {
           reloadEvents(mount, newState, mount._widgetOpts);
@@ -1518,11 +1524,12 @@
     });
     
     mount.querySelectorAll('.ssa-clear-to-date').forEach(clearToDateBtn => {
-      clearToDateBtn.addEventListener('click', async function() {
-        const newState = { ...state, toDate: null };
-        setToInputs('');
+      clearToDateBtn.addEventListener('click', async function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const newState = commitState({ ...getState(), toDate: null });
         if (mount._widgetOpts) {
-          reloadEvents(mount, newState, mount._widgetOpts);
+          await reloadEvents(mount, newState, mount._widgetOpts);
         } else {
           await renderEvents(mount, rows, newState);
         }
@@ -1530,12 +1537,12 @@
     });
     
     mount.querySelectorAll('.ssa-clear-dates').forEach(clearDatesBtn => {
-      clearDatesBtn.addEventListener('click', async function() {
-        const newState = { ...state, toDate: null, selectedKeywords: [] };
-        setToInputs('');
+      clearDatesBtn.addEventListener('click', async function(e) {
+        e.preventDefault();
+        const newState = commitState({ ...getState(), toDate: null, selectedKeywords: [] });
         // Reload events to show all
         if (mount._widgetOpts) {
-          reloadEvents(mount, newState, mount._widgetOpts);
+          await reloadEvents(mount, newState, mount._widgetOpts);
         } else {
           // Fallback: filter client-side if opts not available
           await renderEvents(mount, rows, newState);
@@ -2345,8 +2352,9 @@
                 keywordTag.addEventListener('mouseenter', function() {
                   if (!this.classList.contains('ssa-keyword-tag-active')) {
                     if (isDarkMode) {
-                      this.style.background = '#4b5563';
-                      this.style.borderColor = '#6b7280';
+                      this.style.background = 'transparent';
+                      this.style.borderColor = '#9a9288';
+                      this.style.color = '#d4cec6';
                     } else {
                       this.style.background = '#f9fafb';
                       this.style.borderColor = '#9ca3af';
@@ -2357,6 +2365,7 @@
                   if (!this.classList.contains('ssa-keyword-tag-active')) {
                     this.style.background = '';
                     this.style.borderColor = '';
+                    this.style.color = '';
                   }
                 });
                 
@@ -3794,6 +3803,8 @@
       body.dark-mode h3.ssa-day-header,body.dark-mode h3.ssa-day-header *{color:#f9fafb!important}
       body.dark-mode .ssa-month-header{color:#f9fafb!important}
       body.dark-mode .ssa-calendar-month-header{color:#f9fafb!important}
+      body.dark-mode #events-list .ssa-keyword-tag-clickable,body.dark-mode #events-list .ssa-tag-clickable,html.dark-mode #events-list .ssa-keyword-tag-clickable,html.dark-mode #events-list .ssa-tag-clickable{color:var(--ssa-keyword-tag-fg,#d4cec6)!important;border-color:var(--ssa-keyword-tag-border,#9a9288)!important;-webkit-text-fill-color:var(--ssa-keyword-tag-fg,#d4cec6)!important;background:transparent!important}
+      body.dark-mode #events-list .ssa-event-keywords .ssa-keyword-tag-clickable,body.dark-mode #events-list .ssa-keywords .ssa-tag-clickable,html.dark-mode #events-list .ssa-event-keywords .ssa-keyword-tag-clickable,html.dark-mode #events-list .ssa-keywords .ssa-tag-clickable{color:var(--ssa-keyword-tag-fg,#d4cec6)!important;border-color:var(--ssa-keyword-tag-border,#9a9288)!important;-webkit-text-fill-color:var(--ssa-keyword-tag-fg,#d4cec6)!important;background:transparent!important}
     `;
     document.head.appendChild(css);
     
@@ -3861,8 +3872,10 @@
       html.dark-mode h3.ssa-day-header *,html body.dark-mode h3.ssa-day-header *,body.dark-mode h3.ssa-day-header *{color:#f9fafb!important}
       html.dark-mode .ssa-month-header,html body.dark-mode .ssa-month-header,body.dark-mode .ssa-month-header{color:#f9fafb!important}
       html.dark-mode .ssa-calendar-month-header,html body.dark-mode .ssa-calendar-month-header,body.dark-mode .ssa-calendar-month-header{color:#f9fafb!important}
+      html.dark-mode #events-list .ssa-keyword-tag-clickable,html.dark-mode #events-list .ssa-tag-clickable,html body.dark-mode #events-list .ssa-keyword-tag-clickable,html body.dark-mode #events-list .ssa-tag-clickable,body.dark-mode #events-list .ssa-keyword-tag-clickable,body.dark-mode #events-list .ssa-tag-clickable{color:var(--ssa-keyword-tag-fg,#d4cec6)!important;border-color:var(--ssa-keyword-tag-border,#9a9288)!important;-webkit-text-fill-color:var(--ssa-keyword-tag-fg,#d4cec6)!important;background:transparent!important}
+      html.dark-mode #events-list .ssa-event-keywords .ssa-keyword-tag-clickable,html.dark-mode #events-list .ssa-keywords .ssa-tag-clickable,html body.dark-mode #events-list .ssa-event-keywords .ssa-keyword-tag-clickable,html body.dark-mode #events-list .ssa-keywords .ssa-tag-clickable,body.dark-mode #events-list .ssa-event-keywords .ssa-keyword-tag-clickable,body.dark-mode #events-list .ssa-keywords .ssa-tag-clickable{color:var(--ssa-keyword-tag-fg,#d4cec6)!important;border-color:var(--ssa-keyword-tag-border,#9a9288)!important;-webkit-text-fill-color:var(--ssa-keyword-tag-fg,#d4cec6)!important;background:transparent!important}
       html.dark-mode div:not(.sqs-block):not(.sqs-block-content):not(.sqs-block-html):not(.sqs-block-code):not(.sqs-block-markdown):not(.sqs-block-embed),html body.dark-mode div:not(.sqs-block):not(.sqs-block-content):not(.sqs-block-html):not(.sqs-block-code):not(.sqs-block-markdown):not(.sqs-block-embed),body.dark-mode div:not(.sqs-block):not(.sqs-block-content):not(.sqs-block-html):not(.sqs-block-code):not(.sqs-block-markdown):not(.sqs-block-embed){background-color:inherit!important}
-      html.dark-mode *,html body.dark-mode *{color:inherit}
+      html.dark-mode *:not(.ssa-keyword-tag-clickable):not(.ssa-tag-clickable),html body.dark-mode *:not(.ssa-keyword-tag-clickable):not(.ssa-tag-clickable){color:inherit}
     `;
     document.head.appendChild(sqsDarkModeCSS);
 
@@ -3879,6 +3892,7 @@
         --ssa-border-soft:#eee7de;
         --ssa-accent:#a93326;
         --ssa-accent-soft:#e4b8ae;
+        --ssa-event-title:#8f2c22;
         --ssa-shadow:0 18px 36px rgba(75,55,32,.09);
         --ssa-font:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
       }
@@ -3892,6 +3906,9 @@
         --ssa-border-soft:#302821;
         --ssa-accent:#f07961;
         --ssa-accent-soft:#7c3d30;
+        --ssa-event-title:#ffad9b;
+        --ssa-keyword-tag-fg:#d4cec6;
+        --ssa-keyword-tag-border:#9a9288;
         --ssa-shadow:none;
       }
       #events-list,#events-list *{box-sizing:border-box;font-family:var(--ssa-font);letter-spacing:0}
@@ -3978,6 +3995,9 @@
       #events-list .ssa-group-icon-month::before{content:'';position:absolute;left:-2px;right:-2px;top:6px;height:2px;background:currentColor}
       #events-list .ssa-group-icon-month::after{content:'';position:absolute;left:5px;top:-5px;width:3px;height:7px;border-radius:999px;background:currentColor;box-shadow:10px 0 0 currentColor,0 14px 0 -1px currentColor,7px 14px 0 -1px currentColor,14px 14px 0 -1px currentColor,0 20px 0 -1px currentColor,7px 20px 0 -1px currentColor,14px 20px 0 -1px currentColor}
       #events-list .ssa-selection-count{margin:0;padding:0;color:var(--ssa-muted)!important;font-size:16px;font-weight:800;line-height:1.2;white-space:nowrap}
+      html.dark-mode #events-list .ssa-filter-toolbar .ssa-selection-count,body.dark-mode #events-list .ssa-filter-toolbar .ssa-selection-count{color:var(--ssa-text)!important}
+      html.dark-mode #events-list .ssa-selected-keyword-row .ssa-keyword-btn.ssa-keyword-active,html.dark-mode #events-list .ssa-selected-keyword-row .ssa-keyword-remove-btn,body.dark-mode #events-list .ssa-selected-keyword-row .ssa-keyword-btn.ssa-keyword-active,body.dark-mode #events-list .ssa-selected-keyword-row .ssa-keyword-remove-btn{color:var(--ssa-text)!important;border-color:var(--ssa-text)!important;background:transparent!important}
+      html.dark-mode #events-list .ssa-selected-keyword-row .ssa-keyword-btn.ssa-keyword-active:hover,html.dark-mode #events-list .ssa-selected-keyword-row .ssa-keyword-remove-btn:hover,body.dark-mode #events-list .ssa-selected-keyword-row .ssa-keyword-btn.ssa-keyword-active:hover,body.dark-mode #events-list .ssa-selected-keyword-row .ssa-keyword-remove-btn:hover{color:var(--ssa-text)!important;border-color:var(--ssa-text)!important;background:rgba(251,247,239,.08)!important}
       #events-list .ssa-display-options-switcher .ssa-signature-events-toggle:only-child{min-width:180px}
       #events-list .ssa-display-options-wrapper{margin-left:auto}
       #events-list .ssa-keyword-filters-section .ssa-control-label{margin-bottom:12px}
@@ -4006,13 +4026,16 @@
       #events-list .ssa-event-name-wrapper{display:flex;align-items:center;gap:10px;margin:0 0 12px}
       #events-list .ssa-event-name-wrapper > .ssa-icon-group,#events-list .ssa-title > .ssa-icon-group{display:none!important}
       #events-list .ssa-info-icon{width:22px;height:22px;min-width:22px;min-height:22px;background:var(--ssa-accent)!important;color:#fff!important;opacity:.9}
-      #events-list .ssa-event-link,#events-list .ssa-event-name-wrapper strong,#events-list .ssa-event-name,#events-list .ssa-title{color:var(--ssa-accent-soft)!important;font-size:26px!important;line-height:1.25;font-weight:800!important;text-decoration:none}
+      #events-list .ssa-event-link,#events-list .ssa-event-name-wrapper strong,#events-list .ssa-event-name,#events-list .ssa-title{color:var(--ssa-event-title)!important;font-size:26px!important;line-height:1.25;font-weight:800!important;text-decoration:none}
       #events-list .ssa-event-meta{margin:0;display:flex;flex-direction:column;gap:6px}
       #events-list .ssa-event-meta-item,#events-list .ssa-event-meta-item *,#events-list .ssa-meta{color:color-mix(in srgb,var(--ssa-muted) 78%,transparent)!important;font-size:20px!important;line-height:1.45;font-weight:500!important}
       #events-list .ssa-event-meta-item strong{display:none}
       #events-list .ssa-location{color:inherit!important;text-decoration:none}
       #events-list .ssa-event-keywords,#events-list .ssa-keywords{margin:16px 0 0;display:flex;gap:8px;flex-wrap:wrap}
-      #events-list .ssa-keyword-tag-clickable,#events-list .ssa-tag-clickable{height:42px;padding:0 18px;display:inline-flex;align-items:center;border:1px solid var(--ssa-border-soft)!important;border-radius:10px;background:var(--ssa-surface)!important;color:color-mix(in srgb,var(--ssa-muted) 60%,transparent)!important;font-size:18px;font-weight:700}
+      #events-list .ssa-keyword-tag-clickable,#events-list .ssa-tag-clickable{height:42px;padding:0 18px;display:inline-flex;align-items:center;border:1px solid var(--ssa-text)!important;border-radius:10px;background:transparent!important;color:var(--ssa-text)!important;font-size:18px;font-weight:700;cursor:pointer}
+      html.dark-mode #events-list .ssa-keyword-tag-clickable,html.dark-mode #events-list .ssa-tag-clickable,html body.dark-mode #events-list .ssa-keyword-tag-clickable,html body.dark-mode #events-list .ssa-tag-clickable,body.dark-mode #events-list .ssa-keyword-tag-clickable,body.dark-mode #events-list .ssa-tag-clickable,body.dark-mode #events-list .ssa-event-keywords .ssa-keyword-tag-clickable,body.dark-mode #events-list .ssa-keywords .ssa-tag-clickable{color:var(--ssa-keyword-tag-fg,#d4cec6)!important;border-color:var(--ssa-keyword-tag-border,#9a9288)!important;-webkit-text-fill-color:var(--ssa-keyword-tag-fg,#d4cec6)!important;background:transparent!important}
+      #events-list .ssa-keyword-tag-clickable:hover,#events-list .ssa-tag-clickable:hover{border-color:var(--ssa-accent)!important;color:var(--ssa-accent)!important;-webkit-text-fill-color:var(--ssa-accent)!important;background:color-mix(in srgb,var(--ssa-accent) 10%,transparent)!important}
+      #events-list .ssa-keyword-tag-clickable.ssa-keyword-tag-active,#events-list .ssa-tag-clickable.ssa-tag-active{border-color:var(--ssa-accent)!important;color:var(--ssa-accent)!important;-webkit-text-fill-color:var(--ssa-accent)!important;background:color-mix(in srgb,var(--ssa-accent) 14%,transparent)!important}
       #events-list .ssa-grid{max-width:1600px;margin:0 auto 34px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px}
       #events-list .ssa-card{min-height:440px;display:flex;align-items:stretch;background:var(--ssa-surface)!important;border:1px solid var(--ssa-border-soft)!important;border-radius:10px;box-shadow:none!important;overflow:hidden}
       #events-list .ssa-card::before{display:none}
@@ -4053,7 +4076,7 @@
       .ssa-day-agenda-thumb img{width:100%;height:100%;display:block;object-fit:cover}
       .ssa-day-agenda-thumb-empty{cursor:default}
       .ssa-day-agenda-main{min-width:0;display:flex;flex-direction:column;gap:5px}
-      .ssa-day-agenda-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ssa-accent-soft,#7f251d);font-size:19px;font-weight:900;line-height:1.2}
+      .ssa-day-agenda-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ssa-event-title,var(--ssa-accent,#a93326));font-size:19px;font-weight:900;line-height:1.2}
       .ssa-day-agenda-meta{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ssa-muted,#6b7280);font-size:15px;font-weight:700;line-height:1.35}
       .ssa-day-agenda-details{padding:0 14px 16px 90px;color:var(--ssa-muted,#6b7280);font-size:15px;line-height:1.55}
       .ssa-day-agenda-details p{margin:0 0 12px}
@@ -4242,6 +4265,33 @@
       }
     `;
     document.head.appendChild(designCSS);
+
+    const keywordContrastCSS = document.createElement('style');
+    keywordContrastCSS.id = 'ssa-event-keyword-contrast';
+    keywordContrastCSS.textContent = `
+      html.dark-mode #events-list .ssa-event-keywords .ssa-keyword-tag-clickable,
+      html.dark-mode #events-list .ssa-keywords .ssa-tag-clickable,
+      html body.dark-mode #events-list .ssa-event-keywords .ssa-keyword-tag-clickable,
+      html body.dark-mode #events-list .ssa-keywords .ssa-tag-clickable,
+      body.dark-mode #events-list .ssa-event-keywords .ssa-keyword-tag-clickable,
+      body.dark-mode #events-list .ssa-keywords .ssa-tag-clickable,
+      body.dark-mode #events-list .ssa-keyword-tag-clickable,
+      body.dark-mode #events-list .ssa-tag-clickable {
+        color: var(--ssa-keyword-tag-fg, #d4cec6) !important;
+        border-color: var(--ssa-keyword-tag-border, #9a9288) !important;
+        -webkit-text-fill-color: var(--ssa-keyword-tag-fg, #d4cec6) !important;
+        background: transparent !important;
+      }
+      html.dark-mode #events-list .ssa-keyword-tag-clickable.ssa-keyword-tag-active,
+      html.dark-mode #events-list .ssa-tag-clickable.ssa-tag-active,
+      body.dark-mode #events-list .ssa-keyword-tag-clickable.ssa-keyword-tag-active,
+      body.dark-mode #events-list .ssa-tag-clickable.ssa-tag-active {
+        color: var(--ssa-accent, #f07961) !important;
+        border-color: var(--ssa-accent, #f07961) !important;
+        -webkit-text-fill-color: var(--ssa-accent, #f07961) !important;
+      }
+    `;
+    document.head.appendChild(keywordContrastCSS);
   }
 
   // Helper function to reload events when filters change
