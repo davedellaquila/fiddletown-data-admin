@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
+import { ensureDevAuthenticated } from '../lib/devAuth'
 import { supabase } from '../lib/supabaseClient'
 
 type Listener = (session: Session | null) => void
@@ -17,9 +18,11 @@ function ensureAuthListener() {
   if (authReady) return
   authReady = true
 
-  supabase.auth.getSession().then(({ data }) => {
+  void (async () => {
+    await ensureDevAuthenticated()
+    const { data } = await supabase.auth.getSession()
     notify(data.session)
-  })
+  })()
 
   supabase.auth.onAuthStateChange((_event, session) => {
     notify(session)

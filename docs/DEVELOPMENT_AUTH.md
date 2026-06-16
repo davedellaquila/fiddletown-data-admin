@@ -4,11 +4,65 @@ This document explains how authentication is bypassed in development mode for ea
 
 ## Overview
 
-Magic link authentication has been disabled in development mode to make testing easier in simulators and during development. Authentication will be automatically enabled in production builds.
+In development (`npm run dev`), the app shell loads without a login gate. **Candidates** (and other RLS-protected tables) still need a Supabase session — but you can skip magic links entirely using **dev auto sign-in** (recommended).
 
-## How It Works
+Authentication is required in production builds.
 
-### iOS App
+## Recommended: Dev auto sign-in (no magic link)
+
+### 1. Create a dev user in Supabase
+
+1. Open [Supabase Dashboard](https://app.supabase.com) → your project → **Authentication** → **Users**
+2. **Add user** → **Create new user**
+3. Set an email and password (e.g. `dev@yourdomain.com` / a strong dev-only password)
+4. Enable **Auto Confirm User** so email verification is not required
+
+### 2. Add credentials to `web/.env.local`
+
+```env
+VITE_DEV_AUTH_EMAIL=dev@yourdomain.com
+VITE_DEV_AUTH_PASSWORD=your-dev-password
+```
+
+Keep your existing `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` lines.
+
+### 3. Restart the dev server
+
+```bash
+cd web
+npm run dev
+```
+
+On load, the app signs in automatically. Candidates load without magic links. Your email appears in the sidebar.
+
+**Security:** Never commit `.env.local`. These variables are only read when `npm run dev` is running; production builds ignore dev auto sign-in.
+
+### Troubleshooting dev auto sign-in
+
+| Problem | Fix |
+|---------|-----|
+| "Invalid login credentials" | Check email/password in Supabase Users |
+| "Email not confirmed" | Recreate user with **Auto Confirm User** |
+| Still shows magic link prompt | Ensure both `VITE_DEV_*` vars are set and restart dev server |
+| Approve/publish fails | Dev user must exist in `auth.users` (RPCs use `auth.uid()`) |
+
+## Fallback: Magic link (optional)
+
+If you omit `VITE_DEV_AUTH_*`, Candidates shows a sign-in prompt. Send a magic link or paste the full URL in the textarea (useful in Cursor Simple Browser where email opens another browser).
+
+See previous magic-link notes in git history if needed.
+
+## How it works
+
+### Web
+
+- `web/src/lib/devMode.ts` — detects Vite dev mode
+- `web/src/lib/devAuth.ts` — auto `signInWithPassword` from env
+- `web/src/hooks/useSupabaseSession.ts` — runs dev sign-in before reading session
+- `web/src/App.tsx` — bypasses login gate in dev
+- `web/src/features/EventCandidates.tsx` — loads data when session exists (auto or manual)
+
+### iOS
 
 The iOS app uses compile-time flags to detect development mode:
 
@@ -20,82 +74,42 @@ private let isDevelopmentMode = false
 #endif
 ```
 
-**Files Modified**:
-- `ios/SSA-Admin/SSA-Admin/SSA_AdminApp.swift` - Bypasses login screen in DEBUG builds
-- `ios/SSA-Admin/Shared/Services/SupabaseService.swift` - Returns nil session in development mode
+**Files**:
+- `ios/SSA-Admin/SSA-Admin/SSA_AdminApp.swift` — bypasses login screen in DEBUG builds
+- `ios/SSA-Admin/Shared/Services/SupabaseService.swift` — returns nil session in development mode
 
 **Behavior**:
-- In DEBUG builds: App shows ContentView directly without authentication
-- In RELEASE builds: App shows LoginView and requires magic link authentication
+- DEBUG builds: App shows ContentView directly without authentication
+- RELEASE builds: App shows LoginView and requires magic link authentication
 
-### Web App
-
-The web app uses Vite's environment detection:
-
-```typescript
-const IS_DEVELOPMENT_MODE = import.meta.env.DEV || import.meta.env.MODE === 'development'
-```
-
-**Files Modified**:
-- `web/src/App.tsx` - Bypasses login screen in development mode
-
-**Behavior**:
-- In development (`npm run dev`): App loads without a login gate; Candidates (and other authenticated-only tables) show a sign-in prompt until you complete a magic link
-- In production (`npm run build`): App shows login screen and requires magic link authentication
-
-## Enabling Authentication for Production
-
-### iOS
-
-To enable authentication for production:
-
-1. Open `ios/SSA-Admin/SSA-Admin/SSA_AdminApp.swift`
-2. Change `isDevelopmentMode` to `false` in the `#if DEBUG` block:
-
-```swift
-#if DEBUG
-private let isDevelopmentMode = false  // Change to false to test auth in debug
-#else
-private let isDevelopmentMode = false  // Always false in production
-#endif
-```
-
-Or build a Release configuration:
-- Product → Scheme → Edit Scheme
-- Set Build Configuration to "Release"
-- Authentication will be enabled automatically
+## Enabling authentication for production
 
 ### Web
-
-To enable authentication for production:
 
 1. Build for production: `npm run build`
 2. Authentication is automatically enabled in production builds
-3. Or manually set `IS_DEVELOPMENT_MODE` to `false` in `web/src/App.tsx`
-
-## Testing Authentication
-
-To test the authentication flow:
+3. Do **not** set `VITE_DEV_AUTH_*` in production env
 
 ### iOS
-1. Change `isDevelopmentMode` to `false` in `SSA_AdminApp.swift`
-2. Or build with Release configuration
-3. Run the app - you'll see the login screen
+
+Build a Release configuration or set `isDevelopmentMode = false` in debug to test auth.
+
+## Testing authentication (production flow)
 
 ### Web
-1. Build for production: `npm run build`
-2. Run preview: `npm run preview`
-3. Or manually set `IS_DEVELOPMENT_MODE = false` in `App.tsx`
 
-## Notes
+1. `npm run build && npm run preview`
+2. Magic link login is required
 
-- Development mode skips the login gate but still connects to Supabase
-- Sign in via magic link when working on Candidates (or other authenticated-only data)
-- **Cursor Simple Browser:** email links open your default browser by default — copy the magic link and paste it into the Simple Browser address bar or the Candidates “Open link here” field
-- The app shows your work email in the sidebar once signed in
-- Sign out clears the Supabase session; other modules that allow anonymous read still work unsigned
+### iOS
+
+1. Release build or `isDevelopmentMode = false` in debug
 
 ## Security
 
-⚠️ **Important**: Never commit code with `isDevelopmentMode = true` in production builds. The current implementation uses `#if DEBUG` which automatically disables it in Release builds, but always verify before deploying.
+⚠️ **Important**:
 
+- Never commit `web/.env.local` or production credentials
+- Dev password is for local machines only
+- RLS still applies; dev auto sign-in uses a real authenticated role, not a service-role bypass
+- Verify production builds do not include dev auth env vars

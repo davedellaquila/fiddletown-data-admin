@@ -135,6 +135,20 @@ export async function approveEventCandidateAsDraft(
   return data as string
 }
 
+export async function approveEventCandidateAndPublish(
+  client: SupabaseClient,
+  candidateId: string,
+  keywordNames: string[]
+): Promise<string> {
+  const normalized = [...new Set(keywordNames.map((k) => k.trim().toLowerCase()).filter(Boolean))]
+  const { data, error } = await client.rpc('approve_event_candidate_and_publish', {
+    p_candidate_id: candidateId,
+    p_keyword_names: normalized,
+  })
+  if (error) throw error
+  return data as string
+}
+
 export async function fetchEventById(client: SupabaseClient, eventId: string) {
   const { data, error } = await client
     .from('events')

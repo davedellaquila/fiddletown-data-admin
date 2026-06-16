@@ -20,6 +20,10 @@ Edit `web/.env.local` and add:
 ```env
 VITE_SUPABASE_URL=https://YOUR-PROJECT-ID.supabase.co
 VITE_SUPABASE_ANON_KEY=your-anon-key-here
+
+# Optional (dev only): automatic sign-in — no magic link. See docs/DEVELOPMENT_AUTH.md
+VITE_DEV_AUTH_EMAIL=dev@yourdomain.com
+VITE_DEV_AUTH_PASSWORD=your-dev-password
 ```
 
 **Where to find these values:**

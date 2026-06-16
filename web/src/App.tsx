@@ -8,7 +8,7 @@
  * - Keyboard shortcuts for quick navigation and sidebar toggle (⌘B)
  * 
  * The app supports two modes:
- * - Development mode: App shell loads without login; modules that need RLS (e.g. Candidates) prompt for magic link
+ * - Development mode: App shell loads without login; optional dev auto sign-in (VITE_DEV_AUTH_*) skips magic link for Candidates
  * - Production mode: Requires Supabase authentication via magic link
  * 
  * @module App

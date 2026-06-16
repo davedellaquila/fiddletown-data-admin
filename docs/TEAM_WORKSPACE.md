@@ -122,7 +122,7 @@ Newest entries at the top.
 
 | Date | Role | Topic | Message | Action needed |
 |------|------|-------|---------|---------------|
-| 2026-06-15 | Dave | Events BUG-004 verify | Keyword autocomplete **↓** now highlights first suggestion (confirmed on local preview after rebuild). Dev fix: live input query + ref-backed suggestions/highlight in `KeywordSelector.tsx`. | None |
+| 2026-06-15 | Dev | Events BUG-006 root cause | Delete failed: RLS `auth_update_events` only allowed `auth.uid() = created_by` (~50 events have null creator; others owned by different users). Applied migration `007_events_admin_update_rls.sql`. Client: UUID-safe delete, no `.single()`, bulk delete id fix. | Dave — verify row delete after rebuild |
 | 2026-06-15 | Dev | Events BUG-004/005 | **BUG-004:** `KeywordSelector` arrow/Enter keyboard nav (stale state, case-insensitive filter, Escape no longer closes dialog). **BUG-005:** keyword save on →/← via `editingRef`, `rowsRef`, `getNavigationRows()` in `AutoSaveEditDialog`. **Note:** `npm run preview` requires `npm run build` before refresh; use `npm run dev` for HMR. | Dave — verify BUG-005 (keyword persists after → then ←) |
 | 2026-06-15 | Dave | Event Triage BUG-001 data | Requested **one-time cleanup** of existing `new`/`needs_review` candidates — remove HTML entities/escapes from `short_description`/`description` so manual edit not needed. | Dev — apply migration 005 |
 | 2026-06-15 | Dave | Events BUG-003 | List-view **signature event** checkbox did not persist / edit panel showed stale value. Dev fix: verified DB update with `.select()`, sync `rows`/`allRows`/`editing`, open edit from latest `allRows`. | Dev — verify in UI |

@@ -43,6 +43,7 @@ import { parseEventText as parseEventTextImproved } from '../shared/utils/ocrPar
 import { slugify } from '../../shared/utils/slugify'
 import { normalizeUrl, formatTimeToAMPM, convertTo24Hour, formatISO } from '../../shared/utils/dateUtils'
 import type { EventRow } from '../../shared/types/models'
+import { suggestEventKeywords } from '../../shared/utils/suggestCandidateKeywords'
 
 
 /**
@@ -335,6 +336,15 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
       setSortBy(column)
       setSortOrder('asc')
     }
+  }
+
+  const applySuggestedKeywords = () => {
+    const current = editingRef.current ?? editing
+    if (!current) return
+    const suggested = suggestEventKeywords(current, existingKeywords)
+    const next = { ...current, keywords: suggested }
+    editingRef.current = next
+    setEditing(next)
   }
 
   /**
@@ -1035,9 +1045,29 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
   const bulkDelete = async () => {
     if (!selectedIds.size) { alert('Select at least one event.'); return }
     if (!confirm('Soft delete selected events?')) return
-    const { error } = await supabase.from('events').update({ deleted_at: new Date().toISOString() }).in('id', Array.from(selectedIds))
-    if (error) { alert(error.message); return }
-    await load(); setSelectedIds(new Set());
+    const ids = Array.from(selectedIds)
+    try {
+      const { data, error } = await supabase
+        .from('events')
+        .update({ deleted_at: new Date().toISOString() })
+        .in('id', ids)
+        .select('id')
+
+      if (error) throw error
+      if (!data?.length) {
+        throw new Error('Delete did not affect any rows. You may not have permission to delete these events.')
+      }
+
+      for (const row of data) {
+        removeEventFromLists(row.id)
+      }
+      setSelectedIds(new Set())
+    } catch (err: unknown) {
+      console.error('Error bulk deleting events:', err)
+      const message = err instanceof Error ? err.message : 'Unknown error'
+      alert(`Failed to delete events: ${message}`)
+      await load()
+    }
   }
 
   const copyEvent = async (r: EventRow) => {
@@ -1449,10 +1479,52 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
     await load()
   }
 
-  const softDelete = async (id: string) => {
+  const removeEventFromLists = (eventId: EventRow['id']) => {
+    if (eventId == null) return
+    const apply = (list: EventRow[]) => list.filter((row) => !eventIdsMatch(row.id, eventId))
+    setRows((prev) => {
+      const next = apply(prev)
+      rowsRef.current = next
+      return next
+    })
+    setAllRows((prev) => {
+      const next = apply(prev)
+      allRowsRef.current = next
+      return next
+    })
+    if (editingRef.current && eventIdsMatch(editingRef.current.id, eventId)) {
+      editingRef.current = null
+      setEditing(null)
+    }
+  }
+
+  const softDelete = async (id: EventRow['id']) => {
+    if (id == null) return
     if (!confirm('Delete this event? (soft delete)')) return
-    const { error } = await supabase.from('events').update({ deleted_at: new Date().toISOString() }).eq('id', id)
-    if (error) alert(error.message); else load()
+    try {
+      const { data, error } = await supabase
+        .from('events')
+        .update({ deleted_at: new Date().toISOString() })
+        .eq('id', String(id))
+        .select('id')
+
+      if (error) throw error
+      if (!data?.length) {
+        throw new Error('Delete did not affect any rows. You may not have permission to delete this event.')
+      }
+
+      removeEventFromLists(id)
+      setSelectedIds((prev) => {
+        const next = new Set(prev)
+        next.delete(String(id))
+        return next
+      })
+    } catch (err: unknown) {
+      console.error('Error deleting event:', err)
+      const message = err instanceof Error ? err.message : 'Unknown error'
+      alert(`Failed to delete event: ${message}`)
+      await load()
+    }
   }
 
   useEffect(() => {
@@ -2675,15 +2747,21 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
                 </div>
               </td>
               
-              <td style={{ 
-                padding: '8px 0 8px 12px', 
+              <td
+                style={{
+                padding: '8px 0 8px 12px',
                 borderBottom: `1px solid ${darkMode ? '#374151' : '#f1f1f1'}`,
                 background: 'transparent'
-              }}>
+              }}
+                onClick={(e) => e.stopPropagation()}
+                onMouseDown={(e) => e.stopPropagation()}
+              >
                 <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginRight: 0 }}>
                   <button
+                    type="button"
                     className="btn"
-                    onClick={(e) => { e.stopPropagation(); copyEvent(r) }}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onClick={() => copyEvent(r)}
                     title="Duplicate"
                     style={{
                       width: 32,
@@ -2701,8 +2779,10 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
                     <img src={dupIcon} alt="duplicate" width={16} height={16} />
                   </button>
                   <button
+                    type="button"
                     className="btn"
-                    onClick={(e) => { e.stopPropagation(); softDelete(r.id!.toString()) }}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onClick={() => softDelete(r.id)}
                     title="Delete"
                     style={{
                       width: 32,
@@ -2847,10 +2927,11 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
                     {r.status === 'published' ? 'Published' : r.status === 'archived' ? 'Archived' : 'Draft'}
                   </div>
                 </div>
-                <div style={{ display: 'flex', gap: '6px' }}>
+                <div style={{ display: 'flex', gap: '6px' }} onClick={(e) => e.stopPropagation()}>
                   <button
+                    type="button"
                     className="btn"
-                    onClick={(e) => { e.stopPropagation(); copyEvent(r) }}
+                    onClick={() => copyEvent(r)}
                     title="Duplicate"
                     style={{
                       width: 32,
@@ -2868,8 +2949,10 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
                     <img src={dupIcon} alt="duplicate" width={16} height={16} />
                   </button>
                   <button
+                    type="button"
                     className="btn"
-                    onClick={(e) => { e.stopPropagation(); softDelete(r.id!.toString()) }}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onClick={() => softDelete(r.id)}
                     title="Delete"
                     style={{
                       width: 32,
@@ -2965,6 +3048,61 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
                   Event Image
                 </label>
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                  {editing?.image_url && (
+                    <div
+                      style={{ display: 'inline-block', position: 'relative', flexShrink: 0 }}
+                      onMouseEnter={() => setImageHover(true)}
+                      onMouseLeave={() => setImageHover(false)}
+                    >
+                      <img
+                        src={editing.image_url}
+                        alt="Event"
+                        style={{ width: '64px', height: '64px', objectFit: 'cover', borderRadius: '6px', border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}` }}
+                      />
+                      {imageHover && (
+                        <div
+                          style={{
+                            position: 'absolute',
+                            top: 0,
+                            right: 0,
+                            bottom: 0,
+                            left: 0,
+                            zIndex: 20,
+                            padding: '12px',
+                            pointerEvents: 'none',
+                            background: 'transparent',
+                            display: 'flex',
+                            alignItems: 'stretch',
+                            justifyContent: 'center'
+                          }}
+                        >
+                          <div style={{
+                            width: '100%',
+                            height: '100%',
+                            borderRadius: '8px',
+                            boxShadow: '0 20px 40px rgba(0,0,0,0.25)',
+                            background: darkMode ? 'rgba(31,41,55,0.96)' : 'rgba(255,255,255,0.96)',
+                            border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}>
+                            <img
+                              src={editing.image_url}
+                              alt="Event preview"
+                              style={{
+                                maxWidth: 'calc(100% - 24px)',
+                                maxHeight: 'calc(100% - 24px)',
+                                objectFit: 'contain',
+                                borderRadius: '6px',
+                                display: 'block'
+                              }}
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                   <div
                     ref={imagePasteRef}
                     onClick={() => {
@@ -3199,61 +3337,6 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
                       style={{ display: 'none' }}
                     />
                   </label>
-                  {editing?.image_url && (
-                    <div
-                      style={{ display: 'inline-block' }}
-                      onMouseEnter={() => setImageHover(true)}
-                      onMouseLeave={() => setImageHover(false)}
-                    >
-                      <img
-                        src={editing.image_url}
-                        alt="Event"
-                        style={{ width: '64px', height: '64px', objectFit: 'cover', borderRadius: '6px', border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}` }}
-                      />
-                      {imageHover && (
-                        <div
-                          style={{
-                            position: 'absolute',
-                            top: 0,
-                            right: 0,
-                            bottom: 0,
-                            left: 0,
-                            zIndex: 20,
-                            padding: '12px',
-                            pointerEvents: 'none',
-                            background: 'transparent',
-                            display: 'flex',
-                            alignItems: 'stretch',
-                            justifyContent: 'center'
-                          }}
-                        >
-                          <div style={{
-                            width: '100%',
-                            height: '100%',
-                            borderRadius: '8px',
-                            boxShadow: '0 20px 40px rgba(0,0,0,0.25)',
-                            background: darkMode ? 'rgba(31,41,55,0.96)' : 'rgba(255,255,255,0.96)',
-                            border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center'
-                          }}>
-                            <img
-                              src={editing.image_url}
-                              alt="Event preview"
-                              style={{
-                                maxWidth: 'calc(100% - 24px)',
-                                maxHeight: 'calc(100% - 24px)',
-                                objectFit: 'contain',
-                                borderRadius: '6px',
-                                display: 'block'
-                              }}
-                            />
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
                 </div>
               </div>
 
@@ -3359,6 +3442,7 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
                     return next
                   })
                 }}
+                onSuggestClick={applySuggestedKeywords}
                 existingKeywords={existingKeywords}
                 darkMode={darkMode}
                 editingId={editing?.id?.toString()}

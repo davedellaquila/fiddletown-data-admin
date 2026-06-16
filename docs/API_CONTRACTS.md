@@ -568,6 +568,19 @@ const { data: eventId } = await supabase.rpc('approve_event_candidate_as_draft',
 
 Atomic insert into `events` (`status = draft`) + candidate `status = approved`. See `migrations/004_event_candidates_admin_rls.sql`.
 
+### Approve and publish (RPC)
+
+```typescript
+const { data: eventId } = await supabase.rpc('approve_event_candidate_and_publish', {
+  p_candidate_id: candidateId,
+  p_keyword_names: ['wine', 'fiddletown'], // optional
+})
+```
+
+Atomic insert into `events` (`status = published`), keyword links, candidate `status = published`. Requires publish validation fields. See `migrations/006_approve_event_candidate_and_publish.sql`.
+
+Draft approvals can attach keywords client-side via `syncEventKeywords()` in `web/shared/utils/eventKeywords.ts`.
+
 **Helpers**: `web/shared/api/eventCandidateQueries.ts`
 
 ---

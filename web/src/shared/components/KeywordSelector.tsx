@@ -12,6 +12,8 @@ interface KeywordSelectorProps {
   existingKeywords?: string[]
   darkMode?: boolean
   editingId?: string
+  onSuggestClick?: () => void
+  suggestButtonLabel?: string
 }
 
 function filterSuggestions(
@@ -34,11 +36,14 @@ export default function KeywordSelector({
   onChange,
   existingKeywords = [],
   darkMode = false,
+  onSuggestClick,
+  suggestButtonLabel = 'Suggest keywords',
 }: KeywordSelectorProps) {
   const [inputValue, setInputValue] = useState('')
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [filteredSuggestions, setFilteredSuggestions] = useState<string[]>([])
   const [highlightedIndex, setHighlightedIndex] = useState(-1)
+  const [hoverIndex, setHoverIndex] = useState(-1)
 
   const inputRef = useRef<HTMLInputElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -62,6 +67,7 @@ export default function KeywordSelector({
     setFilteredSuggestions(filtered)
     setShowSuggestions(filtered.length > 0)
     setHighlight(-1)
+    setHoverIndex(-1)
   }, [inputValue, buildSuggestions])
 
   useEffect(() => {
@@ -141,9 +147,7 @@ export default function KeywordSelector({
       e.preventDefault()
       e.stopPropagation()
       const idx = highlightedIndexRef.current
-      const pick =
-        (idx >= 0 && suggestions[idx]) ||
-        (suggestions.length === 1 ? suggestions[0] : null)
+      const pick = idx >= 0 ? suggestions[idx] : null
       if (pick) {
         addKeyword(pick)
       } else if (query.trim()) {
@@ -157,9 +161,7 @@ export default function KeywordSelector({
       e.preventDefault()
       e.stopPropagation()
       const idx = highlightedIndexRef.current
-      const pick =
-        (idx >= 0 && suggestions[idx]) ||
-        (suggestions.length === 1 ? suggestions[0] : null)
+      const pick = idx >= 0 ? suggestions[idx] : null
       if (pick) {
         addKeyword(pick)
       } else {
@@ -182,6 +184,8 @@ export default function KeywordSelector({
   }
 
   const commonStyle = {
+    width: '100%',
+    boxSizing: 'border-box' as const,
     padding: '12px',
     border: darkMode ? '1px solid #4b5563' : '1px solid #d1d5db',
     borderRadius: '8px',
@@ -199,18 +203,44 @@ export default function KeywordSelector({
   }
 
   return (
-    <div>
-      <label
+    <div style={{ width: '100%' }}>
+      <div
         style={{
-          display: 'block',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '12px',
           marginBottom: '6px',
-          fontSize: '14px',
-          fontWeight: '500',
-          color: darkMode ? '#f9fafb' : '#374151',
         }}
       >
-        {label}
-      </label>
+        <label
+          style={{
+            display: 'block',
+            fontSize: '14px',
+            fontWeight: '500',
+            color: darkMode ? '#f9fafb' : '#374151',
+          }}
+        >
+          {label}
+        </label>
+        {onSuggestClick && (
+          <button
+            type="button"
+            className="btn"
+            onClick={onSuggestClick}
+            style={{
+              flexShrink: 0,
+              padding: '6px 12px',
+              fontSize: '13px',
+              background: darkMode ? '#374151' : '#eff6ff',
+              borderColor: darkMode ? '#4b5563' : '#bfdbfe',
+              color: darkMode ? '#f9fafb' : '#1d4ed8',
+            }}
+          >
+            {suggestButtonLabel}
+          </button>
+        )}
+      </div>
       <div ref={containerRef} style={{ position: 'relative' }}>
         {value.length > 0 && (
           <div
@@ -220,6 +250,8 @@ export default function KeywordSelector({
               gap: '6px',
               marginBottom: '8px',
               padding: '8px',
+              width: '100%',
+              boxSizing: 'border-box',
               background: darkMode ? '#1f2937' : '#f9fafb',
               borderRadius: '6px',
               minHeight: '40px',
@@ -266,7 +298,7 @@ export default function KeywordSelector({
           </div>
         )}
 
-        <div style={{ position: 'relative' }}>
+        <div style={{ position: 'relative', width: '100%' }}>
           <input
             ref={inputRef}
             type="text"
@@ -292,7 +324,7 @@ export default function KeywordSelector({
                 }
               }, 200)
             }}
-            placeholder="Type keyword and press Enter or Tab..."
+            placeholder="Type and press Enter to add; ↑↓ to pick a suggestion"
             style={commonStyle}
             onKeyDown={handleKeyDown}
           />
@@ -327,13 +359,14 @@ export default function KeywordSelector({
                   aria-selected={index === highlightedIndex}
                   onMouseDown={e => e.preventDefault()}
                   onClick={() => addKeyword(suggestion)}
-                  onMouseEnter={() => setHighlight(index)}
+                  onMouseEnter={() => setHoverIndex(index)}
+                  onMouseLeave={() => setHoverIndex(-1)}
                   style={{
                     width: '100%',
                     padding: '10px 12px',
                     textAlign: 'left',
                     background:
-                      index === highlightedIndex
+                      index === highlightedIndex || index === hoverIndex
                         ? darkMode
                           ? '#4b5563'
                           : '#dbeafe'

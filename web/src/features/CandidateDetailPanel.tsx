@@ -1,4 +1,5 @@
 import FormField from '../shared/components/FormField'
+import KeywordSelector from '../shared/components/KeywordSelector'
 import ModalDialog from '../shared/components/ModalDialog'
 import type { EventCandidate, CandidatePriority } from '../../shared/types/models'
 import { CANDIDATE_PRIORITY_VALUES } from '../../shared/types/index'
@@ -17,6 +18,12 @@ interface CandidateDetailPanelProps {
   busy: boolean
   showReject: boolean
   showApproveConfirm: boolean
+  showPublishConfirm: boolean
+  canPublish: boolean
+  keywords: string[]
+  existingKeywords: string[]
+  keywordsAutoSuggested?: boolean
+  onKeywordsChange: (keywords: string[]) => void
   onDraftChange: (draft: EventCandidate) => void
   onClose: () => void
   onSave: () => void
@@ -26,6 +33,9 @@ interface CandidateDetailPanelProps {
   onApproveClick: () => void
   onApproveConfirm: () => void
   onApproveCancel: () => void
+  onPublishClick: () => void
+  onPublishConfirm: () => void
+  onPublishCancel: () => void
 }
 
 function fieldWarn(missing: PublishFieldKey[], key: PublishFieldKey): boolean {
@@ -44,6 +54,12 @@ export default function CandidateDetailPanel({
   busy,
   showReject,
   showApproveConfirm,
+  showPublishConfirm,
+  canPublish,
+  keywords,
+  existingKeywords,
+  keywordsAutoSuggested = false,
+  onKeywordsChange,
   onDraftChange,
   onClose,
   onSave,
@@ -53,6 +69,9 @@ export default function CandidateDetailPanel({
   onApproveClick,
   onApproveConfirm,
   onApproveCancel,
+  onPublishClick,
+  onPublishConfirm,
+  onPublishCancel,
 }: CandidateDetailPanelProps) {
   const border = darkMode ? '#374151' : '#e5e7eb'
   const muted = darkMode ? '#9ca3af' : '#6b7280'
@@ -114,23 +133,36 @@ export default function CandidateDetailPanel({
         )}
 
         <div style={{ display: 'grid', gap: 12 }}>
-          <FormField darkMode={darkMode} label={warnLabel('Title', missing, 'title')} name="title" value={draft.title} onChange={(v) => set('title', String(v))} required />
-          <FormField darkMode={darkMode} label="Host organization" name="host_org" value={draft.host_org ?? ''} onChange={(v) => set('host_org', String(v) || null)} />
+          <FormField darkMode={darkMode} editingId={draft.id} label={warnLabel('Title', missing, 'title')} name="title" value={draft.title} onChange={(v) => set('title', String(v))} required />
+          <FormField darkMode={darkMode} editingId={draft.id} label="Host organization" name="host_org" value={draft.host_org ?? ''} onChange={(v) => set('host_org', String(v) || null)} />
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <FormField darkMode={darkMode} label={warnLabel('Start date', missing, 'start_date')} name="start_date" type="date" value={draft.start_date ?? ''} onChange={(v) => set('start_date', String(v) || null)} />
-            <FormField darkMode={darkMode} label="End date" name="end_date" type="date" value={draft.end_date ?? ''} onChange={(v) => set('end_date', String(v) || null)} />
+            <FormField darkMode={darkMode} editingId={draft.id} label={warnLabel('Start date', missing, 'start_date')} name="start_date" type="date" value={draft.start_date ?? ''} onChange={(v) => set('start_date', String(v) || null)} />
+            <FormField darkMode={darkMode} editingId={draft.id} label="End date" name="end_date" type="date" value={draft.end_date ?? ''} onChange={(v) => set('end_date', String(v) || null)} />
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <FormField darkMode={darkMode} label="Start time" name="start_time" type="text" value={draft.start_time?.slice(0, 5) ?? ''} onChange={(v) => set('start_time', String(v) || null)} placeholder="HH:MM" />
-            <FormField darkMode={darkMode} label="End time" name="end_time" type="text" value={draft.end_time?.slice(0, 5) ?? ''} onChange={(v) => set('end_time', String(v) || null)} placeholder="HH:MM" />
+            <FormField darkMode={darkMode} editingId={draft.id} label="Start time" name="start_time" type="text" value={draft.start_time?.slice(0, 5) ?? ''} onChange={(v) => set('start_time', String(v) || null)} placeholder="HH:MM" />
+            <FormField darkMode={darkMode} editingId={draft.id} label="End time" name="end_time" type="text" value={draft.end_time?.slice(0, 5) ?? ''} onChange={(v) => set('end_time', String(v) || null)} placeholder="HH:MM" />
           </div>
-          <FormField darkMode={darkMode} label={warnLabel('Location', missing, 'location')} name="location" value={draft.location ?? ''} onChange={(v) => set('location', String(v) || null)} />
-          <FormField darkMode={darkMode} label={warnLabel('Short description', missing, 'short_description')} name="short_description" type="textarea" value={draft.short_description ?? ''} onChange={(v) => set('short_description', String(v) || null)} minHeight="60px" />
-          <FormField darkMode={darkMode} label="Description" name="description" type="textarea" value={draft.description ?? ''} onChange={(v) => set('description', String(v) || null)} minHeight="100px" />
-          <FormField darkMode={darkMode} label="Image URL" name="image_url" type="url" value={draft.image_url ?? ''} onChange={(v) => set('image_url', String(v) || null)} />
-          <FormField darkMode={darkMode} label={warnLabel('Website URL', missing, 'website_url')} name="website_url" type="url" value={draft.website_url ?? ''} onChange={(v) => set('website_url', String(v) || null)} />
+          <FormField darkMode={darkMode} editingId={draft.id} label={warnLabel('Location', missing, 'location')} name="location" value={draft.location ?? ''} onChange={(v) => set('location', String(v) || null)} />
+          <FormField darkMode={darkMode} editingId={draft.id} label={warnLabel('Short description', missing, 'short_description')} name="short_description" type="textarea" value={draft.short_description ?? ''} onChange={(v) => set('short_description', String(v) || null)} minHeight="60px" />
+          <FormField darkMode={darkMode} editingId={draft.id} label="Description" name="description" type="textarea" value={draft.description ?? ''} onChange={(v) => set('description', String(v) || null)} minHeight="100px" />
+          <FormField darkMode={darkMode} editingId={draft.id} label="Image URL" name="image_url" type="url" value={draft.image_url ?? ''} onChange={(v) => set('image_url', String(v) || null)} />
+          <FormField darkMode={darkMode} editingId={draft.id} label={warnLabel('Website URL', missing, 'website_url')} name="website_url" type="url" value={draft.website_url ?? ''} onChange={(v) => set('website_url', String(v) || null)} />
+          <KeywordSelector
+            label="Keywords"
+            value={keywords}
+            onChange={onKeywordsChange}
+            existingKeywords={existingKeywords}
+            darkMode={darkMode}
+          />
+          {keywordsAutoSuggested && keywords.length > 0 && (
+            <p style={{ margin: '-4px 0 0', fontSize: 12, color: muted }}>
+              Suggested from title and description — edit before publishing if needed.
+            </p>
+          )}
           <FormField
             darkMode={darkMode}
+            editingId={draft.id}
             label="Priority"
             name="priority"
             type="select"
@@ -138,7 +170,7 @@ export default function CandidateDetailPanel({
             onChange={(v) => set('priority', String(v) as CandidatePriority)}
             options={CANDIDATE_PRIORITY_VALUES.map((p) => ({ value: p, label: p }))}
           />
-          <FormField darkMode={darkMode} label="Review notes" name="review_notes" type="textarea" value={draft.review_notes ?? ''} onChange={(v) => set('review_notes', String(v) || null)} minHeight="60px" />
+          <FormField darkMode={darkMode} editingId={draft.id} label="Review notes" name="review_notes" type="textarea" value={draft.review_notes ?? ''} onChange={(v) => set('review_notes', String(v) || null)} minHeight="60px" />
         </div>
 
         <section style={{ marginTop: 24, paddingTop: 16, borderTop: `1px solid ${border}` }}>
@@ -173,7 +205,17 @@ export default function CandidateDetailPanel({
           <>
             <button type="button" className="btn" onClick={onSave} disabled={busy}>Save</button>
             <button type="button" className="btn" onClick={onRejectClick} disabled={busy} style={{ borderColor: '#dc2626', color: '#dc2626' }}>Reject</button>
-            <button type="button" className="btn" onClick={onApproveClick} disabled={busy} style={{ marginLeft: 'auto', background: '#16a34a', color: '#fff', borderColor: '#16a34a' }}>Approve as Draft</button>
+            <button type="button" className="btn" onClick={onApproveClick} disabled={busy} style={{ marginLeft: 'auto', background: '#2563eb', color: '#fff', borderColor: '#2563eb' }}>Approve as Draft</button>
+            <button
+              type="button"
+              className="btn"
+              onClick={onPublishClick}
+              disabled={busy || !canPublish}
+              title={canPublish ? 'Create a published event on the public site' : 'Fill all required publish fields first'}
+              style={{ background: canPublish ? '#16a34a' : undefined, color: canPublish ? '#fff' : undefined, borderColor: canPublish ? '#16a34a' : undefined }}
+            >
+              Approve & Publish
+            </button>
           </>
         ) : (
           <>
@@ -184,15 +226,35 @@ export default function CandidateDetailPanel({
         )}
       </div>
 
+      <ModalDialog isOpen={showPublishConfirm} onClose={onPublishCancel} title="Approve and Publish" busy={busy}>
+        <p style={{ marginTop: 0 }}>
+          Creates a <strong>published</strong> event — it will appear on the public site immediately.
+        </p>
+        <p style={{ fontSize: 14, color: muted }}>Slug preview: <code>{slugPreview}</code></p>
+        {keywords.length > 0 && (
+          <p style={{ fontSize: 14, color: muted }}>
+            Keywords: {keywords.join(', ')}
+          </p>
+        )}
+        {linkUrl && <p style={{ fontSize: 13 }}>Link: <a href={linkUrl} target="_blank" rel="noopener noreferrer">{linkUrl}</a></p>}
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 16 }}>
+          <button type="button" className="btn" onClick={onPublishCancel} disabled={busy}>Cancel</button>
+          <button type="button" className="btn" onClick={onPublishConfirm} disabled={busy} style={{ background: '#16a34a', color: '#fff', borderColor: '#16a34a' }}>Publish event</button>
+        </div>
+      </ModalDialog>
+
       <ModalDialog isOpen={showApproveConfirm} onClose={onApproveCancel} title="Approve as Draft" busy={busy}>
         <p style={{ marginTop: 0 }}>
           Creates a <strong>draft</strong> event only — it will not appear on the public site until published in Events.
         </p>
         <p style={{ fontSize: 14, color: muted }}>Slug preview: <code>{slugPreview}</code></p>
+        {keywords.length > 0 && (
+          <p style={{ fontSize: 14, color: muted }}>Keywords: {keywords.join(', ')}</p>
+        )}
         {linkUrl && <p style={{ fontSize: 13 }}>Link: <a href={linkUrl} target="_blank" rel="noopener noreferrer">{linkUrl}</a></p>}
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 16 }}>
           <button type="button" className="btn" onClick={onApproveCancel} disabled={busy}>Cancel</button>
-          <button type="button" className="btn" onClick={onApproveConfirm} disabled={busy} style={{ background: '#16a34a', color: '#fff', borderColor: '#16a34a' }}>Create draft event</button>
+          <button type="button" className="btn" onClick={onApproveConfirm} disabled={busy} style={{ background: '#2563eb', color: '#fff', borderColor: '#2563eb' }}>Create draft event</button>
         </div>
       </ModalDialog>
     </div>

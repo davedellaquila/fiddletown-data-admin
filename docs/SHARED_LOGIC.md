@@ -55,6 +55,31 @@ This document defines the business logic contracts that both the web (TypeScript
 - TypeScript preview: `web/shared/utils/eventSlug.ts` → `generateEventSlug()`
 - Database: `public.approve_event_candidate_as_draft(uuid)`
 
+### Candidate approve and publish (Event Triage M2)
+
+**Contract**: Publish requires title, start_date, location, short_description, and website_url (or source_url fallback). Keywords are optional but set in the triage UI before publish.
+
+**Implementation**:
+- Client validation: `getMissingPublishFields()` in `web/shared/utils/candidatePublishFields.ts`
+- Database: `public.approve_event_candidate_and_publish(uuid, text[])` (`migrations/006_approve_event_candidate_and_publish.sql`)
+- Draft keyword attach: `syncEventKeywords()` in `web/shared/utils/eventKeywords.ts`
+
+### Candidate keyword suggestions (Event Triage)
+
+**Contract**: Suggest keywords by matching the organization's keyword catalog against normalized candidate text (title, descriptions, location, host, source, raw text). Longer keyword names are preferred over shorter overlaps. Multi-word keywords also match when all significant tokens appear in the text. Common directory-style titles (e.g. "Farmers Market", "Food & Wine") map to category hints.
+
+**Implementation**:
+- TypeScript: `suggestCandidateKeywords()` in `web/shared/utils/suggestCandidateKeywords.ts`
+- UI auto-fills suggestions when opening a candidate until the user edits keywords
+
+### Event keyword suggestions (Events edit)
+
+**Contract**: Same matching rules as candidates, using event `name`, descriptions, `location`, `host_org`, `website_url`, and `ocr_text`.
+
+**Implementation**:
+- TypeScript: `suggestEventKeywords()` in `web/shared/utils/suggestCandidateKeywords.ts`
+- UI: **Suggest keywords** button on the event edit dialog replaces keywords with suggestions from the current form values (save to persist)
+
 ---
 
 ## Date Formatting
