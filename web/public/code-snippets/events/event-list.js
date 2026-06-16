@@ -1297,7 +1297,7 @@
     dateControlsHTML += '<div class="ssa-date-inputs-row">';
     dateControlsHTML += `<label><span>From</span><input type="date" class="ssa-date-input ssa-from-date-input" id="ssa-from-date" value="${fromDate || ''}"></label>`;
     dateControlsHTML += `<label><span>To</span><input type="date" class="ssa-date-input ssa-to-date-input" id="ssa-to-date" value="${toDate || ''}" placeholder="Open"></label>`;
-    dateControlsHTML += `<button class="ssa-date-clear-btn ssa-clear-to-date" title="Clear To date" aria-label="Clear To date"></button>`;
+    dateControlsHTML += `<button type="button" class="ssa-date-clear-btn ssa-clear-to-date" title="Clear To date" aria-label="Clear To date"></button>`;
     dateControlsHTML += '</div>';
     dateControlsHTML += '</div>';
     dateControlsHTML += '</section>';
@@ -1395,6 +1395,12 @@
   }
 
   function attachEventHandlers(mount, rows, state) {
+    const getState = () => mount._currentState || state
+    const commitState = (nextState) => {
+      mount._currentState = nextState
+      return nextState
+    }
+
     mount.querySelectorAll('.ssa-filter-menu').forEach(menu => {
       menu.addEventListener('toggle', function() {
         if (!this.open) return;
@@ -1462,15 +1468,17 @@
     mount.querySelectorAll('.ssa-active-filter-chip').forEach(chip => {
       chip.addEventListener('click', async function() {
         const chipType = this.dataset.chipType;
-        let newState = { ...state };
+        const currentState = getState();
+        let newState = { ...currentState };
         if (chipType === 'keyword') {
           const keyword = (this.dataset.keyword || '').toLowerCase().trim();
-          newState.selectedKeywords = (state.selectedKeywords || []).filter(k => k !== keyword);
+          newState.selectedKeywords = (currentState.selectedKeywords || []).filter(k => k !== keyword);
         } else if (chipType === 'from') {
           newState.fromDate = null;
         } else if (chipType === 'to') {
           newState.toDate = null;
         }
+        newState = commitState(newState);
         if ((chipType === 'from' || chipType === 'to') && mount._widgetOpts) {
           await reloadEvents(mount, newState, mount._widgetOpts);
         } else {
@@ -1490,8 +1498,7 @@
     fromInputs.forEach(input => {
       input.addEventListener('change', async function() {
         const newFromDate = this.value || null;
-        const newState = { ...state, fromDate: newFromDate };
-        setFromInputs(newFromDate);
+        const newState = commitState({ ...getState(), fromDate: newFromDate });
         // Reload events if date filter changed
         if (mount._widgetOpts) {
           reloadEvents(mount, newState, mount._widgetOpts);
@@ -1505,8 +1512,7 @@
     toInputs.forEach(input => {
       input.addEventListener('change', async function() {
         const newToDate = this.value || null;
-        const newState = { ...state, toDate: newToDate };
-        setToInputs(newToDate);
+        const newState = commitState({ ...getState(), toDate: newToDate });
         // Reload events if date filter changed
         if (mount._widgetOpts) {
           reloadEvents(mount, newState, mount._widgetOpts);
@@ -1518,11 +1524,12 @@
     });
     
     mount.querySelectorAll('.ssa-clear-to-date').forEach(clearToDateBtn => {
-      clearToDateBtn.addEventListener('click', async function() {
-        const newState = { ...state, toDate: null };
-        setToInputs('');
+      clearToDateBtn.addEventListener('click', async function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const newState = commitState({ ...getState(), toDate: null });
         if (mount._widgetOpts) {
-          reloadEvents(mount, newState, mount._widgetOpts);
+          await reloadEvents(mount, newState, mount._widgetOpts);
         } else {
           await renderEvents(mount, rows, newState);
         }
@@ -1530,12 +1537,12 @@
     });
     
     mount.querySelectorAll('.ssa-clear-dates').forEach(clearDatesBtn => {
-      clearDatesBtn.addEventListener('click', async function() {
-        const newState = { ...state, toDate: null, selectedKeywords: [] };
-        setToInputs('');
+      clearDatesBtn.addEventListener('click', async function(e) {
+        e.preventDefault();
+        const newState = commitState({ ...getState(), toDate: null, selectedKeywords: [] });
         // Reload events to show all
         if (mount._widgetOpts) {
-          reloadEvents(mount, newState, mount._widgetOpts);
+          await reloadEvents(mount, newState, mount._widgetOpts);
         } else {
           // Fallback: filter client-side if opts not available
           await renderEvents(mount, rows, newState);
