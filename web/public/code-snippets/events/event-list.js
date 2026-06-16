@@ -2345,8 +2345,9 @@
                 keywordTag.addEventListener('mouseenter', function() {
                   if (!this.classList.contains('ssa-keyword-tag-active')) {
                     if (isDarkMode) {
-                      this.style.background = '#4b5563';
-                      this.style.borderColor = '#6b7280';
+                      this.style.background = 'transparent';
+                      this.style.borderColor = '#ffffff';
+                      this.style.color = '#ffffff';
                     } else {
                       this.style.background = '#f9fafb';
                       this.style.borderColor = '#9ca3af';
@@ -2357,6 +2358,7 @@
                   if (!this.classList.contains('ssa-keyword-tag-active')) {
                     this.style.background = '';
                     this.style.borderColor = '';
+                    this.style.color = '';
                   }
                 });
                 
@@ -3794,6 +3796,8 @@
       body.dark-mode h3.ssa-day-header,body.dark-mode h3.ssa-day-header *{color:#f9fafb!important}
       body.dark-mode .ssa-month-header{color:#f9fafb!important}
       body.dark-mode .ssa-calendar-month-header{color:#f9fafb!important}
+      body.dark-mode #events-list .ssa-keyword-tag-clickable,body.dark-mode #events-list .ssa-tag-clickable,html.dark-mode #events-list .ssa-keyword-tag-clickable,html.dark-mode #events-list .ssa-tag-clickable{color:#ffffff!important;border-color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;background:transparent!important}
+      body.dark-mode #events-list .ssa-event-keywords .ssa-keyword-tag-clickable,body.dark-mode #events-list .ssa-keywords .ssa-tag-clickable,html.dark-mode #events-list .ssa-event-keywords .ssa-keyword-tag-clickable,html.dark-mode #events-list .ssa-keywords .ssa-tag-clickable{color:#ffffff!important;border-color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;background:transparent!important}
     `;
     document.head.appendChild(css);
     
@@ -3861,8 +3865,10 @@
       html.dark-mode h3.ssa-day-header *,html body.dark-mode h3.ssa-day-header *,body.dark-mode h3.ssa-day-header *{color:#f9fafb!important}
       html.dark-mode .ssa-month-header,html body.dark-mode .ssa-month-header,body.dark-mode .ssa-month-header{color:#f9fafb!important}
       html.dark-mode .ssa-calendar-month-header,html body.dark-mode .ssa-calendar-month-header,body.dark-mode .ssa-calendar-month-header{color:#f9fafb!important}
+      html.dark-mode #events-list .ssa-keyword-tag-clickable,html.dark-mode #events-list .ssa-tag-clickable,html body.dark-mode #events-list .ssa-keyword-tag-clickable,html body.dark-mode #events-list .ssa-tag-clickable,body.dark-mode #events-list .ssa-keyword-tag-clickable,body.dark-mode #events-list .ssa-tag-clickable{color:#ffffff!important;border-color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;background:transparent!important}
+      html.dark-mode #events-list .ssa-event-keywords .ssa-keyword-tag-clickable,html.dark-mode #events-list .ssa-keywords .ssa-tag-clickable,html body.dark-mode #events-list .ssa-event-keywords .ssa-keyword-tag-clickable,html body.dark-mode #events-list .ssa-keywords .ssa-tag-clickable,body.dark-mode #events-list .ssa-event-keywords .ssa-keyword-tag-clickable,body.dark-mode #events-list .ssa-keywords .ssa-tag-clickable{color:#ffffff!important;border-color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;background:transparent!important}
       html.dark-mode div:not(.sqs-block):not(.sqs-block-content):not(.sqs-block-html):not(.sqs-block-code):not(.sqs-block-markdown):not(.sqs-block-embed),html body.dark-mode div:not(.sqs-block):not(.sqs-block-content):not(.sqs-block-html):not(.sqs-block-code):not(.sqs-block-markdown):not(.sqs-block-embed),body.dark-mode div:not(.sqs-block):not(.sqs-block-content):not(.sqs-block-html):not(.sqs-block-code):not(.sqs-block-markdown):not(.sqs-block-embed){background-color:inherit!important}
-      html.dark-mode *,html body.dark-mode *{color:inherit}
+      html.dark-mode *:not(.ssa-keyword-tag-clickable):not(.ssa-tag-clickable),html body.dark-mode *:not(.ssa-keyword-tag-clickable):not(.ssa-tag-clickable){color:inherit}
     `;
     document.head.appendChild(sqsDarkModeCSS);
 
@@ -4012,7 +4018,10 @@
       #events-list .ssa-event-meta-item strong{display:none}
       #events-list .ssa-location{color:inherit!important;text-decoration:none}
       #events-list .ssa-event-keywords,#events-list .ssa-keywords{margin:16px 0 0;display:flex;gap:8px;flex-wrap:wrap}
-      #events-list .ssa-keyword-tag-clickable,#events-list .ssa-tag-clickable{height:42px;padding:0 18px;display:inline-flex;align-items:center;border:1px solid var(--ssa-border-soft)!important;border-radius:10px;background:var(--ssa-surface)!important;color:color-mix(in srgb,var(--ssa-muted) 60%,transparent)!important;font-size:18px;font-weight:700}
+      #events-list .ssa-keyword-tag-clickable,#events-list .ssa-tag-clickable{height:42px;padding:0 18px;display:inline-flex;align-items:center;border:1px solid var(--ssa-text)!important;border-radius:10px;background:transparent!important;color:var(--ssa-text)!important;font-size:18px;font-weight:700;cursor:pointer}
+      html.dark-mode #events-list .ssa-keyword-tag-clickable,html.dark-mode #events-list .ssa-tag-clickable,html body.dark-mode #events-list .ssa-keyword-tag-clickable,html body.dark-mode #events-list .ssa-tag-clickable,body.dark-mode #events-list .ssa-keyword-tag-clickable,body.dark-mode #events-list .ssa-tag-clickable,body.dark-mode #events-list .ssa-event-keywords .ssa-keyword-tag-clickable,body.dark-mode #events-list .ssa-keywords .ssa-tag-clickable{color:#ffffff!important;border-color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;background:transparent!important}
+      #events-list .ssa-keyword-tag-clickable:hover,#events-list .ssa-tag-clickable:hover{border-color:var(--ssa-accent)!important;color:var(--ssa-accent)!important;-webkit-text-fill-color:var(--ssa-accent)!important;background:color-mix(in srgb,var(--ssa-accent) 10%,transparent)!important}
+      #events-list .ssa-keyword-tag-clickable.ssa-keyword-tag-active,#events-list .ssa-tag-clickable.ssa-tag-active{border-color:var(--ssa-accent)!important;color:var(--ssa-accent)!important;-webkit-text-fill-color:var(--ssa-accent)!important;background:color-mix(in srgb,var(--ssa-accent) 14%,transparent)!important}
       #events-list .ssa-grid{max-width:1600px;margin:0 auto 34px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px}
       #events-list .ssa-card{min-height:440px;display:flex;align-items:stretch;background:var(--ssa-surface)!important;border:1px solid var(--ssa-border-soft)!important;border-radius:10px;box-shadow:none!important;overflow:hidden}
       #events-list .ssa-card::before{display:none}
@@ -4242,6 +4251,33 @@
       }
     `;
     document.head.appendChild(designCSS);
+
+    const keywordContrastCSS = document.createElement('style');
+    keywordContrastCSS.id = 'ssa-event-keyword-contrast';
+    keywordContrastCSS.textContent = `
+      html.dark-mode #events-list .ssa-event-keywords .ssa-keyword-tag-clickable,
+      html.dark-mode #events-list .ssa-keywords .ssa-tag-clickable,
+      html body.dark-mode #events-list .ssa-event-keywords .ssa-keyword-tag-clickable,
+      html body.dark-mode #events-list .ssa-keywords .ssa-tag-clickable,
+      body.dark-mode #events-list .ssa-event-keywords .ssa-keyword-tag-clickable,
+      body.dark-mode #events-list .ssa-keywords .ssa-tag-clickable,
+      body.dark-mode #events-list .ssa-keyword-tag-clickable,
+      body.dark-mode #events-list .ssa-tag-clickable {
+        color: #ffffff !important;
+        border-color: #ffffff !important;
+        -webkit-text-fill-color: #ffffff !important;
+        background: transparent !important;
+      }
+      html.dark-mode #events-list .ssa-keyword-tag-clickable.ssa-keyword-tag-active,
+      html.dark-mode #events-list .ssa-tag-clickable.ssa-tag-active,
+      body.dark-mode #events-list .ssa-keyword-tag-clickable.ssa-keyword-tag-active,
+      body.dark-mode #events-list .ssa-tag-clickable.ssa-tag-active {
+        color: var(--ssa-accent, #f07961) !important;
+        border-color: var(--ssa-accent, #f07961) !important;
+        -webkit-text-fill-color: var(--ssa-accent, #f07961) !important;
+      }
+    `;
+    document.head.appendChild(keywordContrastCSS);
   }
 
   // Helper function to reload events when filters change
