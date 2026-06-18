@@ -57,9 +57,10 @@
 
   async function fetchEvents({ url, key, from = null, to = null, limit = 200 }) {
       const api = new URL(url + '/rest/v1/events');
-      api.searchParams.set('select','id,name,slug,host_org,start_date,end_date,start_time,end_time,location,website_url,image_url,recurrence,sort_order,description,is_signature_event');
+      api.searchParams.set('select','id,name,slug,host_org,start_date,end_date,start_time,end_time,location,website_url,image_url,recurrence,sort_order,description,is_signature_event,status,created_at');
       api.searchParams.set('order','start_date.asc,name.asc');
       api.searchParams.set('limit', String(limit));
+      api.searchParams.set('status', 'eq.published');
 
 	  // Show upcoming events if FROM is set.
 	  // Include rows where:
@@ -195,7 +196,7 @@
         }
       }
       
-      return events;
+      return dedupeEventsBySchedule(events);
     }
 
   function fmtRange(s, e){
@@ -476,6 +477,136 @@
       console.error('Error fetching all keywords:', e);
       return [];
     }
+  }
+
+  /** Decode HTML entities from scraped titles (e.g. &#8211; → –). */
+  function decodeHtmlEntities(text) {
+    if (!text || text.indexOf('&') === -1) return text || '';
+    const el = document.createElement('textarea');
+    el.innerHTML = text;
+    return el.value;
+  }
+
+  /**
+   * Normalize title for comparison: HTML entities, punctuation, spacing.
+   * Treats "Rombauer Vineyards - Dinner" and "Rombauer Vineyards; Dinner" as equal.
+   */
+  function normalizeEventName(name) {
+    return decodeHtmlEntities(name || '')
+      .toLowerCase()
+      .replace(/[''`]/g, '')
+      .replace(/[^a-z0-9]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  /** Normalize listing URL (ignore www, trailing slash, query/hash). */
+  function normalizeEventUrl(raw) {
+    const s = (raw || '').trim();
+    if (!s) return '';
+    try {
+      const u = new URL(/^https?:\/\//i.test(s) ? s : `https://${s}`);
+      const host = u.hostname.replace(/^www\./i, '').toLowerCase();
+      const path = u.pathname.replace(/\/+$/, '') || '';
+      return `${host}${path}`.toLowerCase();
+    } catch {
+      return s
+        .toLowerCase()
+        .replace(/^https?:\/\//, '')
+        .replace(/^www\./, '')
+        .replace(/\/+$/, '')
+        .split(/[?#]/)[0];
+    }
+  }
+
+  function normalizeEventTime(value) {
+    if (!value) return '';
+    const part = String(value).trim().split(/[T\s]/).pop() || '';
+    const match = part.match(/^(\d{1,2}):(\d{2})/);
+    if (!match) return part.slice(0, 5);
+    return `${match[1].padStart(2, '0')}:${match[2]}`;
+  }
+
+  function scheduleFingerprint(ev) {
+    const startDate = normalizeDateString(ev.start_date) || '';
+    const endDate = normalizeDateString(ev.end_date) || startDate;
+    return [
+      startDate,
+      endDate,
+      normalizeEventTime(ev.start_time),
+      normalizeEventTime(ev.end_time),
+    ].join('|');
+  }
+
+  /**
+   * Fingerprint near-duplicate events — common when the same listing is published
+   * multiple times with scraped title variants (- vs ; vs |, HTML entities, etc.).
+   *
+   * Primary: same website URL + same date/time (title ignored when URL present).
+   * Fallback: normalized title + schedule + location when no URL.
+   */
+  function dedupeFingerprint(ev) {
+    const schedule = scheduleFingerprint(ev);
+    const url = normalizeEventUrl(ev.website_url);
+    if (url) return `url:${url}|${schedule}`;
+    return `name:${normalizeEventName(ev.name)}|${schedule}|${normalizeEventName(ev.location || '')}`;
+  }
+
+  function unionEventKeywordsInto(target, source) {
+    const merged = new Set(getEventKeywords(target));
+    getEventKeywords(source).forEach((kw) => merged.add(kw));
+    target.keywords = Array.from(merged).sort();
+  }
+
+  function scoreDuplicateEvent(ev) {
+    return {
+      kwCount: getEventKeywords(ev).length,
+      descLen: (ev.description || '').length + (ev.short_description || '').length,
+      cleanName: (ev.name || '').includes('&') ? 0 : 1,
+    };
+  }
+
+  function pickBestDuplicateEvent(group) {
+    const ranked = [...group].sort((a, b) => {
+      const sa = scoreDuplicateEvent(a);
+      const sb = scoreDuplicateEvent(b);
+      if (sb.kwCount !== sa.kwCount) return sb.kwCount - sa.kwCount;
+      if (sb.descLen !== sa.descLen) return sb.descLen - sa.descLen;
+      if (sb.cleanName !== sa.cleanName) return sb.cleanName - sa.cleanName;
+      return String(a.created_at || a.id).localeCompare(String(b.created_at || b.id));
+    });
+    const best = { ...ranked[0] };
+    ranked.slice(1).forEach((other) => unionEventKeywordsInto(best, other));
+    return best;
+  }
+
+  /**
+   * Collapse duplicate published events. Keeps the richest row (most keywords,
+   * then longest description) and merges keywords from dropped duplicates.
+   */
+  function dedupeEventsBySchedule(events) {
+    const groups = new Map();
+    (events || []).forEach((ev) => {
+      const key = dedupeFingerprint(ev);
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(ev);
+    });
+
+    const deduped = [];
+    let collapsed = 0;
+    groups.forEach((group) => {
+      if (group.length === 1) {
+        deduped.push(group[0]);
+        return;
+      }
+      collapsed += group.length - 1;
+      deduped.push(pickBestDuplicateEvent(group));
+    });
+
+    if (collapsed > 0) {
+      console.debug(`dedupeEventsBySchedule: collapsed ${collapsed} near-duplicate event(s)`);
+    }
+    return deduped;
   }
 
   function filterEventsByKeywords(events, selectedKeywords) {
