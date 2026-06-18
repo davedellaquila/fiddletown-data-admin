@@ -4394,7 +4394,7 @@
         to: null,    // Explicitly null - fetch all events
         limit: opts.limit || 200
       };
-      const key = `ssa_events:${opts.url}:all:${opts.limit||200}`;
+      const key = `ssa_events_v20260616:${opts.url}:all:${opts.limit||200}`;
       const rows = await fetchEvents(fetchOpts);
       mount._allRows = rows; // Store for fallback
       sessionStorage.setItem(key, JSON.stringify(rows));
@@ -4441,7 +4441,7 @@
         from: state.fromDate || null,
         to: state.toDate || null
       };
-      const key = `ssa_events:${opts.url}:${fetchOpts.from || 'all'}:${fetchOpts.to || ''}:${opts.limit||200}`;
+      const key = `ssa_events_v20260616:${opts.url}:${fetchOpts.from || 'all'}:${fetchOpts.to || ''}:${opts.limit||200}`;
       const cached = sessionStorage.getItem(key);
       if (cached) {
         const cachedData = JSON.parse(cached);
@@ -4548,7 +4548,7 @@
           from: state.fromDate || null,
           to: state.toDate || null
         };
-        const key = `ssa_events:${opts.url}:${fetchOpts.from || 'all'}:${fetchOpts.to || ''}:${opts.limit||200}`;
+        const key = `ssa_events_v20260616:${opts.url}:${fetchOpts.from || 'all'}:${fetchOpts.to || ''}:${opts.limit||200}`;
         sessionStorage.removeItem(key);
         
         try {
