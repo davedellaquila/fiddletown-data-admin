@@ -98,7 +98,7 @@ The anon key is intentionally public (browser-side). Access is enforced by Supab
    ```
 7. Hard-refresh the live Squarespace page (visitors may need cache bust; the URL is versioned by deploy time).
 
-**Hosting:** GitHub Pages (`davedellaquila.github.io/fiddletown-data-admin`). Vercel is not the active path for this widget.
+**Hosting:** GitHub Pages (`davedellaquila.github.io/fiddletown-data-admin`) for the **widget script only**. The SSA Admin SPA is on **Vercel** (`https://ssa-admin-puce.vercel.app`). These are separate deploy paths.
 
 ---
 

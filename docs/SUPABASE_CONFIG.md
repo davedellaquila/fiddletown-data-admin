@@ -43,6 +43,17 @@ npm run dev
 
 **Note**: The `.env.local` file is already in `.gitignore`, so your credentials won't be committed to git.
 
+### Vercel (production admin app)
+
+The web admin SPA is hosted on Vercel. Set the same `VITE_*` variables in the Vercel project dashboard (Production + Preview). See `web/README.md` for URLs and deploy commands.
+
+**Supabase redirect URLs** — add your Vercel deployment URL(s) under **Authentication** → **URL Configuration** so magic links work in production:
+
+- `https://ssa-admin-puce.vercel.app`
+- Preview pattern: `https://ssa-admin-*.vercel.app`
+
+Do not set `VITE_DEV_AUTH_EMAIL` / `VITE_DEV_AUTH_PASSWORD` on Vercel.
+
 ---
 
 ## iOS Application

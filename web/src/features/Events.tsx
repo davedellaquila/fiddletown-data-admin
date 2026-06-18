@@ -1947,11 +1947,13 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
               />
             </label>
             
-            <label style={{ color: darkMode ? '#f9fafb' : '#374151', whiteSpace: 'nowrap' }}>
-              To <input 
-                type="date" 
-                value={to} 
-                onChange={e=>setTo(e.target.value)} 
+            <label style={{ color: darkMode ? '#f9fafb' : '#374151', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              To{' '}
+              <input
+                key={`events-to-date-${to || 'empty'}`}
+                type="date"
+                value={to}
+                onChange={e => setTo(e.target.value)}
                 style={{
                   background: darkMode ? '#374151' : '#ffffff',
                   border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`,
@@ -1960,6 +1962,25 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
                   padding: '4px'
                 }}
               />
+              {to ? (
+                <button
+                  type="button"
+                  onClick={() => setTo('')}
+                  title="Clear To date"
+                  aria-label="Clear To date"
+                  style={{
+                    border: 'none',
+                    background: 'transparent',
+                    color: darkMode ? '#d1d5db' : '#6b7280',
+                    cursor: 'pointer',
+                    padding: '2px 4px',
+                    lineHeight: 1,
+                    fontSize: '18px',
+                  }}
+                >
+                  ×
+                </button>
+              ) : null}
             </label>
           </div>
 

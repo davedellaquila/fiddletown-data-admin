@@ -24,6 +24,8 @@ SSA Admin is a dual-platform admin application for managing Sierra Sacramento Va
 - **Build Tool**: Vite
 - **Backend**: Supabase (PostgreSQL + PostgREST)
 - **Styling**: CSS (no framework)
+- **Admin hosting (production)**: [Vercel](https://ssa-admin-puce.vercel.app) — project `ssa-admin`, root directory `web/`
+- **Public events widget**: GitHub Pages (see `docs/EVENTS_PUBLISHING.md`) — not served from Vercel
 
 ### iOS
 - **Framework**: SwiftUI
@@ -99,6 +101,25 @@ SSA Admin is a dual-platform admin application for managing Sierra Sacramento Va
 - Development mode bypasses auth (see `docs/DEVELOPMENT_AUTH.md`)
 - Production requires Supabase magic link authentication
 - Never mock auth in dev/prod code
+- **Vercel production**: magic link redirect uses `window.location.origin` — add Vercel URLs to Supabase Auth redirect allowlist (see `docs/SUPABASE_CONFIG.md`)
+
+## Deployment (web admin)
+
+| Environment | URL / command | Notes |
+|-------------|---------------|-------|
+| **Local dev** | `cd web && npm run dev` → `http://localhost:5173` | Optional `VITE_DEV_AUTH_*` in `.env.local` |
+| **Vercel production** | https://ssa-admin-puce.vercel.app | Linked project in `web/.vercel/project.json` (gitignored) |
+| **GitHub Pages** | `davedellaquila.github.io/fiddletown-data-admin` | Still builds on `main` push when `web/**` changes; hosts **widget JS**, not the admin SPA |
+
+**Vercel project**: `ssa-admin` (`prj_EXNK7wWJbgHeD8lVxm22QTSQqBuc`), team `dave-dellaquilas-projects`.
+
+**Vercel build** (from `web/`): `npm run build` → output `dist/`, Node 24.x.
+
+**Vercel env vars** (Production + Preview): `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`. Do **not** set `VITE_DEV_AUTH_*` on Vercel.
+
+**Deploy**: Git push to `main` auto-deploys via Vercel (`davedellaquila/fiddletown-data-admin`, root `web/`). Manual: from **repo root**, `VERCEL_ORG_ID=team_gVHLPggyEPW7IG46EqMBCeRl VERCEL_PROJECT_ID=prj_EXNK7wWJbgHeD8lVxm22QTSQqBuc npx vercel --prod --yes`.
+
+**Dual publish note**: Pushing `web/**` to `main` still triggers GitHub Pages (`deploy-pages.yml`) for the public widget. Admin app changes on Vercel are a separate deploy path unless Git integration is connected.
 
 ## Project Goals
 

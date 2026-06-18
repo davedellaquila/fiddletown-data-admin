@@ -20,6 +20,7 @@ Master index for all project documentation. **Maintained by PM** — see [DOCUME
 | Doc | Status | Description |
 |-----|--------|-------------|
 | [features/event-candidate-review.md](./features/event-candidate-review.md) | Review | Event candidate queue, edit, reject, approve-as-draft (M1) |
+| [features/event-admin-review-spec.md](./features/event-admin-review-spec.md) | Imported | Original Sports Car Adventures admin review spec imported from the curation workspace |
 | [features/README.md](./features/README.md) | — | Feature spec workflow and naming |
 | [features/_TEMPLATE.md](./features/_TEMPLATE.md) | — | Template for new feature specs |
 
@@ -82,6 +83,7 @@ See [future-enhancements/README.md](./future-enhancements/README.md) for registr
 | Doc | Purpose |
 |-----|---------|
 | [EVENTS_PUBLISHING.md](./EVENTS_PUBLISHING.md) | Public events widget — Squarespace loader, GitHub Pages, Supabase |
+| [handoffs/sports-car-events-publishing-handoff-2026-06-15.md](./handoffs/sports-car-events-publishing-handoff-2026-06-15.md) | Imported publishing handoff from the Sports Car Adventures curation workspace |
 | [SUPABASE_CONFIG.md](./SUPABASE_CONFIG.md) | Supabase setup |
 | [DEVELOPMENT_AUTH.md](./DEVELOPMENT_AUTH.md) | Dev auth bypass |
 | [MIGRATION_GUIDE.md](./MIGRATION_GUIDE.md) | Database migrations |

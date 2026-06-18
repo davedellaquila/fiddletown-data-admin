@@ -5,7 +5,6 @@ import type { EventCandidate, CandidatePriority } from '../../shared/types/model
 import { CANDIDATE_PRIORITY_VALUES } from '../../shared/types/index'
 import {
   getMissingPublishFields,
-  publishFieldLabel,
   type PublishFieldKey,
 } from '../../shared/utils/candidatePublishFields'
 import { generateEventSlug } from '../../shared/utils/eventSlug'
@@ -44,6 +43,18 @@ function fieldWarn(missing: PublishFieldKey[], key: PublishFieldKey): boolean {
 
 function warnLabel(label: string, missing: PublishFieldKey[], key: PublishFieldKey): string {
   return fieldWarn(missing, key) ? `${label} ⚠` : label
+}
+
+const PUBLISH_FIELD_HINT = 'Needed before publish'
+
+function openExternalUrl(url: string | null | undefined) {
+  const trimmed = url?.trim()
+  if (!trimmed) return
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+    window.open(trimmed, '_blank', 'noopener,noreferrer')
+  } else {
+    window.open(`https://${trimmed}`, '_blank', 'noopener,noreferrer')
+  }
 }
 
 export default function CandidateDetailPanel({
@@ -133,21 +144,34 @@ export default function CandidateDetailPanel({
         )}
 
         <div style={{ display: 'grid', gap: 12 }}>
-          <FormField darkMode={darkMode} editingId={draft.id} label={warnLabel('Title', missing, 'title')} name="title" value={draft.title} onChange={(v) => set('title', String(v))} required />
+          <FormField darkMode={darkMode} editingId={draft.id} label={warnLabel('Title', missing, 'title')} name="title" value={draft.title} onChange={(v) => set('title', String(v))} required warning={fieldWarn(missing, 'title')} warningHint={PUBLISH_FIELD_HINT} />
           <FormField darkMode={darkMode} editingId={draft.id} label="Host organization" name="host_org" value={draft.host_org ?? ''} onChange={(v) => set('host_org', String(v) || null)} />
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <FormField darkMode={darkMode} editingId={draft.id} label={warnLabel('Start date', missing, 'start_date')} name="start_date" type="date" value={draft.start_date ?? ''} onChange={(v) => set('start_date', String(v) || null)} />
+            <FormField darkMode={darkMode} editingId={draft.id} label={warnLabel('Start date', missing, 'start_date')} name="start_date" type="date" value={draft.start_date ?? ''} onChange={(v) => set('start_date', String(v) || null)} warning={fieldWarn(missing, 'start_date')} warningHint={PUBLISH_FIELD_HINT} />
             <FormField darkMode={darkMode} editingId={draft.id} label="End date" name="end_date" type="date" value={draft.end_date ?? ''} onChange={(v) => set('end_date', String(v) || null)} />
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <FormField darkMode={darkMode} editingId={draft.id} label="Start time" name="start_time" type="text" value={draft.start_time?.slice(0, 5) ?? ''} onChange={(v) => set('start_time', String(v) || null)} placeholder="HH:MM" />
             <FormField darkMode={darkMode} editingId={draft.id} label="End time" name="end_time" type="text" value={draft.end_time?.slice(0, 5) ?? ''} onChange={(v) => set('end_time', String(v) || null)} placeholder="HH:MM" />
           </div>
-          <FormField darkMode={darkMode} editingId={draft.id} label={warnLabel('Location', missing, 'location')} name="location" value={draft.location ?? ''} onChange={(v) => set('location', String(v) || null)} />
-          <FormField darkMode={darkMode} editingId={draft.id} label={warnLabel('Short description', missing, 'short_description')} name="short_description" type="textarea" value={draft.short_description ?? ''} onChange={(v) => set('short_description', String(v) || null)} minHeight="60px" />
+          <FormField darkMode={darkMode} editingId={draft.id} label={warnLabel('Location', missing, 'location')} name="location" value={draft.location ?? ''} onChange={(v) => set('location', String(v) || null)} warning={fieldWarn(missing, 'location')} warningHint={PUBLISH_FIELD_HINT} />
+          <FormField darkMode={darkMode} editingId={draft.id} label={warnLabel('Short description', missing, 'short_description')} name="short_description" type="textarea" value={draft.short_description ?? ''} onChange={(v) => set('short_description', String(v) || null)} minHeight="60px" warning={fieldWarn(missing, 'short_description')} warningHint={PUBLISH_FIELD_HINT} />
           <FormField darkMode={darkMode} editingId={draft.id} label="Description" name="description" type="textarea" value={draft.description ?? ''} onChange={(v) => set('description', String(v) || null)} minHeight="100px" />
           <FormField darkMode={darkMode} editingId={draft.id} label="Image URL" name="image_url" type="url" value={draft.image_url ?? ''} onChange={(v) => set('image_url', String(v) || null)} />
-          <FormField darkMode={darkMode} editingId={draft.id} label={warnLabel('Website URL', missing, 'website_url')} name="website_url" type="url" value={draft.website_url ?? ''} onChange={(v) => set('website_url', String(v) || null)} />
+          <FormField
+            darkMode={darkMode}
+            editingId={draft.id}
+            label={warnLabel('Website URL', missing, 'website_url')}
+            name="website_url"
+            type="url"
+            value={draft.website_url ?? ''}
+            onChange={(v) => set('website_url', String(v) || null)}
+            warning={fieldWarn(missing, 'website_url')}
+            warningHint={PUBLISH_FIELD_HINT}
+            endIcon={draft.website_url?.trim() ? '🔗' : undefined}
+            endIconTitle="Open URL in new tab"
+            onEndIconClick={draft.website_url?.trim() ? () => openExternalUrl(draft.website_url) : undefined}
+          />
           <KeywordSelector
             label="Keywords"
             value={keywords}
@@ -192,12 +216,6 @@ export default function CandidateDetailPanel({
             </pre>
           )}
         </section>
-
-        {missing.map((key) => (
-          <p key={key} style={{ fontSize: 12, color: warnBorder, margin: '8px 0 0' }}>
-            {publishFieldLabel(key)} — needed before publish
-          </p>
-        ))}
       </div>
 
       <div style={{ padding: 16, borderTop: `1px solid ${border}`, display: 'flex', flexWrap: 'wrap', gap: 8, background: darkMode ? '#1f2937' : '#f9fafb' }}>

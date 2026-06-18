@@ -1,10 +1,25 @@
 import { supabase } from './supabaseClient'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string | undefined
+const MAGIC_LINK_COOLDOWN_MS = 120_000
+const LAST_MAGIC_LINK_ATTEMPT_KEY = 'lastMagicLinkAttemptAt'
 
 export function getAuthRedirectUrl(): string {
   if (typeof window !== 'undefined') return window.location.origin
   return 'http://localhost:5173'
+}
+
+export function getMagicLinkCooldownSeconds(now = Date.now()): number {
+  if (typeof window === 'undefined') return 0
+  const lastAttempt = Number(localStorage.getItem(LAST_MAGIC_LINK_ATTEMPT_KEY) || 0)
+  if (!Number.isFinite(lastAttempt) || lastAttempt <= 0) return 0
+  const remainingMs = lastAttempt + MAGIC_LINK_COOLDOWN_MS - now
+  return Math.max(0, Math.ceil(remainingMs / 1000))
+}
+
+function recordMagicLinkAttempt() {
+  if (typeof window === 'undefined') return
+  localStorage.setItem(LAST_MAGIC_LINK_ATTEMPT_KEY, String(Date.now()))
 }
 
 function formatVerifyError(message: string): string {
@@ -20,9 +35,14 @@ function formatMagicLinkError(message: string, status?: number, code?: string): 
     code === 'over_email_send_rate_limit' ||
     /rate limit|seconds|wait/i.test(message)
   ) {
-    return 'Email rate limit reached. Wait about 60 seconds before trying again, or click a magic link already in your inbox (check spam too).'
+    return 'Supabase rejected the magic link email: email rate limit reached. This usually means the Auth SMTP or rate-limit settings are not active yet, or the project email quota is still exhausted.'
   }
   return message || 'Failed to send magic link'
+}
+
+export function isMagicLinkRateLimitMessage(message: string | null): boolean {
+  if (!message) return false
+  return /already requested|try again in|wait (about )?(60 seconds|a couple of minutes)/i.test(message)
 }
 
 export type MagicLinkResult =
@@ -49,6 +69,7 @@ export async function sendMagicLinkEmail(email: string): Promise<MagicLinkResult
     return failure(formatMagicLinkError(error.message, error.status, error.code))
   }
 
+  recordMagicLinkAttempt()
   localStorage.setItem('lastEmail', trimmed)
   return { ok: true as const }
 }

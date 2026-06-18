@@ -1,6 +1,13 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { refreshSupabaseSession } from '../../hooks/useSupabaseSession'
-import { buildMagicLinkVerifyUrl, completeMagicLinkSignIn, getAuthRedirectUrl, sendMagicLinkEmail } from '../../lib/magicLinkAuth'
+import {
+  buildMagicLinkVerifyUrl,
+  completeMagicLinkSignIn,
+  getAuthRedirectUrl,
+  getMagicLinkCooldownSeconds,
+  isMagicLinkRateLimitMessage,
+  sendMagicLinkEmail,
+} from '../../lib/magicLinkAuth'
 
 interface DevSignInPromptProps {
   darkMode: boolean
@@ -23,6 +30,7 @@ export default function DevSignInPrompt({
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [justSent, setJustSent] = useState(false)
   const [signedIn, setSignedIn] = useState(false)
+  const [magicLinkCooldown, setMagicLinkCooldown] = useState(() => getMagicLinkCooldownSeconds())
   const linkFieldRef = useRef<HTMLTextAreaElement>(null)
 
   const resizeLinkField = () => {
@@ -41,6 +49,19 @@ export default function DevSignInPrompt({
     if (last) setEmail(last)
   }, [])
 
+  useEffect(() => {
+    const tick = () => {
+      const cooldown = getMagicLinkCooldownSeconds()
+      setMagicLinkCooldown(cooldown)
+      if (cooldown === 0) {
+        setErrorMsg((message) => isMagicLinkRateLimitMessage(message) ? null : message)
+      }
+    }
+    tick()
+    const id = window.setInterval(tick, 1000)
+    return () => window.clearInterval(id)
+  }, [])
+
   const sendMagicLink = async (e: React.FormEvent) => {
     e.preventDefault()
     setErrorMsg(null)
@@ -51,9 +72,17 @@ export default function DevSignInPrompt({
       return
     }
 
+    const cooldown = getMagicLinkCooldownSeconds()
+    if (cooldown > 0) {
+      setMagicLinkCooldown(cooldown)
+      setErrorMsg(null)
+      return
+    }
+
     try {
       setSending(true)
       const result = await sendMagicLinkEmail(trimmed)
+      setMagicLinkCooldown(getMagicLinkCooldownSeconds())
       if (result.ok === false) {
         setErrorMsg(result.message)
         return
@@ -157,7 +186,39 @@ export default function DevSignInPrompt({
           </div>
         )}
 
-        {errorMsg && (
+        {justSent && magicLinkCooldown > 0 && (
+          <div
+            role="status"
+            style={{
+              marginBottom: 12,
+              padding: '8px 12px',
+              borderRadius: 8,
+              background: darkMode ? '#14532d' : '#dcfce7',
+              color: darkMode ? '#bbf7d0' : '#166534',
+              border: `1px solid ${darkMode ? '#166534' : '#86efac'}`,
+            }}
+          >
+            Magic link request accepted. Check your email and spam. You can request another link when the timer finishes.
+          </div>
+        )}
+
+        {!justSent && magicLinkCooldown > 0 && (
+          <div
+            role="status"
+            style={{
+              marginBottom: 12,
+              padding: '8px 12px',
+              borderRadius: 8,
+              background: darkMode ? '#1e3a8a' : '#eff6ff',
+              color: darkMode ? '#dbeafe' : '#1e40af',
+              border: `1px solid ${darkMode ? '#1d4ed8' : '#bfdbfe'}`,
+            }}
+          >
+            A magic link was already requested. Supabase may keep limiting email for a couple of minutes, so check your inbox or try again when the timer finishes.
+          </div>
+        )}
+
+        {errorMsg && !isMagicLinkRateLimitMessage(errorMsg) && (
           <div
             role="alert"
             style={{
@@ -182,8 +243,12 @@ export default function DevSignInPrompt({
             aria-label="Email address"
             style={{ width: '100%' }}
           />
-          <button className="btn primary" type="submit" disabled={sending} style={{ width: '100%' }}>
-            {sending ? 'Sending…' : justSent ? 'Sent — check your email ✓' : 'Send magic link'}
+          <button className="btn primary" type="submit" disabled={sending || magicLinkCooldown > 0} style={{ width: '100%' }}>
+            {sending
+              ? 'Sending…'
+              : magicLinkCooldown > 0
+                ? justSent ? `Sent - try again in ${magicLinkCooldown}s` : `Try again in ${magicLinkCooldown}s`
+                : justSent ? 'Sent — check your email ✓' : 'Send magic link'}
           </button>
         </form>
 

@@ -203,3 +203,17 @@ try {
 3. Update documentation if business logic changes
 4. Sync Swift implementation if TypeScript changes
 
+## Deployment
+
+### Admin app (Vercel)
+- Root directory: `web/` (not repo root)
+- Build: `npm run build` (`tsc && vite build`)
+- Output: `dist/`
+- Env: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` only in production
+- Auth: production builds require magic link; `getAuthRedirectUrl()` uses current origin
+
+### Public events widget (GitHub Pages)
+- Source: `web/code-snippets/events/event-list.js` → sync to `web/public/code-snippets/`
+- Deployed by `.github/workflows/deploy-pages.yml` on push to `main`
+- See `docs/EVENTS_PUBLISHING.md` — separate from Vercel admin hosting
+

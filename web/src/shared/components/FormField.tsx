@@ -40,6 +40,8 @@ interface FormFieldProps {
   endIcon?: React.ReactNode // Icon/button to display at end of input
   onEndIconClick?: () => void // Callback when end icon is clicked
   endIconTitle?: string // Tooltip text for end icon
+  warning?: boolean // Highlight field when value is missing or invalid
+  warningHint?: string // Hint shown below field when warning is true
 }
 
 /**
@@ -65,10 +67,15 @@ export default function FormField({
   darkMode = false,
   endIcon,
   onEndIconClick,
-  endIconTitle
+  endIconTitle,
+  warning = false,
+  warningHint,
 }: FormFieldProps) {
   // Unique key for this field instance (helps React track field state when editing different items)
   const fieldKey = `${name}-${editingId || 'new'}`
+  const warningBorder = darkMode ? '#d97706' : '#f59e0b'
+  const warningBackground = darkMode ? '#78350f' : '#fffbeb'
+  const warningForeground = darkMode ? '#fbbf24' : '#b45309'
   
   /**
    * Base styles applied to all field types
@@ -86,14 +93,25 @@ export default function FormField({
     outline: 'none'
   }
 
+  const warningStyle = {
+    ...commonStyle,
+    border: `1px solid ${warningBorder}`,
+    background: warningBackground,
+    boxShadow: 'none',
+  }
+
+  const idleStyle = warning ? warningStyle : commonStyle
+
   /**
    * Styles applied when field is focused
    * Adds blue border and subtle shadow for visual feedback
    */
   const focusStyle = {
-    ...commonStyle,
-    border: darkMode ? '1px solid #3b82f6' : '1px solid #3b82f6',
-    boxShadow: darkMode ? '0 0 0 3px rgba(59, 130, 246, 0.1)' : '0 0 0 3px rgba(59, 130, 246, 0.1)'
+    ...idleStyle,
+    border: warning ? `1px solid ${warningBorder}` : '1px solid #3b82f6',
+    boxShadow: warning
+      ? (darkMode ? '0 0 0 3px rgba(217, 119, 6, 0.25)' : '0 0 0 3px rgba(245, 158, 11, 0.25)')
+      : (darkMode ? '0 0 0 3px rgba(59, 130, 246, 0.1)' : '0 0 0 3px rgba(59, 130, 246, 0.1)')
   }
 
   /**
@@ -139,9 +157,11 @@ export default function FormField({
    */
   const renderField = () => {
     const baseStyle = {
-      ...commonStyle,
+      ...idleStyle,
       ':hover': {
-        border: darkMode ? '1px solid #6b7280' : '1px solid #9ca3af'
+        border: warning
+          ? `1px solid ${warningBorder}`
+          : (darkMode ? '1px solid #6b7280' : '1px solid #9ca3af')
       }
     }
 
@@ -156,7 +176,7 @@ export default function FormField({
               Object.assign(e.target.style, focusStyle)
             }}
             onBlur={(e) => {
-              Object.assign(e.target.style, commonStyle)
+              Object.assign(e.target.style, idleStyle)
               if (onBlur) {
                 onBlur(e.target.value)
               }
@@ -180,7 +200,7 @@ export default function FormField({
               Object.assign(e.target.style, focusStyle)
             }}
             onBlur={(e) => {
-              Object.assign(e.target.style, commonStyle)
+              Object.assign(e.target.style, idleStyle)
             }}
             style={baseStyle}
           >
@@ -208,7 +228,7 @@ export default function FormField({
                 Object.assign(e.target.style, focusStyle)
               }}
               onBlur={(e) => {
-                Object.assign(e.target.style, commonStyle)
+                Object.assign(e.target.style, idleStyle)
                 if (onBlur) {
                   if (type === 'number') {
                     onBlur(Number(e.target.value))
@@ -260,11 +280,16 @@ export default function FormField({
         marginBottom: '6px', 
         fontSize: '14px', 
         fontWeight: '500', 
-        color: darkMode ? '#f9fafb' : '#374151' 
+        color: warning ? warningForeground : (darkMode ? '#f9fafb' : '#374151'),
       }}>
         {label} {required && '*'}
       </label>
       {renderField()}
+      {warning && warningHint && (
+        <p style={{ margin: '6px 0 0', fontSize: 12, color: warningForeground, fontWeight: 500 }}>
+          {warningHint}
+        </p>
+      )}
     </div>
   )
 }

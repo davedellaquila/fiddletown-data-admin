@@ -16,7 +16,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useSupabaseSession } from './hooks/useSupabaseSession'
 import { IS_DEVELOPMENT_MODE } from './lib/devMode'
-import { sendMagicLinkEmail } from './lib/magicLinkAuth'
+import { getMagicLinkCooldownSeconds, isMagicLinkRateLimitMessage, sendMagicLinkEmail } from './lib/magicLinkAuth'
 import { supabase } from './lib/supabaseClient'
 import Events from './features/Events'
 import EventCandidates from './features/EventCandidates'
@@ -49,6 +49,7 @@ export default function App() {
   const [sent, setSent] = useState<null | { to: string }>(null)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [justSent, setJustSent] = useState<boolean>(false) // Visual feedback for sent state
+  const [magicLinkCooldown, setMagicLinkCooldown] = useState(() => getMagicLinkCooldownSeconds())
   
   // View navigation - which admin module is currently active
   // Restore last selected view from localStorage, default to 'locations'
@@ -126,6 +127,19 @@ export default function App() {
   useEffect(() => {
     const last = localStorage.getItem('lastEmail')
     if (last) setEmail(last)
+  }, [])
+
+  useEffect(() => {
+    const tick = () => {
+      const cooldown = getMagicLinkCooldownSeconds()
+      setMagicLinkCooldown(cooldown)
+      if (cooldown === 0) {
+        setErrorMsg((message) => isMagicLinkRateLimitMessage(message) ? null : message)
+      }
+    }
+    tick()
+    const id = window.setInterval(tick, 1000)
+    return () => window.clearInterval(id)
   }, [])
 
   /**
@@ -232,10 +246,18 @@ export default function App() {
       setErrorMsg('Please enter a valid email address')
       return
     }
+
+    const cooldown = getMagicLinkCooldownSeconds()
+    if (cooldown > 0) {
+      setMagicLinkCooldown(cooldown)
+      setErrorMsg(null)
+      return
+    }
     
     try {
       setSending(true)
       const result = await sendMagicLinkEmail(trimmed)
+      setMagicLinkCooldown(getMagicLinkCooldownSeconds())
       if (result.ok === false) {
         setErrorMsg(result.message)
         return
@@ -299,8 +321,31 @@ export default function App() {
           </button>
         </div>
         <p style={{ marginBottom: '12px', color: darkMode ? '#d1d5db' : '#6b7280' }}>Sign in to edit datasets.</p>
-        {/* Success banner removed. Status is shown inside the button now. */}
-        {errorMsg && (
+        {sent && magicLinkCooldown > 0 && (
+          <div role="status" style={{
+            marginBottom: '12px',
+            padding: '8px 12px',
+            borderRadius: '8px',
+            background: darkMode ? '#14532d' : '#dcfce7',
+            color: darkMode ? '#bbf7d0' : '#166534',
+            border: `1px solid ${darkMode ? '#166534' : '#86efac'}`
+          }}>
+            Magic link request accepted. Check {sent.to} and spam. You can request another link when the timer finishes.
+          </div>
+        )}
+        {!sent && magicLinkCooldown > 0 && (
+          <div role="status" style={{
+            marginBottom: '12px',
+            padding: '8px 12px',
+            borderRadius: '8px',
+            background: darkMode ? '#1e3a8a' : '#eff6ff',
+            color: darkMode ? '#dbeafe' : '#1e40af',
+            border: `1px solid ${darkMode ? '#1d4ed8' : '#bfdbfe'}`
+          }}>
+            A magic link was already requested. Supabase may keep limiting email for a couple of minutes, so check your inbox or try again when the timer finishes.
+          </div>
+        )}
+        {errorMsg && !isMagicLinkRateLimitMessage(errorMsg) && (
           <div role="alert" style={{
             marginBottom: '12px',
             padding: '8px 12px',
@@ -341,16 +386,20 @@ export default function App() {
               fontSize: '14px',
               fontWeight: '500',
               cursor: sending ? 'not-allowed' : 'pointer',
-              opacity: sending ? 0.95 : 1,
+              opacity: sending || magicLinkCooldown > 0 ? 0.95 : 1,
               position: 'relative',
               overflow: 'hidden',
               boxShadow: '0 6px 18px rgba(59,130,246,.35)'
             }}
-            disabled={sending}
+            disabled={sending || magicLinkCooldown > 0}
             title="Send magic link"
           >
             <span style={{ position: 'relative', zIndex: 1 }}>
-              {sending ? 'Sending…' : justSent ? 'Sent ✓' : 'Send Magic Link'}
+              {sending
+                ? 'Sending…'
+                : magicLinkCooldown > 0
+                  ? sent ? `Sent - try again in ${magicLinkCooldown}s` : `Try again in ${magicLinkCooldown}s`
+                  : justSent ? 'Sent ✓' : 'Send Magic Link'}
             </span>
           </button>
           <div style={{ fontSize: 12, color: darkMode ? '#9ca3af' : '#6b7280', textAlign: 'center' }}>
