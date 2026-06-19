@@ -161,6 +161,30 @@ Do not auto-publish from discovery workers without a review step. See [features/
 
 ---
 
+## Publish deduplication (2026-06-18)
+
+**Problem:** Same listing published multiple times from candidate review → duplicate rows on the public calendar (title punctuation variants, same URL + schedule).
+
+**Prevention (DB):** Migration `009_publish_dedup_by_url_schedule.sql` — `approve_event_candidate_and_publish` reuses an existing published event when normalized URL + schedule match; links keywords instead of inserting a new row.
+
+**Display (widget):** `dedupeEventsBySchedule()` in `event-list.js` collapses near-duplicates client-side; keeps richest row (keyword count, description length) and merges keywords for display. Fetches `status=eq.published` only.
+
+### QA verification (2026-06-18)
+
+| # | Check | Result | Notes |
+|---|--------|--------|-------|
+| 1 | Rombauer once on June 20 after widget deploy | **Blocked** | Code in repo; confirm GH Pages + Squarespace hard-refresh after deploy |
+| 2 | This Weekend: no duplicate rows for same URL + slot | **Pass (code)** | Smoke test collapses 4→2 on sample duplicate set |
+| 3 | Keeper Rombauer shows 4 keywords | **Pass (DB)** | `dinner`, `winery`, `amador wine`, `wine event` on `d4eb420e` |
+| 4 | Publish reuses existing event (no new row) | **Pass (migration)** | RPC logic verified in Supabase; live publish test needs auth |
+| 5 | Archived rows hidden from public list | **Pass (code)** | `fetchEvents` filters `status=eq.published` |
+
+**Data cleanup verified:** Rombauer June 20 — kept `d4eb420e`, archived `b5056827` + `74f8a179`.
+
+**Still in DB (published dupes — widget dedupes display until archived):** Summer Sessions Vino Noceto (×3), Backyard Nights (×2), Helwig@Dusk (×2) on June 19–20.
+
+---
+
 ## Related docs
 
 - [SUPABASE_CONFIG.md](./SUPABASE_CONFIG.md) — Supabase project setup

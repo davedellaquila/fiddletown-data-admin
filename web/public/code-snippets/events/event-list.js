@@ -54,6 +54,8 @@
     CALENDAR: 'calendar'
   };
   const SIGNATURE_EVENT_KEYWORD = 'signature event';
+  const SSA_HOME_URL = 'https://sportscaradventures.com/';
+  const SSA_LOGO_URL = 'https://static1.squarespace.com/static/5461a83be4b02a78c5fde7d7/t/66c61c7415d203318d4a220d/1724259446656/Sports+Car+Adventures+logo.png?format=300w';
 
   async function fetchEvents({ url, key, from = null, to = null, limit = 200 }) {
       const api = new URL(url + '/rest/v1/events');
@@ -500,8 +502,8 @@
       .trim();
   }
 
-  /** Normalize listing URL (ignore www, trailing slash, query/hash). */
-  function normalizeEventUrl(raw) {
+  /** Normalize listing URL for dedup fingerprint (ignore www, trailing slash, query/hash). */
+  function normalizeEventUrlForDedup(raw) {
     const s = (raw || '').trim();
     if (!s) return '';
     try {
@@ -547,7 +549,7 @@
    */
   function dedupeFingerprint(ev) {
     const schedule = scheduleFingerprint(ev);
-    const url = normalizeEventUrl(ev.website_url);
+    const url = normalizeEventUrlForDedup(ev.website_url);
     if (url) return `url:${url}|${schedule}`;
     return `name:${normalizeEventName(ev.name)}|${schedule}|${normalizeEventName(ev.location || '')}`;
   }
@@ -1367,11 +1369,12 @@
     // Use the rows parameter (most recent data) if it has events, otherwise fall back to mount._allRows
     // Always prefer the rows parameter since it's the most recent data passed to renderEvents
     // Update mount._allRows to keep it in sync for event handlers
-    const allAvailableRows = rows && rows.length > 0 ? rows : (mount._allRows || []);
+    const sourceRows = rows && rows.length > 0 ? rows : (mount._allRows || []);
+    const allAvailableRows = dedupeEventsBySchedule(sourceRows);
     
     // Keep mount._allRows in sync if rows is provided and different
-    if (rows && rows.length > 0 && rows !== mount._allRows) {
-      mount._allRows = rows;
+    if (allAvailableRows.length > 0 && allAvailableRows !== mount._allRows) {
+      mount._allRows = allAvailableRows;
     }
     
     // Apply all filters to get the final set of displayed events
@@ -1404,8 +1407,16 @@
     // Render page intro and controls
     const pageHeaderHTML = `
       <section class="ssa-page-intro">
-        <h1>Gold Country Events</h1>
-        <p>Drive-worthy happenings in Amador, El Dorado, and nearby foothill country.</p>
+        <div class="ssa-page-intro-head">
+          <a class="ssa-brand-mark" href="${SSA_HOME_URL}" target="_blank" rel="noopener noreferrer" aria-label="Sports Car Adventures home">
+            <img src="${SSA_LOGO_URL}" alt="Sports Car Adventures" width="72" height="72" loading="lazy" decoding="async" />
+          </a>
+          <div class="ssa-page-intro-copy">
+            <h1>Gold Country Events</h1>
+            <p>Drive-worthy happenings in Amador, El Dorado, and nearby foothill country.</p>
+            <p class="ssa-page-intro-credit">Brought to you by <a href="${SSA_HOME_URL}" target="_blank" rel="noopener noreferrer">Sports Car Adventures</a></p>
+          </div>
+        </div>
       </section>
     `;
 
@@ -4056,8 +4067,15 @@
       #events-list,#events-list *{box-sizing:border-box;font-family:var(--ssa-font);letter-spacing:0}
       #events-list{max-width:100%;margin:0 auto;padding:48px 0 28px;color:var(--ssa-text)!important;background:var(--ssa-bg)!important}
       #events-list .ssa-page-intro{max-width:1600px;margin:0 auto 42px;padding:0 64px}
+      #events-list .ssa-page-intro-head{display:flex;align-items:flex-start;gap:22px}
+      #events-list .ssa-brand-mark{flex:0 0 auto;display:block;line-height:0;margin-top:6px}
+      #events-list .ssa-brand-mark img{width:72px;height:auto;display:block;border-radius:8px}
+      #events-list .ssa-page-intro-copy{min-width:0}
       #events-list .ssa-page-intro h1{margin:0 0 16px;color:var(--ssa-text)!important;font-size:64px;line-height:1.05;font-weight:800;letter-spacing:.01em}
       #events-list .ssa-page-intro p{margin:0;color:var(--ssa-muted)!important;font-size:25px;line-height:1.35;font-weight:400}
+      #events-list .ssa-page-intro-credit{margin:14px 0 0!important;font-size:18px!important;line-height:1.4!important;font-weight:600!important}
+      #events-list .ssa-page-intro-credit a{color:var(--ssa-accent)!important;text-decoration:none;font-weight:800}
+      #events-list .ssa-page-intro-credit a:hover,#events-list .ssa-page-intro-credit a:focus-visible{text-decoration:underline}
       #events-list .ssa-controls{max-width:1600px;margin:0 auto 18px;padding:34px 32px 30px;display:flex;flex-direction:column;gap:26px;background:var(--ssa-surface)!important;border:1px solid var(--ssa-border)!important;border-radius:12px;box-shadow:var(--ssa-shadow)}
       #events-list .ssa-control-panel{max-width:1600px;margin:0 auto 18px;padding:20px 32px;background:color-mix(in srgb,var(--ssa-surface) 96%,transparent)!important;border:1px solid var(--ssa-border)!important;border-radius:12px;box-shadow:var(--ssa-shadow);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
       #events-list .ssa-sticky-control-section{position:sticky;z-index:38}
@@ -4525,7 +4543,7 @@
         to: null,    // Explicitly null - fetch all events
         limit: opts.limit || 200
       };
-      const key = `ssa_events_v20260616:${opts.url}:all:${opts.limit||200}`;
+      const key = `ssa_events_v20260618:${opts.url}:all:${opts.limit||200}`;
       const rows = await fetchEvents(fetchOpts);
       mount._allRows = rows; // Store for fallback
       sessionStorage.setItem(key, JSON.stringify(rows));
@@ -4572,7 +4590,7 @@
         from: state.fromDate || null,
         to: state.toDate || null
       };
-      const key = `ssa_events_v20260616:${opts.url}:${fetchOpts.from || 'all'}:${fetchOpts.to || ''}:${opts.limit||200}`;
+      const key = `ssa_events_v20260618:${opts.url}:${fetchOpts.from || 'all'}:${fetchOpts.to || ''}:${opts.limit||200}`;
       const cached = sessionStorage.getItem(key);
       if (cached) {
         const cachedData = JSON.parse(cached);
@@ -4679,7 +4697,7 @@
           from: state.fromDate || null,
           to: state.toDate || null
         };
-        const key = `ssa_events_v20260616:${opts.url}:${fetchOpts.from || 'all'}:${fetchOpts.to || ''}:${opts.limit||200}`;
+        const key = `ssa_events_v20260618:${opts.url}:${fetchOpts.from || 'all'}:${fetchOpts.to || ''}:${opts.limit||200}`;
         sessionStorage.removeItem(key);
         
         try {

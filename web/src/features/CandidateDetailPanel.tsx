@@ -47,14 +47,17 @@ function warnLabel(label: string, missing: PublishFieldKey[], key: PublishFieldK
 
 const PUBLISH_FIELD_HINT = 'Needed before publish'
 
-function openExternalUrl(url: string | null | undefined) {
+function normalizeExternalUrl(url: string | null | undefined): string | null {
   const trimmed = url?.trim()
-  if (!trimmed) return
-  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
-    window.open(trimmed, '_blank', 'noopener,noreferrer')
-  } else {
-    window.open(`https://${trimmed}`, '_blank', 'noopener,noreferrer')
-  }
+  if (!trimmed) return null
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return trimmed
+  return `https://${trimmed}`
+}
+
+function openExternalUrl(url: string | null | undefined) {
+  const normalized = normalizeExternalUrl(url)
+  if (!normalized) return
+  window.open(normalized, '_blank', 'noopener,noreferrer')
 }
 
 export default function CandidateDetailPanel({
@@ -100,6 +103,7 @@ export default function CandidateDetailPanel({
   const missing = getMissingPublishFields(draft)
   const slugPreview = generateEventSlug(draft.title, draft.start_date)
   const linkUrl = draft.website_url?.trim() || draft.source_url
+  const imagePreviewUrl = normalizeExternalUrl(draft.image_url)
 
   const set = <K extends keyof EventCandidate>(key: K, value: EventCandidate[K]) => {
     onDraftChange({ ...draft, [key]: value })
@@ -157,7 +161,48 @@ export default function CandidateDetailPanel({
           <FormField darkMode={darkMode} editingId={draft.id} label={warnLabel('Location', missing, 'location')} name="location" value={draft.location ?? ''} onChange={(v) => set('location', String(v) || null)} warning={fieldWarn(missing, 'location')} warningHint={PUBLISH_FIELD_HINT} />
           <FormField darkMode={darkMode} editingId={draft.id} label={warnLabel('Short description', missing, 'short_description')} name="short_description" type="textarea" value={draft.short_description ?? ''} onChange={(v) => set('short_description', String(v) || null)} minHeight="60px" warning={fieldWarn(missing, 'short_description')} warningHint={PUBLISH_FIELD_HINT} />
           <FormField darkMode={darkMode} editingId={draft.id} label="Description" name="description" type="textarea" value={draft.description ?? ''} onChange={(v) => set('description', String(v) || null)} minHeight="100px" />
-          <FormField darkMode={darkMode} editingId={draft.id} label="Image URL" name="image_url" type="url" value={draft.image_url ?? ''} onChange={(v) => set('image_url', String(v) || null)} />
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: imagePreviewUrl ? 'minmax(0, 1fr) 74px' : '1fr',
+              gap: 12,
+              alignItems: 'end',
+            }}
+          >
+            <FormField darkMode={darkMode} editingId={draft.id} label="Image URL" name="image_url" type="url" value={draft.image_url ?? ''} onChange={(v) => set('image_url', String(v) || null)} />
+            {imagePreviewUrl && (
+              <button
+                type="button"
+                onClick={() => openExternalUrl(draft.image_url)}
+                title="Open image in new tab"
+                aria-label="Open image preview"
+                style={{
+                  width: 74,
+                  height: 74,
+                  padding: 0,
+                  borderRadius: 8,
+                  border: `1px solid ${border}`,
+                  background: darkMode ? '#1f2937' : '#f9fafb',
+                  cursor: 'pointer',
+                  overflow: 'hidden',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <img
+                  src={imagePreviewUrl}
+                  alt="Candidate thumbnail"
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                    display: 'block',
+                  }}
+                />
+              </button>
+            )}
+          </div>
           <FormField
             darkMode={darkMode}
             editingId={draft.id}
