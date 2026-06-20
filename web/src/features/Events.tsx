@@ -44,6 +44,7 @@ import { slugify } from '../../shared/utils/slugify'
 import { normalizeUrl, formatTimeToAMPM, convertTo24Hour, formatISO } from '../../shared/utils/dateUtils'
 import type { EventRow } from '../../shared/types/models'
 import { suggestEventKeywords } from '../../shared/utils/suggestCandidateKeywords'
+import { syncEventKeywords } from '../../shared/utils/eventKeywords'
 
 
 /**
@@ -898,63 +899,12 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
         if (e.slug) slugToIdMap.set(e.slug, e.id)
       })
 
-      // Process keywords for each imported event
+      // Process keywords for each imported event, including derived price-tier keywords.
       for (const previewItem of importPreview) {
-        if (!previewItem.keywords || previewItem.keywords.length === 0) continue
-        
         const eventId = previewItem.slug ? slugToIdMap.get(previewItem.slug) : null
         if (!eventId) continue
 
-        // Get or create keyword IDs
-        const keywordIds: string[] = []
-        for (const keywordName of previewItem.keywords) {
-          const normalizedKeyword = keywordName.trim().toLowerCase()
-          if (!normalizedKeyword) continue
-
-          // Check if keyword exists
-          const { data: existingKeyword } = await supabase
-            .from('keywords')
-            .select('id')
-            .eq('name', normalizedKeyword)
-            .single()
-          
-          let keywordId: string
-          if (existingKeyword) {
-            keywordId = existingKeyword.id
-          } else {
-            // Create new keyword
-            const { data: newKeyword, error: createError } = await supabase
-              .from('keywords')
-              .insert({ name: normalizedKeyword })
-              .select('id')
-              .single()
-            
-            if (createError) {
-              console.error('Error creating keyword:', createError)
-              continue
-            }
-            keywordId = newKeyword.id
-          }
-          keywordIds.push(keywordId)
-        }
-
-        // Delete old event_keywords relationships
-        await supabase
-          .from('event_keywords')
-          .delete()
-          .eq('event_id', eventId)
-
-        // Create new event_keywords relationships
-        if (keywordIds.length > 0) {
-          const junctionRecords = keywordIds.map(keywordId => ({
-            event_id: eventId,
-            keyword_id: keywordId
-          }))
-          
-          await supabase
-            .from('event_keywords')
-            .insert(junctionRecords)
-        }
+        await syncEventKeywords(supabase, String(eventId), previewItem.keywords || [], previewItem)
       }
     }
 
@@ -1403,72 +1353,11 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
       setEditing({ ...payload })
     }
 
-    // Handle keywords: create missing keywords and update relationships
+    // Handle keywords through shared validation, including derived price-tier keywords.
     if (payload.id) {
-      // Normalize keywords to lowercase
-      const normalizedKeywords = keywordsToSave.map(k => k.trim().toLowerCase()).filter(k => k.length > 0)
-      
-      // Get or create keyword IDs
-      const keywordIds: string[] = []
-      for (const keywordName of normalizedKeywords) {
-        // Check if keyword exists
-        const { data: existingKeyword } = await supabase
-          .from('keywords')
-          .select('id')
-          .eq('name', keywordName)
-          .single()
-        
-        let keywordId: string
-        if (existingKeyword) {
-          keywordId = existingKeyword.id
-        } else {
-          // Create new keyword
-          const { data: newKeyword, error: createError } = await supabase
-            .from('keywords')
-            .insert({ name: keywordName })
-            .select('id')
-            .single()
-          
-          if (createError) {
-            console.error('Error creating keyword:', createError)
-            continue
-          }
-          keywordId = newKeyword.id
-          
-          // Update existing keywords list for autocomplete
-          setExistingKeywords(prev => [...prev, keywordName].sort())
-        }
-        keywordIds.push(keywordId)
-      }
-      
-      // Delete old event_keywords relationships
-      const { error: deleteError } = await supabase
-        .from('event_keywords')
-        .delete()
-        .eq('event_id', payload.id)
-      
-      if (deleteError) {
-        console.error('Error deleting old keywords:', deleteError)
-      }
-      
-      // Create new event_keywords relationships
-      if (keywordIds.length > 0) {
-        const junctionRecords = keywordIds.map(keywordId => ({
-          event_id: payload.id,
-          keyword_id: keywordId
-        }))
-        
-        const { error: insertError } = await supabase
-          .from('event_keywords')
-          .insert(junctionRecords)
-        
-        if (insertError) {
-          console.error('Error creating keyword relationships:', insertError)
-        } else {
-          console.log('Successfully saved keyword relationships:', junctionRecords)
-        }
-      }
+      const normalizedKeywords = await syncEventKeywords(supabase, String(payload.id), keywordsToSave, payload)
 
+      setExistingKeywords(prev => [...new Set([...prev, ...normalizedKeywords])].sort())
       patchEventInLists(payload.id, { keywords: normalizedKeywords })
     }
 

@@ -13,10 +13,15 @@
  * 
  * @module App
  */
-import { useCallback, useEffect, useState } from 'react'
-import { useSupabaseSession } from './hooks/useSupabaseSession'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { refreshSupabaseSession, useSupabaseSession } from './hooks/useSupabaseSession'
 import { IS_DEVELOPMENT_MODE } from './lib/devMode'
-import { getMagicLinkCooldownSeconds, isMagicLinkRateLimitMessage, sendMagicLinkEmail } from './lib/magicLinkAuth'
+import {
+  completeMagicLinkSignIn,
+  getMagicLinkCooldownSeconds,
+  isMagicLinkRateLimitMessage,
+  sendMagicLinkEmail,
+} from './lib/magicLinkAuth'
 import { supabase } from './lib/supabaseClient'
 import Events from './features/Events'
 import EventCandidates from './features/EventCandidates'
@@ -45,11 +50,15 @@ export default function App() {
   
   // Magic link email form state
   const [email, setEmail] = useState('')
+  const [pastedLink, setPastedLink] = useState('')
   const [sending, setSending] = useState(false)
+  const [verifying, setVerifying] = useState(false)
   const [sent, setSent] = useState<null | { to: string }>(null)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [justSent, setJustSent] = useState<boolean>(false) // Visual feedback for sent state
+  const [signedInWithPastedLink, setSignedInWithPastedLink] = useState(false)
   const [magicLinkCooldown, setMagicLinkCooldown] = useState(() => getMagicLinkCooldownSeconds())
+  const pastedLinkRef = useRef<HTMLTextAreaElement>(null)
   
   // View navigation - which admin module is currently active
   // Restore last selected view from localStorage, default to 'locations'
@@ -75,6 +84,13 @@ export default function App() {
   })
   // Track if user manually collapsed sidebar (vs auto-collapse)
   const [userManuallyCollapsed, setUserManuallyCollapsed] = useState(false)
+
+  const resizePastedLinkField = useCallback(() => {
+    const el = pastedLinkRef.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = `${Math.min(180, Math.max(92, el.scrollHeight))}px`
+  }, [])
 
   const toggleSidebar = useCallback(() => {
     setSidebarCollapsed((prev) => {
@@ -128,6 +144,10 @@ export default function App() {
     const last = localStorage.getItem('lastEmail')
     if (last) setEmail(last)
   }, [])
+
+  useLayoutEffect(() => {
+    resizePastedLinkField()
+  }, [pastedLink, resizePastedLinkField])
 
   useEffect(() => {
     const tick = () => {
@@ -270,6 +290,25 @@ export default function App() {
     }
   }
 
+  const verifyPastedLink = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setErrorMsg(null)
+    setSignedInWithPastedLink(false)
+
+    try {
+      setVerifying(true)
+      const result = await completeMagicLinkSignIn(pastedLink, refreshSupabaseSession, email)
+      if (result.ok === false) {
+        setErrorMsg(result.message)
+        return
+      }
+      setSignedInWithPastedLink(true)
+      setPastedLink('')
+    } finally {
+      setVerifying(false)
+    }
+  }
+
   
 
   if (authLoading) {
@@ -282,7 +321,13 @@ export default function App() {
 
   if (!canAccessApp) {
     return (
-      <div style={{ position: 'relative', minHeight: '100vh', overflow: 'hidden', background: darkMode ? '#0b1020' : '#0b1020' }}>
+      <div style={{
+        position: 'relative',
+        minHeight: '100vh',
+        overflowX: 'hidden',
+        overflowY: 'auto',
+        background: darkMode ? '#0b1020' : '#0b1020'
+      }}>
         {/* Modern layered gradient background */}
         <div aria-hidden="true" style={{
           position: 'fixed', inset: 0, zIndex: 0,
@@ -293,13 +338,13 @@ export default function App() {
         <div style={{ 
           position: 'relative',
           zIndex: 1,
-          maxWidth: 480, 
-          margin: '12vh auto',
+          maxWidth: 560, 
+          margin: 'clamp(16px, 8vh, 72px) auto',
           background: darkMode ? 'rgba(17,24,39,.85)' : 'rgba(255,255,255,.90)',
           backdropFilter: 'saturate(1.1) blur(4px)',
           WebkitBackdropFilter: 'saturate(1.1) blur(4px)',
           color: darkMode ? '#f9fafb' : '#1f2937',
-          padding: '32px',
+          padding: 'clamp(20px, 5vw, 32px)',
           borderRadius: '16px',
           boxShadow: '0 25px 60px rgba(0,0,0,.25)'
         }}>
@@ -321,6 +366,21 @@ export default function App() {
           </button>
         </div>
         <p style={{ marginBottom: '12px', color: darkMode ? '#d1d5db' : '#6b7280' }}>Sign in to edit datasets.</p>
+        <p style={{ margin: '0 0 16px', color: darkMode ? '#9ca3af' : '#6b7280', fontSize: 13, lineHeight: 1.5 }}>
+          Send yourself a magic link, then copy the full link from the email and paste it below to sign into this browser.
+        </p>
+        {signedInWithPastedLink && (
+          <div role="status" style={{
+            marginBottom: '12px',
+            padding: '8px 12px',
+            borderRadius: '8px',
+            background: darkMode ? '#14532d' : '#dcfce7',
+            color: darkMode ? '#bbf7d0' : '#166534',
+            border: `1px solid ${darkMode ? '#166534' : '#86efac'}`
+          }}>
+            Signed in. Loading admin…
+          </div>
+        )}
         {sent && magicLinkCooldown > 0 && (
           <div role="status" style={{
             marginBottom: '12px',
@@ -357,6 +417,64 @@ export default function App() {
             {errorMsg}
           </div>
         )}
+        <form onSubmit={verifyPastedLink} style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 18 }}>
+          <label style={{ fontSize: 14, fontWeight: 600 }}>
+            Paste magic link from Mail
+          </label>
+          <textarea
+            ref={pastedLinkRef}
+            value={pastedLink}
+            onChange={(e) => setPastedLink(e.target.value)}
+            onPaste={() => window.requestAnimationFrame(resizePastedLinkField)}
+            aria-label="Full magic link URL from email"
+            placeholder="Paste the full link from the email"
+            rows={3}
+            style={{
+              width: '100%',
+              minHeight: 92,
+              maxHeight: 180,
+              padding: '12px',
+              border: `1px solid ${darkMode ? '#374151' : '#d1d5db'}`,
+              borderRadius: '8px',
+              background: darkMode ? '#374151' : '#ffffff',
+              color: darkMode ? '#f9fafb' : '#1f2937',
+              fontSize: '13px',
+              fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+              lineHeight: 1.45,
+              resize: 'vertical',
+              boxSizing: 'border-box',
+            }}
+          />
+          <button
+            className="btn"
+            type="submit"
+            disabled={!pastedLink.trim() || verifying}
+            style={{
+              width: '100%',
+              background: darkMode ? '#111827' : '#ffffff',
+              border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`,
+              color: darkMode ? '#f9fafb' : '#1f2937',
+              padding: '12px 24px',
+              borderRadius: '8px',
+              fontSize: '14px',
+              fontWeight: '500',
+              cursor: !pastedLink.trim() || verifying ? 'not-allowed' : 'pointer',
+              opacity: !pastedLink.trim() || verifying ? 0.65 : 1,
+            }}
+          >
+            {verifying ? 'Signing in…' : 'Sign in with pasted link'}
+          </button>
+          <div style={{ fontSize: 12, color: darkMode ? '#9ca3af' : '#6b7280', lineHeight: 1.45 }}>
+            In Mail, touch and hold the magic-link button, choose Copy Link, then paste it here.
+          </div>
+        </form>
+
+        <div style={{ margin: '18px 0', display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ height: 1, flex: 1, background: darkMode ? '#374151' : '#d1d5db' }} />
+          <span style={{ fontSize: 12, color: darkMode ? '#9ca3af' : '#6b7280' }}>or send a new link</span>
+          <div style={{ height: 1, flex: 1, background: darkMode ? '#374151' : '#d1d5db' }} />
+        </div>
+
         <form onSubmit={sendMagicLink} className="stack" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
            <input
             placeholder="you@example.com"
@@ -406,6 +524,7 @@ export default function App() {
             Use your work email. Example: <code>you@domain.com</code>.
           </div>
         </form>
+
         </div>
       </div>
     )

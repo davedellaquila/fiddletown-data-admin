@@ -75,7 +75,7 @@ export async function sendMagicLinkEmail(email: string): Promise<MagicLinkResult
 }
 
 type ParsedMagicLink =
-  | { kind: 'verify'; token: string; type: string }
+  | { kind: 'verify'; token: string; tokenParam: 'token' | 'token_hash'; type: string }
   | { kind: 'callback'; url: string }
 
 function normalizeQueryString(input: string): string {
@@ -118,11 +118,14 @@ export function parseMagicLinkInput(input: string): ParsedMagicLink | null {
   }
 
   const params = new URLSearchParams(normalized)
-  const token = params.get('token') ?? params.get('token_hash')
+  const tokenHash = params.get('token_hash')
+  const rawToken = params.get('token')
+  const token = tokenHash ?? rawToken
+  const tokenParam = tokenHash ? 'token_hash' : 'token'
   const type = params.get('type') ?? 'magiclink'
 
   if (!token || token.length < 8) return null
-  return { kind: 'verify', token, type }
+  return { kind: 'verify', token, tokenParam, type }
 }
 
 /**
@@ -131,7 +134,8 @@ export function parseMagicLinkInput(input: string): ParsedMagicLink | null {
  */
 export async function completeMagicLinkSignIn(
   input: string,
-  refreshSession: () => Promise<unknown>
+  refreshSession: () => Promise<unknown>,
+  email?: string
 ): Promise<MagicLinkResult> {
   const parsed = parseMagicLinkInput(input)
   if (!parsed) {
@@ -151,16 +155,28 @@ export async function completeMagicLinkSignIn(
 
   let lastError: string | null = null
   for (const otpType of otpTypes) {
-    const { data, error } = await supabase.auth.verifyOtp({
-      token_hash: parsed.token,
-      type: otpType as 'magiclink' | 'email' | 'signup' | 'invite' | 'recovery',
-    })
+    const methods = parsed.tokenParam === 'token_hash'
+      ? (['token_hash'] as const)
+      : (email?.trim() ? (['token', 'token_hash'] as const) : (['token_hash'] as const))
 
-    if (!error && data.session) {
-      await refreshSession()
-      return { ok: true as const }
+    for (const method of methods) {
+      const { data, error } = method === 'token'
+        ? await supabase.auth.verifyOtp({
+            email: email!.trim(),
+            token: parsed.token,
+            type: otpType as 'magiclink' | 'email' | 'signup' | 'invite' | 'recovery',
+          })
+        : await supabase.auth.verifyOtp({
+            token_hash: parsed.token,
+            type: otpType as 'magiclink' | 'email' | 'signup' | 'invite' | 'recovery',
+          })
+
+      if (!error && data.session) {
+        await refreshSession()
+        return { ok: true as const }
+      }
+      lastError = error?.message ?? 'Link verified but no session was created.'
     }
-    lastError = error?.message ?? 'Link verified but no session was created.'
   }
 
   if (lastError) {

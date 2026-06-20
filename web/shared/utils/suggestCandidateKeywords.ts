@@ -3,6 +3,7 @@
  * @see docs/SHARED_LOGIC.md — Keyword suggestions
  */
 import type { EventCandidate, EventRow } from '../types/models'
+import { applyDerivedPriceKeyword } from './eventKeywords'
 import { normalizeScrapedText } from './normalizeCandidateText'
 
 const MIN_KEYWORD_LENGTH = 2
@@ -24,7 +25,6 @@ export type KeywordSuggestSource = Pick<
 function isNoiseKeyword(keyword: string): boolean {
   const k = keyword.trim()
   if (k.length < MIN_KEYWORD_LENGTH) return true
-  if (k === '$') return true
   return false
 }
 
@@ -152,7 +152,7 @@ function suggestKeywordsFromSource(
 
   applyTitleCategoryHints(titleForHints, catalogSet, matched, matchedSet)
 
-  return matched.sort()
+  return applyDerivedPriceKeyword(matched.sort(), source)
 }
 
 /**

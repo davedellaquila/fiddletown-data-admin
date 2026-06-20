@@ -22,7 +22,7 @@ import {
   verifyCandidateStatus,
   type CandidateUpdatePayload,
 } from '../../shared/api/eventCandidateQueries'
-import { syncEventKeywords, fetchAllKeywordNames } from '../../shared/utils/eventKeywords'
+import { applyDerivedPriceKeyword, syncEventKeywords, fetchAllKeywordNames } from '../../shared/utils/eventKeywords'
 import { getMissingPublishFields } from '../../shared/utils/candidatePublishFields'
 import { sortCandidates } from '../../shared/utils/candidateSort'
 import { suggestCandidateKeywords, suggestKeywordsForCandidates } from '../../shared/utils/suggestCandidateKeywords'
@@ -253,9 +253,7 @@ export default function EventCandidates({ darkMode }: EventCandidatesProps) {
     try {
       await persistDraft()
       const eventId = await approveEventCandidateAsDraft(supabase, draft.id)
-      if (draftKeywords.length > 0) {
-        await syncEventKeywords(supabase, eventId, draftKeywords)
-      }
+      await syncEventKeywords(supabase, eventId, draftKeywords, draft)
       const event = await fetchEventById(supabase, eventId)
       if (!event || event.status !== 'draft') throw new Error('Approve verification failed')
       const ok = await verifyCandidateStatus(supabase, draft.id, 'approved')
@@ -277,7 +275,8 @@ export default function EventCandidates({ darkMode }: EventCandidatesProps) {
     setBusy(true)
     try {
       await persistDraft()
-      const eventId = await approveEventCandidateAndPublish(supabase, draft.id, draftKeywords)
+      const keywordsToPublish = applyDerivedPriceKeyword(draftKeywords, draft)
+      const eventId = await approveEventCandidateAndPublish(supabase, draft.id, keywordsToPublish)
       const event = await fetchEventById(supabase, eventId)
       if (!event || event.status !== 'published') throw new Error('Publish verification failed')
       const ok = await verifyCandidateStatus(supabase, draft.id, 'published')
