@@ -343,21 +343,21 @@ export default function EventCandidates({ darkMode }: EventCandidatesProps) {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', maxHeight: '100vh' }}>
-      <header style={{ padding: '16px 20px 12px', borderBottom: `1px solid ${border}`, position: 'sticky', top: 0, zIndex: 10, background: darkMode ? '#111827' : '#fff' }}>
-        <h1 style={{ margin: '0 0 12px', fontSize: 22 }}>Candidates</h1>
+    <div className="candidate-screen" style={{ display: 'flex', flexDirection: 'column', height: '100vh', maxHeight: '100vh' }}>
+      <header className="candidate-header" style={{ padding: '16px 20px 12px', borderBottom: `1px solid ${border}`, position: 'sticky', top: 0, zIndex: 10, background: darkMode ? '#111827' : '#fff' }}>
+        <h1 className="candidate-title" style={{ margin: '0 0 12px', fontSize: 22 }}>Candidates</h1>
         {error && (
           <div role="alert" style={{ marginBottom: 12, padding: 10, borderRadius: 8, background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca' }}>
             {error}
             <button type="button" className="btn" style={{ marginLeft: 12 }} onClick={load}>Retry</button>
           </div>
         )}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
+        <div className="candidate-tabs" style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
           {(Object.keys(TAB_LABELS) as TabKey[]).map((key) => (
             <button
               key={key}
               type="button"
-              className="btn"
+              className="btn candidate-tab-btn"
               onClick={() => { setTab(key); setSelectedId(null); setMobileDetail(false) }}
               style={{
                 background: tab === key ? '#3b82f6' : (darkMode ? '#374151' : '#fff'),
@@ -369,9 +369,9 @@ export default function EventCandidates({ darkMode }: EventCandidatesProps) {
             </button>
           ))}
         </div>
-        <div className="responsive-filters" style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+        <div className="responsive-filters candidate-filters" style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
           <input
-            className="input"
+            className="input candidate-search"
             placeholder="Search title, source, location…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -394,9 +394,9 @@ export default function EventCandidates({ darkMode }: EventCandidatesProps) {
         </div>
       )}
 
-      <div style={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+      <div className="candidate-body" style={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
         {showQueue && (
-          <div style={{ width: isMobile ? '100%' : '35%', minWidth: isMobile ? undefined : 280, borderRight: `1px solid ${border}`, overflow: 'auto' }}>
+          <div className="candidate-queue" style={{ width: isMobile ? '100%' : '35%', minWidth: isMobile ? undefined : 280, borderRight: `1px solid ${border}`, overflow: 'auto' }}>
             {loading ? (
               <p style={{ padding: 16, color: muted }}>Loading candidates…</p>
             ) : filtered.length === 0 ? (
@@ -410,6 +410,7 @@ export default function EventCandidates({ darkMode }: EventCandidatesProps) {
                   return (
                     <li key={row.id}>
                       <button
+                        className="candidate-row"
                         type="button"
                         onClick={() => selectRow(row.id)}
                         aria-selected={active}
@@ -425,20 +426,20 @@ export default function EventCandidates({ darkMode }: EventCandidatesProps) {
                           color: darkMode ? '#f9fafb' : '#111827',
                         }}
                       >
-                        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                          <strong style={{ flex: 1 }}>{row.title}</strong>
-                          <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 999, background: darkMode ? '#374151' : '#e5e7eb' }}>{row.priority}</span>
-                          <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 999, background: darkMode ? '#1e3a5f' : '#dbeafe' }}>{row.status}</span>
+                        <div className="candidate-row-heading" style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                          <strong className="candidate-row-title" style={{ flex: 1 }}>{row.title}</strong>
+                          <span className="candidate-pill" style={{ fontSize: 11, padding: '2px 8px', borderRadius: 999, background: darkMode ? '#374151' : '#e5e7eb' }}>{row.priority}</span>
+                          <span className="candidate-pill" style={{ fontSize: 11, padding: '2px 8px', borderRadius: 999, background: darkMode ? '#1e3a5f' : '#dbeafe' }}>{row.status}</span>
                         </div>
-                        <div style={{ fontSize: 13, color: muted, marginTop: 4 }}>
+                        <div className="candidate-row-meta" style={{ fontSize: 13, color: muted, marginTop: 4 }}>
                           {row.source_name ?? 'Unknown source'}
                           {row.start_date ? ` · ${row.start_date}` : ''}
                           {row.start_time ? ` ${row.start_time.slice(0, 5)}` : ''}
                         </div>
                         {row.short_description && (
-                          <div style={{ fontSize: 12, color: muted, marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.short_description}</div>
+                          <div className="candidate-row-description" style={{ fontSize: 12, color: muted, marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.short_description}</div>
                         )}
-                        <div style={{ fontSize: 12, color: muted, marginTop: 4, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                        <div className="candidate-row-stats" style={{ fontSize: 12, color: muted, marginTop: 4, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                           {row.extraction_confidence != null && <span>{Math.round(Number(row.extraction_confidence) * 100)}% confidence</span>}
                           {link && <span>↗ link</span>}
                           {tab === 'actionable' && suggestedCount > 0 && (

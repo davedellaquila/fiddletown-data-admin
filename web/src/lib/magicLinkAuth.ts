@@ -5,8 +5,8 @@ const MAGIC_LINK_COOLDOWN_MS = 120_000
 const LAST_MAGIC_LINK_ATTEMPT_KEY = 'lastMagicLinkAttemptAt'
 
 export function getAuthRedirectUrl(): string {
-  if (typeof window !== 'undefined') return window.location.origin
-  return 'http://localhost:5173'
+  if (typeof window !== 'undefined') return `${window.location.origin}/auth/callback`
+  return 'http://localhost:5173/auth/callback'
 }
 
 export function getMagicLinkCooldownSeconds(now = Date.now()): number {
@@ -133,9 +133,7 @@ export function parseMagicLinkInput(input: string): ParsedMagicLink | null {
  * Verifies the token via Supabase API instead of relying on navigation alone.
  */
 export async function completeMagicLinkSignIn(
-  input: string,
-  refreshSession: () => Promise<unknown>,
-  email?: string
+  input: string
 ): Promise<MagicLinkResult> {
   const parsed = parseMagicLinkInput(input)
   if (!parsed) {
@@ -149,41 +147,49 @@ export async function completeMagicLinkSignIn(
     return { ok: true as const }
   }
 
-  const otpTypes = parsed.type === 'magiclink'
-    ? (['magiclink', 'email'] as const)
-    : ([parsed.type] as const)
+  const verifyUrl = buildMagicLinkVerifyUrl(input)
+  if (!verifyUrl) {
+    return failure('Could not rebuild the magic link. Request a new link and paste the full URL from Mail.')
+  }
 
+  window.location.assign(verifyUrl)
+  return { ok: true as const }
+}
+
+export async function completeEmailCodeSignIn(
+  email: string,
+  code: string,
+  refreshSession: () => Promise<unknown>
+): Promise<MagicLinkResult> {
+  const trimmedEmail = email.trim()
+  const trimmedCode = code.replace(/\s+/g, '').trim()
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+    return failure('Enter your email address before signing in with a code.')
+  }
+
+  if (!/^[A-Za-z0-9_-]{4,12}$/.test(trimmedCode)) {
+    return failure('Enter the short code from the email.')
+  }
+
+  const otpTypes = ['email', 'magiclink'] as const
   let lastError: string | null = null
+
   for (const otpType of otpTypes) {
-    const methods = parsed.tokenParam === 'token_hash'
-      ? (['token_hash'] as const)
-      : (email?.trim() ? (['token', 'token_hash'] as const) : (['token_hash'] as const))
+    const { data, error } = await supabase.auth.verifyOtp({
+      email: trimmedEmail,
+      token: trimmedCode,
+      type: otpType,
+    })
 
-    for (const method of methods) {
-      const { data, error } = method === 'token'
-        ? await supabase.auth.verifyOtp({
-            email: email!.trim(),
-            token: parsed.token,
-            type: otpType as 'magiclink' | 'email' | 'signup' | 'invite' | 'recovery',
-          })
-        : await supabase.auth.verifyOtp({
-            token_hash: parsed.token,
-            type: otpType as 'magiclink' | 'email' | 'signup' | 'invite' | 'recovery',
-          })
-
-      if (!error && data.session) {
-        await refreshSession()
-        return { ok: true as const }
-      }
-      lastError = error?.message ?? 'Link verified but no session was created.'
+    if (!error && data.session) {
+      await refreshSession()
+      return { ok: true as const }
     }
+    lastError = error?.message ?? 'Code verified but no session was created.'
   }
 
-  if (lastError) {
-    return failure(formatVerifyError(lastError))
-  }
-
-  return failure('Could not sign in with this link. Request a new magic link and try again.')
+  return failure(formatVerifyError(lastError || 'Could not sign in with this code. Request a new email and try again.'))
 }
 
 /** Build the Supabase verify URL for pasting into the Simple Browser address bar. */

@@ -1,5 +1,4 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { refreshSupabaseSession } from '../../hooks/useSupabaseSession'
 import {
   buildMagicLinkVerifyUrl,
   completeMagicLinkSignIn,
@@ -100,7 +99,7 @@ export default function DevSignInPrompt({
 
     try {
       setVerifying(true)
-      const result = await completeMagicLinkSignIn(pastedLink, refreshSupabaseSession)
+      const result = await completeMagicLinkSignIn(pastedLink)
       if (result.ok === false) {
         setErrorMsg(result.message)
         return

@@ -17,6 +17,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import { refreshSupabaseSession, useSupabaseSession } from './hooks/useSupabaseSession'
 import { IS_DEVELOPMENT_MODE } from './lib/devMode'
 import {
+  completeEmailCodeSignIn,
   completeMagicLinkSignIn,
   getMagicLinkCooldownSeconds,
   isMagicLinkRateLimitMessage,
@@ -45,14 +46,16 @@ type View = 'locations' | 'events' | 'candidates' | 'routes' | 'ocr-test'
 export default function App() {
   console.log('App component rendering...')
   
-  const { session, loading: authLoading, isAuthenticated } = useSupabaseSession()
+  const { session, loading: authLoading, isAuthenticated, authError } = useSupabaseSession()
   const canAccessApp = IS_DEVELOPMENT_MODE || isAuthenticated
   
   // Magic link email form state
   const [email, setEmail] = useState('')
   const [pastedLink, setPastedLink] = useState('')
+  const [emailCode, setEmailCode] = useState('')
   const [sending, setSending] = useState(false)
   const [verifying, setVerifying] = useState(false)
+  const [verifyingCode, setVerifyingCode] = useState(false)
   const [sent, setSent] = useState<null | { to: string }>(null)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [justSent, setJustSent] = useState<boolean>(false) // Visual feedback for sent state
@@ -297,7 +300,7 @@ export default function App() {
 
     try {
       setVerifying(true)
-      const result = await completeMagicLinkSignIn(pastedLink, refreshSupabaseSession, email)
+      const result = await completeMagicLinkSignIn(pastedLink)
       if (result.ok === false) {
         setErrorMsg(result.message)
         return
@@ -306,6 +309,55 @@ export default function App() {
       setPastedLink('')
     } finally {
       setVerifying(false)
+    }
+  }
+
+  const pasteMagicLinkFromClipboard = async () => {
+    setErrorMsg(null)
+
+    if (!navigator.clipboard?.readText) {
+      setErrorMsg('This browser blocked direct clipboard paste. Tap inside the box, then choose Paste.')
+      pastedLinkRef.current?.focus()
+      return
+    }
+
+    try {
+      const clipboardText = await navigator.clipboard.readText()
+      const trimmed = clipboardText.trim()
+      if (!trimmed) {
+        setErrorMsg('The clipboard is empty. Copy the magic link from Mail, then tap Paste copied link.')
+        pastedLinkRef.current?.focus()
+        return
+      }
+      if (/^[A-Za-z0-9_-]{4,12}$/.test(trimmed)) {
+        setEmailCode(trimmed)
+        return
+      }
+      setPastedLink(trimmed)
+      window.requestAnimationFrame(resizePastedLinkField)
+      pastedLinkRef.current?.focus()
+    } catch {
+      setErrorMsg('Paste permission was blocked. Tap inside the box, then choose Paste.')
+      pastedLinkRef.current?.focus()
+    }
+  }
+
+  const verifyEmailCode = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setErrorMsg(null)
+    setSignedInWithPastedLink(false)
+
+    try {
+      setVerifyingCode(true)
+      const result = await completeEmailCodeSignIn(email, emailCode, refreshSupabaseSession)
+      if (result.ok === false) {
+        setErrorMsg(result.message)
+        return
+      }
+      setSignedInWithPastedLink(true)
+      setEmailCode('')
+    } finally {
+      setVerifyingCode(false)
     }
   }
 
@@ -326,6 +378,7 @@ export default function App() {
         minHeight: '100vh',
         overflowX: 'hidden',
         overflowY: 'auto',
+        padding: 'max(12px, env(safe-area-inset-top)) 0 calc(120px + env(safe-area-inset-bottom))',
         background: darkMode ? '#0b1020' : '#0b1020'
       }}>
         {/* Modern layered gradient background */}
@@ -339,14 +392,17 @@ export default function App() {
           position: 'relative',
           zIndex: 1,
           maxWidth: 560, 
-          margin: 'clamp(16px, 8vh, 72px) auto',
+          width: 'calc(100% - 24px)',
+          margin: 'clamp(12px, 5vh, 56px) auto',
           background: darkMode ? 'rgba(17,24,39,.85)' : 'rgba(255,255,255,.90)',
           backdropFilter: 'saturate(1.1) blur(4px)',
           WebkitBackdropFilter: 'saturate(1.1) blur(4px)',
           color: darkMode ? '#f9fafb' : '#1f2937',
           padding: 'clamp(20px, 5vw, 32px)',
           borderRadius: '16px',
-          boxShadow: '0 25px 60px rgba(0,0,0,.25)'
+          boxShadow: '0 25px 60px rgba(0,0,0,.25)',
+          boxSizing: 'border-box',
+          overflow: 'hidden'
         }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
           <h1 style={{ margin: 0, fontSize: '28px', fontWeight: '600' }}>SSA Admin</h1>
@@ -376,7 +432,8 @@ export default function App() {
             borderRadius: '8px',
             background: darkMode ? '#14532d' : '#dcfce7',
             color: darkMode ? '#bbf7d0' : '#166534',
-            border: `1px solid ${darkMode ? '#166534' : '#86efac'}`
+            border: `1px solid ${darkMode ? '#166534' : '#86efac'}`,
+            overflowWrap: 'anywhere'
           }}>
             Signed in. Loading admin…
           </div>
@@ -388,7 +445,8 @@ export default function App() {
             borderRadius: '8px',
             background: darkMode ? '#14532d' : '#dcfce7',
             color: darkMode ? '#bbf7d0' : '#166534',
-            border: `1px solid ${darkMode ? '#166534' : '#86efac'}`
+            border: `1px solid ${darkMode ? '#166534' : '#86efac'}`,
+            overflowWrap: 'anywhere'
           }}>
             Magic link request accepted. Check {sent.to} and spam. You can request another link when the timer finishes.
           </div>
@@ -400,9 +458,23 @@ export default function App() {
             borderRadius: '8px',
             background: darkMode ? '#1e3a8a' : '#eff6ff',
             color: darkMode ? '#dbeafe' : '#1e40af',
-            border: `1px solid ${darkMode ? '#1d4ed8' : '#bfdbfe'}`
+            border: `1px solid ${darkMode ? '#1d4ed8' : '#bfdbfe'}`,
+            overflowWrap: 'anywhere'
           }}>
-            A magic link was already requested. Supabase may keep limiting email for a couple of minutes, so check your inbox or try again when the timer finishes.
+            A magic link was already sent. Check Mail for the newest message, copy that link, and paste it below. You can request another link in {magicLinkCooldown}s.
+          </div>
+        )}
+        {authError && (
+          <div role="alert" style={{
+            marginBottom: '12px',
+            padding: '8px 12px',
+            borderRadius: '8px',
+            background: darkMode ? '#7f1d1d' : '#fef2f2',
+            color: darkMode ? '#fee2e2' : '#991b1b',
+            border: `1px solid ${darkMode ? '#991b1b' : '#fecaca'}`,
+            overflowWrap: 'anywhere'
+          }}>
+            Sign-in failed: {authError}
           </div>
         )}
         {errorMsg && !isMagicLinkRateLimitMessage(errorMsg) && (
@@ -412,7 +484,8 @@ export default function App() {
             borderRadius: '8px',
             background: darkMode ? '#7f1d1d' : '#fef2f2',
             color: darkMode ? '#fee2e2' : '#991b1b',
-            border: `1px solid ${darkMode ? '#991b1b' : '#fecaca'}`
+            border: `1px solid ${darkMode ? '#991b1b' : '#fecaca'}`,
+            overflowWrap: 'anywhere'
           }}>
             {errorMsg}
           </div>
@@ -421,6 +494,24 @@ export default function App() {
           <label style={{ fontSize: 14, fontWeight: 600 }}>
             Paste magic link from Mail
           </label>
+          <button
+            className="btn"
+            type="button"
+            onClick={pasteMagicLinkFromClipboard}
+            style={{
+              width: '100%',
+              background: darkMode ? '#1f2937' : '#ffffff',
+              border: `1px solid ${darkMode ? '#60a5fa' : '#93c5fd'}`,
+              color: darkMode ? '#dbeafe' : '#1d4ed8',
+              padding: '12px 24px',
+              borderRadius: '8px',
+              fontSize: '14px',
+              fontWeight: '700',
+              cursor: 'pointer',
+            }}
+          >
+            Paste copied link
+          </button>
           <textarea
             ref={pastedLinkRef}
             value={pastedLink}
@@ -443,6 +534,10 @@ export default function App() {
               lineHeight: 1.45,
               resize: 'vertical',
               boxSizing: 'border-box',
+              overflowX: 'hidden',
+              overflowWrap: 'anywhere',
+              wordBreak: 'break-all',
+              whiteSpace: 'pre-wrap',
             }}
           />
           <button
@@ -465,13 +560,63 @@ export default function App() {
             {verifying ? 'Signing in…' : 'Sign in with pasted link'}
           </button>
           <div style={{ fontSize: 12, color: darkMode ? '#9ca3af' : '#6b7280', lineHeight: 1.45 }}>
-            In Mail, touch and hold the magic-link button, choose Copy Link, then paste it here.
+            In Mail, touch and hold the magic-link button, choose Copy Link, return here, then tap Paste copied link.
           </div>
         </form>
 
-        <div style={{ margin: '18px 0', display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ margin: '18px 0', display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
           <div style={{ height: 1, flex: 1, background: darkMode ? '#374151' : '#d1d5db' }} />
-          <span style={{ fontSize: 12, color: darkMode ? '#9ca3af' : '#6b7280' }}>or send a new link</span>
+          <span style={{ fontSize: 12, color: darkMode ? '#9ca3af' : '#6b7280', whiteSpace: 'nowrap' }}>or use code</span>
+          <div style={{ height: 1, flex: 1, background: darkMode ? '#374151' : '#d1d5db' }} />
+        </div>
+
+        <form onSubmit={verifyEmailCode} style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 18 }}>
+          <input
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            placeholder="Code from email"
+            value={emailCode}
+            onChange={(e) => setEmailCode(e.target.value)}
+            aria-label="Email sign-in code"
+            style={{
+              width: '100%',
+              padding: '12px',
+              border: `1px solid ${darkMode ? '#374151' : '#d1d5db'}`,
+              borderRadius: '8px',
+              background: darkMode ? '#374151' : '#ffffff',
+              color: darkMode ? '#f9fafb' : '#1f2937',
+              fontSize: '16px',
+              textAlign: 'center',
+              letterSpacing: '0.08em'
+            }}
+          />
+          <button
+            className="btn"
+            type="submit"
+            disabled={!emailCode.trim() || verifyingCode}
+            style={{
+              width: '100%',
+              background: darkMode ? '#111827' : '#ffffff',
+              border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`,
+              color: darkMode ? '#f9fafb' : '#1f2937',
+              padding: '12px 24px',
+              borderRadius: '8px',
+              fontSize: '14px',
+              fontWeight: '500',
+              cursor: !emailCode.trim() || verifyingCode ? 'not-allowed' : 'pointer',
+              opacity: !emailCode.trim() || verifyingCode ? 0.65 : 1,
+            }}
+          >
+            {verifyingCode ? 'Signing in…' : 'Sign in with code'}
+          </button>
+          <div style={{ fontSize: 12, color: darkMode ? '#9ca3af' : '#6b7280', lineHeight: 1.45 }}>
+            If your email shows a short code, enter it here. This avoids iPhone link-preview issues.
+          </div>
+        </form>
+
+        <div style={{ margin: '18px 0', display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+          <div style={{ height: 1, flex: 1, background: darkMode ? '#374151' : '#d1d5db' }} />
+          <span style={{ fontSize: 12, color: darkMode ? '#9ca3af' : '#6b7280', whiteSpace: 'nowrap' }}>or send a new link</span>
           <div style={{ height: 1, flex: 1, background: darkMode ? '#374151' : '#d1d5db' }} />
         </div>
 
@@ -516,7 +661,7 @@ export default function App() {
               {sending
                 ? 'Sending…'
                 : magicLinkCooldown > 0
-                  ? sent ? `Sent - try again in ${magicLinkCooldown}s` : `Try again in ${magicLinkCooldown}s`
+                  ? sent ? `Sent - resend in ${magicLinkCooldown}s` : `Wait ${magicLinkCooldown}s to resend`
                   : justSent ? 'Sent ✓' : 'Send Magic Link'}
             </span>
           </button>
@@ -537,7 +682,7 @@ export default function App() {
       background: darkMode ? '#111827' : '#ffffff',
       color: darkMode ? '#f9fafb' : '#1f2937'
     }}>
-      <aside className="sidebar" style={{ 
+      <aside className="sidebar app-sidebar" style={{ 
         position: 'fixed',
         top: 0,
         left: 0,
@@ -763,7 +908,7 @@ export default function App() {
           </button>
         </nav>
       </aside>
-      <main className="main" style={{ 
+      <main className="main app-main" style={{ 
         marginLeft: sidebarCollapsed ? '60px' : '220px',
         marginTop: '0',
         background: darkMode ? '#111827' : '#ffffff',
@@ -773,7 +918,9 @@ export default function App() {
         minHeight: '100vh',
         transition: 'margin-left 0.3s ease, width 0.3s ease',
         maxWidth: '100%',
-        overflowX: 'hidden'
+        overflowX: 'hidden',
+        boxSizing: 'border-box',
+        minWidth: 0
       }}>
         {/* Reserved for future notifications/info header (currently hidden) */}
         <div 
