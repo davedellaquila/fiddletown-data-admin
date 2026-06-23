@@ -1104,12 +1104,16 @@
 
   function syncStickyControlOffsets(mount) {
     const update = () => {
+      const compactShell = mount.querySelector('.ssa-compact-filter-shell');
       const dateSection = mount.querySelector('.ssa-sticky-date-section');
       const viewSection = mount.querySelector('.ssa-sticky-view-section');
       const keywordSection = mount.querySelector('.ssa-sticky-keyword-section');
       if (!dateSection) return;
+      const compactShellRect = compactShell ? compactShell.getBoundingClientRect() : null;
+      const compactShellIsStuck = !!compactShellRect && compactShellRect.top <= 1;
+      if (compactShell) compactShell.classList.toggle('ssa-is-stuck', compactShellIsStuck);
       const dateRect = dateSection.getBoundingClientRect();
-      const dateIsStuck = dateRect.top <= 1;
+      const dateIsStuck = compactShellIsStuck || dateRect.top <= 1;
       dateSection.classList.toggle('ssa-is-stuck', dateIsStuck);
 
       const height = Math.ceil(dateSection.getBoundingClientRect().height);
@@ -1119,7 +1123,7 @@
         const viewRect = viewSection.getBoundingClientRect();
         const isLargeCompact = window.matchMedia && window.matchMedia('(min-width: 1120px)').matches;
         const viewStickyTop = isLargeCompact ? 0 : height + 8;
-        viewSection.classList.toggle('ssa-is-stuck', viewRect.top <= viewStickyTop + 1);
+        viewSection.classList.toggle('ssa-is-stuck', compactShellIsStuck || viewRect.top <= viewStickyTop + 1);
         const viewHeight = Math.ceil(viewSection.getBoundingClientRect().height);
         mount.style.setProperty('--ssa-sticky-view-height', `${viewHeight}px`);
 
@@ -4105,7 +4109,8 @@
       #events-list .ssa-controls-heading p{margin:0;color:var(--ssa-muted)!important;font-size:21px;line-height:1.35}
       #events-list .ssa-date-filters-section,#events-list .ssa-view-controls-section,#events-list .ssa-keyword-filters-section{background:color-mix(in srgb,var(--ssa-surface) 96%,transparent)!important}
       #events-list .ssa-view-controls-section:not(.ssa-is-stuck){background:color-mix(in srgb,var(--ssa-surface) 96%,transparent)!important;border-color:var(--ssa-border)!important;box-shadow:var(--ssa-shadow)!important;backdrop-filter:blur(14px)!important;-webkit-backdrop-filter:blur(14px)!important}
-      #events-list .ssa-compact-filter-shell{max-width:1600px;margin:0 auto 18px}
+      #events-list .ssa-compact-filter-shell{max-width:1600px;margin:0 auto 18px;position:sticky;top:0;z-index:42}
+      #events-list .ssa-compact-filter-shell > .ssa-sticky-control-section{position:static}
       #events-list .ssa-date-filters{display:flex;align-items:flex-end;gap:16px;justify-content:flex-start;flex-wrap:wrap}
       #events-list .ssa-date-inputs-row{display:flex;gap:16px;align-items:flex-end}
       #events-list .ssa-date-filters label{display:flex;flex-direction:column;align-items:flex-start;gap:8px;color:var(--ssa-muted)!important;font-size:17px;font-weight:700}
