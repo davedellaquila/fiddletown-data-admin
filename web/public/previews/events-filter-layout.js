@@ -1490,16 +1490,18 @@
     }
     viewControlsHTML += `<p class="ssa-selection-count" aria-label="${filteredRows.length} ${filteredRows.length === 1 ? 'event' : 'events'} in current selection">${filteredRows.length} ${filteredRows.length === 1 ? 'event' : 'events'}</p>`;
     viewControlsHTML += '</div>';
-    if (selectedKeywordRows.length > 0) {
-      viewControlsHTML += '<div class="ssa-selected-keyword-row" aria-label="Selected keywords">';
-      selectedKeywordRows.forEach(kw => {
-        viewControlsHTML += `<button class="ssa-keyword-btn ssa-keyword-active ssa-keyword-remove-btn" data-keyword="${kw}">${kw}<span class="ssa-keyword-remove-icon" aria-hidden="true">×</span></button>`;
-      });
-      viewControlsHTML += '</div>';
-    }
     viewControlsHTML += '</section>';
 
-    let keywordControlsHTML = '';
+    let selectedKeywordControlsHTML = '';
+    if (selectedKeywordRows.length > 0) {
+      selectedKeywordControlsHTML += '<section class="ssa-control-panel ssa-selected-keywords-section" aria-label="Selected keywords">';
+      selectedKeywordControlsHTML += '<div class="ssa-selected-keyword-row">';
+      selectedKeywordRows.forEach(kw => {
+        selectedKeywordControlsHTML += `<button class="ssa-keyword-btn ssa-keyword-active ssa-keyword-remove-btn" data-keyword="${kw}">${kw}<span class="ssa-keyword-remove-icon" aria-hidden="true">×</span></button>`;
+      });
+      selectedKeywordControlsHTML += '</div>';
+      selectedKeywordControlsHTML += '</section>';
+    }
 
     const footerHTML = '<p class="ssa-events-footnote">Confirm dates and ticketing with organizers before driving out.</p>';
     
@@ -1513,7 +1515,7 @@
       eventsHTML = renderCalendarLayout(filteredRows, state);
     }
     
-    mount.innerHTML = pageHeaderHTML + controlsHTML + `<div class="ssa-compact-filter-shell">${dateControlsHTML + viewControlsHTML}</div>` + keywordControlsHTML + eventsHTML + footerHTML;
+    mount.innerHTML = pageHeaderHTML + controlsHTML + `<div class="ssa-compact-filter-shell">${dateControlsHTML + viewControlsHTML}</div>` + selectedKeywordControlsHTML + eventsHTML + footerHTML;
     syncStickyControlOffsets(mount);
     
     // Verify keyword cloud was rendered
@@ -4146,9 +4148,11 @@
       #events-list .ssa-filter-menu .ssa-clear-dates::before{display:none!important;content:none!important}
       #events-list .ssa-filter-menu .ssa-layout-icon,#events-list .ssa-filter-menu .ssa-group-icon{width:22px;height:22px;flex:0 0 22px}
       #events-list .ssa-menu-check{width:18px;flex:0 0 18px;color:var(--ssa-accent)!important;font-weight:900;text-align:center}
+      #events-list .ssa-selected-keywords-section{max-width:1600px;margin:0 auto 18px;padding:16px 32px}
       #events-list .ssa-selected-keyword-row{display:flex;gap:10px;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;padding-top:2px;scrollbar-width:none}
       #events-list .ssa-selected-keyword-row::-webkit-scrollbar{display:none}
       #events-list .ssa-selected-keyword-row .ssa-keyword-btn{flex:0 0 auto;width:auto;height:42px}
+      #events-list .ssa-selected-keywords-section .ssa-selected-keyword-row{width:100%;padding:0}
       #events-list .ssa-view-controls-left{display:flex;align-items:flex-end;gap:28px;flex-wrap:wrap}
       #events-list .ssa-layout-switcher-wrapper,#events-list .ssa-group-switcher-wrapper{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
       #events-list .ssa-layout-switcher-wrapper ~ .ssa-group-switcher-wrapper{padding-left:0;border-left:0}
@@ -4303,7 +4307,6 @@
         #events-list .ssa-compact-filter-shell .ssa-filter-menu{grid-row:2}
         #events-list .ssa-compact-filter-shell .ssa-filter-menu summary{height:48px;padding:0 12px;font-size:14px}
         #events-list .ssa-compact-filter-shell .ssa-selection-count{grid-column:1/-1;grid-row:1;height:auto;display:flex;align-items:center;justify-content:center;justify-self:center;white-space:nowrap;font-size:13px;line-height:1.15;text-align:center}
-        #events-list .ssa-compact-filter-shell .ssa-selected-keyword-row{grid-column:1/-1;padding-top:8px}
         #events-list .ssa-sticky-view-section{top:0}
         #events-list .ssa-sticky-keyword-section{top:calc(var(--ssa-sticky-date-height,92px) + 16px)}
       }
