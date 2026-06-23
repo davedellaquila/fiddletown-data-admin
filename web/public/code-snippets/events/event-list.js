@@ -4237,10 +4237,12 @@
       #events-list .ssa-calendar-day-has-events{cursor:pointer}
       #events-list .ssa-calendar-day-has-events:hover{background:color-mix(in srgb,var(--ssa-accent) 4%,var(--ssa-surface))!important}
       #events-list .ssa-calendar-day-number{color:var(--ssa-text)!important;font-size:20px;font-weight:800}
-      #events-list .ssa-calendar-day-agenda-trigger{width:100%;margin-top:10px;padding:0;border:0;background:transparent;color:inherit;text-align:left;cursor:pointer}
+      #events-list .ssa-calendar-day-agenda-trigger{width:100%;margin-top:10px;padding:0;border:0!important;background:transparent!important;color:inherit!important;text-align:left;cursor:pointer;box-shadow:none!important}
       #events-list .ssa-calendar-event-count{display:inline-flex;height:28px;padding:0 10px;align-items:center;justify-content:center;box-sizing:border-box;text-align:center;border:1px solid var(--ssa-accent-soft)!important;border-radius:12px;background:rgba(169,51,38,.07)!important;color:var(--ssa-accent)!important;font-size:13px;font-weight:800}
       #events-list .ssa-calendar-event-preview-list{display:flex;flex-direction:column;gap:5px;margin-top:10px}
       #events-list .ssa-calendar-event-preview,#events-list .ssa-calendar-event-more{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ssa-muted)!important;font-size:14px;font-weight:700;line-height:1.25}
+      html.dark-mode #events-list .ssa-calendar-day-agenda-trigger,body.dark-mode #events-list .ssa-calendar-day-agenda-trigger,html.dark-mode #events-list .ssa-calendar-day-agenda-trigger:hover,body.dark-mode #events-list .ssa-calendar-day-agenda-trigger:hover,html.dark-mode #events-list .ssa-calendar-day-agenda-trigger:focus,body.dark-mode #events-list .ssa-calendar-day-agenda-trigger:focus{background:transparent!important;border-color:transparent!important;color:inherit!important;box-shadow:none!important}
+      html.dark-mode #events-list .ssa-calendar-event-preview,body.dark-mode #events-list .ssa-calendar-event-preview,html.dark-mode #events-list .ssa-calendar-event-more,body.dark-mode #events-list .ssa-calendar-event-more{background:transparent!important;color:var(--ssa-muted)!important}
       #events-list .ssa-calendar-info-icon{width:10px;height:10px;min-width:10px;min-height:10px;background:var(--ssa-accent)!important}
       #events-list .ssa-calendar-info-icon::before{content:''}
       .ssa-day-agenda-backdrop{position:fixed;inset:0;z-index:10020;display:flex;align-items:center;justify-content:center;padding:22px;background:rgba(15,23,42,.42);opacity:0;transition:opacity .18s ease}
