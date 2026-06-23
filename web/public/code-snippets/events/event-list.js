@@ -4298,11 +4298,11 @@
         #events-list .ssa-compact-filter-shell .ssa-date-clear-btn{grid-column:3;width:40px;min-width:40px;height:48px;align-self:end;justify-self:center}
         #events-list .ssa-compact-filter-shell .ssa-date-input{height:48px;padding:0 14px;font-size:17px}
         #events-list .ssa-compact-filter-shell .ssa-date-filters label span{display:block;margin-bottom:6px;padding-left:1px;font-size:13px;line-height:1.15}
-        #events-list .ssa-compact-filter-shell .ssa-view-controls-section{display:flex;align-items:stretch;justify-content:flex-end}
-        #events-list .ssa-compact-filter-shell .ssa-filter-toolbar{width:100%;grid-template-columns:minmax(132px,1.05fr) minmax(126px,1fr) minmax(104px,.82fr) minmax(132px,1.05fr);grid-template-rows:auto 48px;gap:8px 10px;align-items:end}
+        #events-list .ssa-compact-filter-shell .ssa-view-controls-section{display:flex;align-items:stretch;justify-content:stretch}
+        #events-list .ssa-compact-filter-shell .ssa-filter-toolbar{width:100%;height:100%;grid-template-columns:minmax(132px,1.05fr) minmax(126px,1fr) minmax(104px,.82fr) minmax(132px,1.05fr);grid-template-rows:auto 48px;gap:8px 10px;align-items:end;align-content:space-between}
         #events-list .ssa-compact-filter-shell .ssa-filter-menu{grid-row:2}
         #events-list .ssa-compact-filter-shell .ssa-filter-menu summary{height:48px;padding:0 12px;font-size:14px}
-        #events-list .ssa-compact-filter-shell .ssa-selection-count{grid-column:1/-1;grid-row:1;height:auto;display:flex;align-items:center;justify-content:center;justify-self:center;white-space:nowrap;font-size:13px;text-align:center}
+        #events-list .ssa-compact-filter-shell .ssa-selection-count{grid-column:1/-1;grid-row:1;height:auto;display:flex;align-items:center;justify-content:center;justify-self:center;white-space:nowrap;font-size:13px;line-height:1.15;text-align:center}
         #events-list .ssa-compact-filter-shell .ssa-selected-keyword-row{grid-column:1/-1;padding-top:8px}
         #events-list .ssa-sticky-view-section{top:0}
         #events-list .ssa-sticky-keyword-section{top:calc(var(--ssa-sticky-date-height,92px) + 16px)}
