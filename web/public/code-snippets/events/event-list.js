@@ -4102,7 +4102,7 @@
       #events-list .ssa-controls-heading h2{margin:0 0 8px;color:var(--ssa-text)!important;font-size:32px;line-height:1.15;font-weight:800}
       #events-list .ssa-controls-heading p{margin:0;color:var(--ssa-muted)!important;font-size:21px;line-height:1.35}
       #events-list .ssa-date-filters-section,#events-list .ssa-view-controls-section,#events-list .ssa-keyword-filters-section{background:color-mix(in srgb,var(--ssa-surface) 96%,transparent)!important}
-      #events-list .ssa-view-controls-section:not(.ssa-is-stuck){background:transparent!important;border-color:transparent!important;box-shadow:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+      #events-list .ssa-view-controls-section:not(.ssa-is-stuck){background:color-mix(in srgb,var(--ssa-surface) 96%,transparent)!important;border-color:var(--ssa-border)!important;box-shadow:var(--ssa-shadow)!important;backdrop-filter:blur(14px)!important;-webkit-backdrop-filter:blur(14px)!important}
       #events-list .ssa-compact-filter-shell{max-width:1600px;margin:0 auto 18px}
       #events-list .ssa-date-filters{display:flex;align-items:flex-end;gap:16px;justify-content:flex-start;flex-wrap:wrap}
       #events-list .ssa-date-inputs-row{display:flex;gap:16px;align-items:flex-end}
