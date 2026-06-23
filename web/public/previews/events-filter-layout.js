@@ -4298,8 +4298,8 @@
         #events-list .ssa-compact-filter-shell .ssa-date-clear-btn{grid-column:3;width:40px;min-width:40px;height:48px;align-self:end;justify-self:center}
         #events-list .ssa-compact-filter-shell .ssa-date-input{height:48px;padding:0 14px;font-size:17px}
         #events-list .ssa-compact-filter-shell .ssa-date-filters label span{display:block;margin-bottom:6px;padding-left:1px;font-size:13px;line-height:1.15}
-        #events-list .ssa-compact-filter-shell .ssa-view-controls-section{display:flex;align-items:end;justify-content:stretch}
-        #events-list .ssa-compact-filter-shell .ssa-filter-toolbar{width:100%;grid-template-columns:minmax(132px,1.05fr) minmax(126px,1fr) minmax(104px,.82fr) minmax(132px,1.05fr) auto;gap:10px;align-items:end}
+        #events-list .ssa-compact-filter-shell .ssa-view-controls-section{display:flex;align-items:stretch;justify-content:center}
+        #events-list .ssa-compact-filter-shell .ssa-filter-toolbar{width:100%;grid-template-columns:minmax(132px,1.05fr) minmax(126px,1fr) minmax(104px,.82fr) minmax(132px,1.05fr) auto;gap:10px;align-items:center}
         #events-list .ssa-compact-filter-shell .ssa-filter-menu summary{height:48px;padding:0 12px;font-size:14px}
         #events-list .ssa-compact-filter-shell .ssa-selection-count{height:48px;display:flex;align-items:center;white-space:nowrap;font-size:13px}
         #events-list .ssa-compact-filter-shell .ssa-selected-keyword-row{grid-column:1/-1;padding-top:8px}
