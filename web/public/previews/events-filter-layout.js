@@ -54,12 +54,15 @@
     CALENDAR: 'calendar'
   };
   const SIGNATURE_EVENT_KEYWORD = 'signature event';
+  const SSA_HOME_URL = 'https://sportscaradventures.com/';
+  const SSA_LOGO_URL = 'https://static1.squarespace.com/static/5461a83be4b02a78c5fde7d7/t/66c61c7415d203318d4a220d/1724259446656/Sports+Car+Adventures+logo.png?format=300w';
 
   async function fetchEvents({ url, key, from = null, to = null, limit = 200 }) {
       const api = new URL(url + '/rest/v1/events');
-      api.searchParams.set('select','id,name,slug,host_org,start_date,end_date,start_time,end_time,location,website_url,image_url,recurrence,sort_order,description,is_signature_event');
+      api.searchParams.set('select','id,name,slug,host_org,start_date,end_date,start_time,end_time,location,website_url,image_url,recurrence,sort_order,description,is_signature_event,status,created_at');
       api.searchParams.set('order','start_date.asc,name.asc');
       api.searchParams.set('limit', String(limit));
+      api.searchParams.set('status', 'eq.published');
 
 	  // Show upcoming events if FROM is set.
 	  // Include rows where:
@@ -195,7 +198,7 @@
         }
       }
       
-      return events;
+      return dedupeEventsBySchedule(events);
     }
 
   function fmtRange(s, e){
@@ -476,6 +479,136 @@
       console.error('Error fetching all keywords:', e);
       return [];
     }
+  }
+
+  /** Decode HTML entities from scraped titles (e.g. &#8211; → –). */
+  function decodeHtmlEntities(text) {
+    if (!text || text.indexOf('&') === -1) return text || '';
+    const el = document.createElement('textarea');
+    el.innerHTML = text;
+    return el.value;
+  }
+
+  /**
+   * Normalize title for comparison: HTML entities, punctuation, spacing.
+   * Treats "Rombauer Vineyards - Dinner" and "Rombauer Vineyards; Dinner" as equal.
+   */
+  function normalizeEventName(name) {
+    return decodeHtmlEntities(name || '')
+      .toLowerCase()
+      .replace(/[''`]/g, '')
+      .replace(/[^a-z0-9]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  /** Normalize listing URL for dedup fingerprint (ignore www, trailing slash, query/hash). */
+  function normalizeEventUrlForDedup(raw) {
+    const s = (raw || '').trim();
+    if (!s) return '';
+    try {
+      const u = new URL(/^https?:\/\//i.test(s) ? s : `https://${s}`);
+      const host = u.hostname.replace(/^www\./i, '').toLowerCase();
+      const path = u.pathname.replace(/\/+$/, '') || '';
+      return `${host}${path}`.toLowerCase();
+    } catch {
+      return s
+        .toLowerCase()
+        .replace(/^https?:\/\//, '')
+        .replace(/^www\./, '')
+        .replace(/\/+$/, '')
+        .split(/[?#]/)[0];
+    }
+  }
+
+  function normalizeEventTime(value) {
+    if (!value) return '';
+    const part = String(value).trim().split(/[T\s]/).pop() || '';
+    const match = part.match(/^(\d{1,2}):(\d{2})/);
+    if (!match) return part.slice(0, 5);
+    return `${match[1].padStart(2, '0')}:${match[2]}`;
+  }
+
+  function scheduleFingerprint(ev) {
+    const startDate = normalizeDateString(ev.start_date) || '';
+    const endDate = normalizeDateString(ev.end_date) || startDate;
+    return [
+      startDate,
+      endDate,
+      normalizeEventTime(ev.start_time),
+      normalizeEventTime(ev.end_time),
+    ].join('|');
+  }
+
+  /**
+   * Fingerprint near-duplicate events — common when the same listing is published
+   * multiple times with scraped title variants (- vs ; vs |, HTML entities, etc.).
+   *
+   * Primary: same website URL + same date/time (title ignored when URL present).
+   * Fallback: normalized title + schedule + location when no URL.
+   */
+  function dedupeFingerprint(ev) {
+    const schedule = scheduleFingerprint(ev);
+    const url = normalizeEventUrlForDedup(ev.website_url);
+    if (url) return `url:${url}|${schedule}`;
+    return `name:${normalizeEventName(ev.name)}|${schedule}|${normalizeEventName(ev.location || '')}`;
+  }
+
+  function unionEventKeywordsInto(target, source) {
+    const merged = new Set(getEventKeywords(target));
+    getEventKeywords(source).forEach((kw) => merged.add(kw));
+    target.keywords = Array.from(merged).sort();
+  }
+
+  function scoreDuplicateEvent(ev) {
+    return {
+      kwCount: getEventKeywords(ev).length,
+      descLen: (ev.description || '').length + (ev.short_description || '').length,
+      cleanName: (ev.name || '').includes('&') ? 0 : 1,
+    };
+  }
+
+  function pickBestDuplicateEvent(group) {
+    const ranked = [...group].sort((a, b) => {
+      const sa = scoreDuplicateEvent(a);
+      const sb = scoreDuplicateEvent(b);
+      if (sb.kwCount !== sa.kwCount) return sb.kwCount - sa.kwCount;
+      if (sb.descLen !== sa.descLen) return sb.descLen - sa.descLen;
+      if (sb.cleanName !== sa.cleanName) return sb.cleanName - sa.cleanName;
+      return String(a.created_at || a.id).localeCompare(String(b.created_at || b.id));
+    });
+    const best = { ...ranked[0] };
+    ranked.slice(1).forEach((other) => unionEventKeywordsInto(best, other));
+    return best;
+  }
+
+  /**
+   * Collapse duplicate published events. Keeps the richest row (most keywords,
+   * then longest description) and merges keywords from dropped duplicates.
+   */
+  function dedupeEventsBySchedule(events) {
+    const groups = new Map();
+    (events || []).forEach((ev) => {
+      const key = dedupeFingerprint(ev);
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(ev);
+    });
+
+    const deduped = [];
+    let collapsed = 0;
+    groups.forEach((group) => {
+      if (group.length === 1) {
+        deduped.push(group[0]);
+        return;
+      }
+      collapsed += group.length - 1;
+      deduped.push(pickBestDuplicateEvent(group));
+    });
+
+    if (collapsed > 0) {
+      console.debug(`dedupeEventsBySchedule: collapsed ${collapsed} near-duplicate event(s)`);
+    }
+    return deduped;
   }
 
   function filterEventsByKeywords(events, selectedKeywords) {
@@ -984,14 +1117,15 @@
 
       if (viewSection) {
         const viewRect = viewSection.getBoundingClientRect();
-        const viewStickyTop = height + 8;
+        const isLargeCompact = window.matchMedia && window.matchMedia('(min-width: 1120px)').matches;
+        const viewStickyTop = isLargeCompact ? 0 : height + 8;
         viewSection.classList.toggle('ssa-is-stuck', viewRect.top <= viewStickyTop + 1);
         const viewHeight = Math.ceil(viewSection.getBoundingClientRect().height);
         mount.style.setProperty('--ssa-sticky-view-height', `${viewHeight}px`);
 
         if (keywordSection) {
           const keywordRect = keywordSection.getBoundingClientRect();
-          const keywordStickyTop = height + viewHeight + 16;
+          const keywordStickyTop = height + (isLargeCompact ? 0 : viewHeight) + 16;
           keywordSection.classList.toggle('ssa-is-stuck', keywordRect.top <= keywordStickyTop + 1);
         }
       }
@@ -1236,11 +1370,12 @@
     // Use the rows parameter (most recent data) if it has events, otherwise fall back to mount._allRows
     // Always prefer the rows parameter since it's the most recent data passed to renderEvents
     // Update mount._allRows to keep it in sync for event handlers
-    const allAvailableRows = rows && rows.length > 0 ? rows : (mount._allRows || []);
+    const sourceRows = rows && rows.length > 0 ? rows : (mount._allRows || []);
+    const allAvailableRows = dedupeEventsBySchedule(sourceRows);
     
     // Keep mount._allRows in sync if rows is provided and different
-    if (rows && rows.length > 0 && rows !== mount._allRows) {
-      mount._allRows = rows;
+    if (allAvailableRows.length > 0 && allAvailableRows !== mount._allRows) {
+      mount._allRows = allAvailableRows;
     }
     
     // Apply all filters to get the final set of displayed events
@@ -1273,8 +1408,16 @@
     // Render page intro and controls
     const pageHeaderHTML = `
       <section class="ssa-page-intro">
-        <h1>Gold Country Events</h1>
-        <p>Drive-worthy happenings in Amador, El Dorado, and nearby foothill country.</p>
+        <div class="ssa-page-intro-head">
+          <a class="ssa-brand-mark" href="${SSA_HOME_URL}" target="_blank" rel="noopener noreferrer" aria-label="Sports Car Adventures home">
+            <img src="${SSA_LOGO_URL}" alt="Sports Car Adventures" width="72" height="72" loading="lazy" decoding="async" />
+          </a>
+          <div class="ssa-page-intro-copy">
+            <h1>Gold Country Events</h1>
+            <p>Drive-worthy happenings in Amador, El Dorado, and nearby foothill country.</p>
+            <p class="ssa-page-intro-credit">Brought to you by <a href="${SSA_HOME_URL}" target="_blank" rel="noopener noreferrer">Sports Car Adventures</a></p>
+          </div>
+        </div>
       </section>
     `;
 
@@ -1370,7 +1513,7 @@
       eventsHTML = renderCalendarLayout(filteredRows, state);
     }
     
-    mount.innerHTML = pageHeaderHTML + controlsHTML + dateControlsHTML + viewControlsHTML + keywordControlsHTML + eventsHTML + footerHTML;
+    mount.innerHTML = pageHeaderHTML + controlsHTML + `<div class="ssa-compact-filter-shell">${dateControlsHTML + viewControlsHTML}</div>` + keywordControlsHTML + eventsHTML + footerHTML;
     syncStickyControlOffsets(mount);
     
     // Verify keyword cloud was rendered
@@ -3890,10 +4033,14 @@
         --ssa-muted:#6f7b91;
         --ssa-border:#ddd4c8;
         --ssa-border-soft:#eee7de;
+        --ssa-control-border:#c4b8aa;
         --ssa-accent:#a93326;
         --ssa-accent-soft:#e4b8ae;
         --ssa-event-title:#8f2c22;
         --ssa-shadow:0 18px 36px rgba(75,55,32,.09);
+        --ssa-sticky-bar-shadow:0 12px 30px rgba(26,19,15,.12);
+        --ssa-sticky-bar-bg:#ede6dc;
+        --ssa-sticky-control-fill:#f8f4ee;
         --ssa-font:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
       }
       html.dark-mode,body.dark-mode{
@@ -3904,24 +4051,46 @@
         --ssa-muted:#b6aa9d;
         --ssa-border:#42372d;
         --ssa-border-soft:#302821;
+        --ssa-control-border:#6f6356;
         --ssa-accent:#f07961;
         --ssa-accent-soft:#7c3d30;
         --ssa-event-title:#ffad9b;
         --ssa-keyword-tag-fg:#d4cec6;
         --ssa-keyword-tag-border:#9a9288;
         --ssa-shadow:none;
+        --ssa-sticky-bar-shadow:0 16px 42px rgba(0,0,0,.72),0 0 0 1px rgba(255,255,255,.10);
+        --ssa-sticky-bar-bg:#524538;
+        --ssa-sticky-panel-border:#c9b8a4;
+        --ssa-sticky-control-fill:#1a130f;
+        --ssa-sticky-control-fg:#fbf7ef;
+        --ssa-sticky-control-border:#d9cbb8;
       }
       #events-list,#events-list *{box-sizing:border-box;font-family:var(--ssa-font);letter-spacing:0}
       #events-list{max-width:100%;margin:0 auto;padding:48px 0 28px;color:var(--ssa-text)!important;background:var(--ssa-bg)!important}
       #events-list .ssa-page-intro{max-width:1600px;margin:0 auto 42px;padding:0 64px}
+      #events-list .ssa-page-intro-head{display:flex;align-items:flex-start;gap:22px}
+      #events-list .ssa-brand-mark{flex:0 0 auto;display:block;line-height:0;margin-top:6px}
+      #events-list .ssa-brand-mark img{width:72px;height:auto;display:block;border-radius:8px}
+      #events-list .ssa-page-intro-copy{min-width:0}
       #events-list .ssa-page-intro h1{margin:0 0 16px;color:var(--ssa-text)!important;font-size:64px;line-height:1.05;font-weight:800;letter-spacing:.01em}
       #events-list .ssa-page-intro p{margin:0;color:var(--ssa-muted)!important;font-size:25px;line-height:1.35;font-weight:400}
+      #events-list .ssa-page-intro-credit{margin:14px 0 0!important;font-size:18px!important;line-height:1.4!important;font-weight:600!important}
+      #events-list .ssa-page-intro-credit a{color:var(--ssa-accent)!important;text-decoration:none;font-weight:800}
+      #events-list .ssa-page-intro-credit a:hover,#events-list .ssa-page-intro-credit a:focus-visible{text-decoration:underline}
       #events-list .ssa-controls{max-width:1600px;margin:0 auto 18px;padding:34px 32px 30px;display:flex;flex-direction:column;gap:26px;background:var(--ssa-surface)!important;border:1px solid var(--ssa-border)!important;border-radius:12px;box-shadow:var(--ssa-shadow)}
       #events-list .ssa-control-panel{max-width:1600px;margin:0 auto 18px;padding:20px 32px;background:color-mix(in srgb,var(--ssa-surface) 96%,transparent)!important;border:1px solid var(--ssa-border)!important;border-radius:12px;box-shadow:var(--ssa-shadow);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
       #events-list .ssa-sticky-control-section{position:sticky;z-index:38}
       #events-list .ssa-sticky-date-section{top:0;z-index:40}
       #events-list .ssa-sticky-view-section{top:calc(var(--ssa-sticky-date-height,156px) + 8px);z-index:39}
       #events-list .ssa-sticky-keyword-section{top:calc(var(--ssa-sticky-date-height,156px) + var(--ssa-sticky-view-height,96px) + 16px);z-index:38}
+      #events-list .ssa-sticky-control-section.ssa-is-stuck{background:var(--ssa-sticky-bar-bg)!important;border:1px solid var(--ssa-border)!important;box-shadow:var(--ssa-sticky-bar-shadow)!important;backdrop-filter:blur(16px) saturate(1.08)!important;-webkit-backdrop-filter:blur(16px) saturate(1.08)!important}
+      html.dark-mode #events-list .ssa-sticky-control-section.ssa-is-stuck,body.dark-mode #events-list .ssa-sticky-control-section.ssa-is-stuck{backdrop-filter:none!important;-webkit-backdrop-filter:none!important;border:2px solid var(--ssa-sticky-panel-border)!important;box-shadow:var(--ssa-sticky-bar-shadow)!important}
+      html.dark-mode #events-list .ssa-sticky-control-section,body.dark-mode #events-list .ssa-sticky-control-section{background:var(--ssa-sticky-bar-bg)!important;border:2px solid var(--ssa-sticky-panel-border)!important;box-shadow:var(--ssa-sticky-bar-shadow)!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+      html.dark-mode #events-list .ssa-sticky-view-section,body.dark-mode #events-list .ssa-sticky-view-section{background:var(--ssa-sticky-bar-bg)!important;border:2px solid var(--ssa-sticky-panel-border)!important;box-shadow:var(--ssa-sticky-bar-shadow)!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+      #events-list .ssa-sticky-control-section.ssa-is-stuck .ssa-filter-menu summary,#events-list .ssa-sticky-control-section.ssa-is-stuck .ssa-date-input{background:var(--ssa-sticky-control-fill)!important}
+      #events-list .ssa-sticky-date-section.ssa-is-stuck{z-index:41}
+      #events-list .ssa-sticky-view-section.ssa-is-stuck{z-index:40}
+      #events-list .ssa-sticky-keyword-section.ssa-is-stuck{z-index:39}
       #events-list .ssa-controls-heading-top{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:0 0 8px}
       #events-list .ssa-controls-heading span,#events-list .ssa-results-summary span,#events-list .ssa-control-label{display:block;margin:0 0 8px;color:var(--ssa-muted)!important;font-size:15px;font-weight:800;text-transform:uppercase;letter-spacing:.04em}
       #events-list .ssa-sticky-date-section .ssa-date-filters label,#events-list .ssa-sticky-view-section .ssa-layout-switcher-wrapper,#events-list .ssa-sticky-view-section .ssa-group-switcher-wrapper{transition:gap .24s ease}
@@ -3933,11 +4102,13 @@
       #events-list .ssa-controls-heading h2{margin:0 0 8px;color:var(--ssa-text)!important;font-size:32px;line-height:1.15;font-weight:800}
       #events-list .ssa-controls-heading p{margin:0;color:var(--ssa-muted)!important;font-size:21px;line-height:1.35}
       #events-list .ssa-date-filters-section,#events-list .ssa-view-controls-section,#events-list .ssa-keyword-filters-section{background:color-mix(in srgb,var(--ssa-surface) 96%,transparent)!important}
-      #events-list .ssa-view-controls-section{background:transparent!important;border-color:transparent!important;box-shadow:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+      #events-list .ssa-view-controls-section:not(.ssa-is-stuck){background:transparent!important;border-color:transparent!important;box-shadow:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+      #events-list .ssa-compact-filter-shell{max-width:1600px;margin:0 auto 18px}
       #events-list .ssa-date-filters{display:flex;align-items:flex-end;gap:16px;justify-content:flex-start;flex-wrap:wrap}
       #events-list .ssa-date-inputs-row{display:flex;gap:16px;align-items:flex-end}
       #events-list .ssa-date-filters label{display:flex;flex-direction:column;align-items:flex-start;gap:8px;color:var(--ssa-muted)!important;font-size:17px;font-weight:700}
-      #events-list .ssa-date-input{width:230px;height:58px;padding:0 16px;background:var(--ssa-surface-soft)!important;border:1px solid var(--ssa-border)!important;border-radius:10px;color:var(--ssa-text)!important;font-size:20px;font-weight:700;box-shadow:none!important}
+      #events-list .ssa-date-input{width:230px;height:58px;padding:0 16px;background:var(--ssa-surface-soft)!important;border:1px solid var(--ssa-control-border)!important;border-radius:10px;color:var(--ssa-text)!important;font-size:20px;font-weight:700;box-shadow:0 1px 0 rgba(255,255,255,.35) inset!important}
+      html.dark-mode #events-list .ssa-sticky-control-section .ssa-date-input,body.dark-mode #events-list .ssa-sticky-control-section .ssa-date-input{box-shadow:0 1px 0 rgba(255,255,255,.06) inset,0 2px 10px rgba(0,0,0,.22)!important}
       #events-list button{font-family:var(--ssa-font);letter-spacing:0}
       #events-list .ssa-weekend-btn,#events-list .ssa-clear-dates,#events-list .ssa-date-clear-btn,#events-list .ssa-layout-btn,#events-list .ssa-group-btn,#events-list .ssa-show-images-toggle,#events-list .ssa-signature-events-toggle,#events-list .ssa-dark-mode-toggle,#events-list .ssa-keyword-btn{height:52px;padding:0 22px;display:inline-flex;align-items:center;justify-content:center;background:var(--ssa-surface)!important;border:1px solid var(--ssa-border-soft)!important;border-radius:10px;color:var(--ssa-muted)!important;font-size:20px;font-weight:700;line-height:1;box-shadow:none!important;transform:none!important;white-space:nowrap}
       #events-list .ssa-date-clear-btn{width:58px;height:58px;padding:0;border-color:transparent!important;border-radius:999px;background:transparent!important;font-size:0;color:transparent!important;align-self:end}
@@ -3956,7 +4127,13 @@
       #events-list .ssa-view-controls-section{display:flex;flex-direction:column;gap:12px}
       #events-list .ssa-filter-toolbar{display:grid;grid-template-columns:repeat(4,minmax(150px,1fr)) auto;gap:12px;align-items:center}
       #events-list .ssa-filter-menu{position:relative;min-width:0}
-      #events-list .ssa-filter-menu summary{height:48px;padding:0 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid var(--ssa-border-soft)!important;border-radius:10px;background:var(--ssa-surface)!important;color:var(--ssa-muted)!important;font-size:17px;font-weight:800;line-height:1;list-style:none;cursor:pointer;white-space:nowrap}
+      #events-list .ssa-filter-menu summary{height:48px;padding:0 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid var(--ssa-control-border)!important;border-radius:10px;background:var(--ssa-surface)!important;color:var(--ssa-muted)!important;font-size:17px;font-weight:800;line-height:1;list-style:none;cursor:pointer;white-space:nowrap;box-shadow:0 1px 0 rgba(255,255,255,.35) inset!important}
+      html.dark-mode #events-list .ssa-filter-menu summary,body.dark-mode #events-list .ssa-filter-menu summary{box-shadow:0 1px 0 rgba(255,255,255,.07) inset,0 2px 10px rgba(0,0,0,.24)!important}
+      html.dark-mode #events-list .ssa-sticky-control-section .ssa-filter-menu summary,body.dark-mode #events-list .ssa-sticky-control-section .ssa-filter-menu summary{color:var(--ssa-sticky-control-fg)!important;background:var(--ssa-sticky-control-fill)!important;border:2px solid var(--ssa-sticky-control-border)!important;-webkit-text-fill-color:var(--ssa-sticky-control-fg)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.05)!important}
+      html.dark-mode #events-list .ssa-sticky-control-section .ssa-date-input,body.dark-mode #events-list .ssa-sticky-control-section .ssa-date-input{color:var(--ssa-sticky-control-fg)!important;background:var(--ssa-sticky-control-fill)!important;border:2px solid var(--ssa-sticky-control-border)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.05)!important;-webkit-text-fill-color:var(--ssa-sticky-control-fg)!important}
+      html.dark-mode #events-list .ssa-sticky-control-section .ssa-date-filters label,body.dark-mode #events-list .ssa-sticky-control-section .ssa-date-filters label{color:var(--ssa-sticky-control-fg)!important}
+      html.dark-mode #events-list .ssa-sticky-control-section .ssa-date-clear-btn::before,body.dark-mode #events-list .ssa-sticky-control-section .ssa-date-clear-btn::before{color:var(--ssa-sticky-control-fg)!important;border:2px solid var(--ssa-sticky-control-border)!important}
+      html.dark-mode #events-list .ssa-sticky-control-section.ssa-is-stuck .ssa-filter-menu summary,body.dark-mode #events-list .ssa-sticky-control-section.ssa-is-stuck .ssa-filter-menu summary{border:2px solid var(--ssa-sticky-control-border)!important}
       #events-list .ssa-filter-menu summary::-webkit-details-marker{display:none}
       #events-list .ssa-filter-menu summary::after{content:'⌄';color:currentColor;font-size:18px;line-height:1;transition:transform .18s ease}
       #events-list .ssa-filter-menu[open] summary{border-color:var(--ssa-accent-soft)!important;color:var(--ssa-accent)!important;background:rgba(169,51,38,.045)!important}
@@ -4110,11 +4287,34 @@
         #events-list .ssa-clear-dates:hover::before,#events-list .ssa-clear-dates:focus-visible::before{color:var(--ssa-accent)!important;transform:rotate(90deg) scale(1.08);box-shadow:0 0 0 5px rgba(169,51,38,.08)}
         #events-list .ssa-clear-dates:active::before{transform:rotate(90deg) scale(.92)}
       }
+      @media(min-width:1120px){
+        #events-list .ssa-compact-filter-shell{display:grid;grid-template-columns:minmax(430px,.86fr) minmax(560px,1.14fr);gap:14px;align-items:stretch}
+        #events-list .ssa-compact-filter-shell > .ssa-control-panel{max-width:none;width:100%;margin:0}
+        #events-list .ssa-compact-filter-shell .ssa-date-filters-section,#events-list .ssa-compact-filter-shell .ssa-view-controls-section{padding:16px 18px}
+        #events-list .ssa-compact-filter-shell .ssa-date-filters{display:block;width:100%}
+        #events-list .ssa-compact-filter-shell .ssa-date-inputs-row{grid-column:auto;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 44px;gap:18px;align-items:end;width:100%;min-width:0}
+        #events-list .ssa-compact-filter-shell .ssa-date-inputs-row label:first-of-type{grid-column:1}
+        #events-list .ssa-compact-filter-shell .ssa-date-inputs-row label:nth-of-type(2){grid-column:2}
+        #events-list .ssa-compact-filter-shell .ssa-date-clear-btn{grid-column:3;width:40px;min-width:40px;height:48px;align-self:end;justify-self:center}
+        #events-list .ssa-compact-filter-shell .ssa-date-input{height:48px;padding:0 14px;font-size:17px}
+        #events-list .ssa-compact-filter-shell .ssa-date-filters label span{display:block;margin-bottom:6px;padding-left:1px;font-size:13px;line-height:1.15}
+        #events-list .ssa-compact-filter-shell .ssa-view-controls-section{display:flex;align-items:end;justify-content:stretch}
+        #events-list .ssa-compact-filter-shell .ssa-filter-toolbar{width:100%;grid-template-columns:minmax(132px,1.05fr) minmax(126px,1fr) minmax(104px,.82fr) minmax(132px,1.05fr) auto;gap:10px;align-items:end}
+        #events-list .ssa-compact-filter-shell .ssa-filter-menu summary{height:48px;padding:0 12px;font-size:14px}
+        #events-list .ssa-compact-filter-shell .ssa-selection-count{height:48px;display:flex;align-items:center;white-space:nowrap;font-size:13px}
+        #events-list .ssa-compact-filter-shell .ssa-selected-keyword-row{grid-column:1/-1;padding-top:8px}
+        #events-list .ssa-sticky-view-section{top:0}
+        #events-list .ssa-sticky-keyword-section{top:calc(var(--ssa-sticky-date-height,92px) + 16px)}
+      }
       @media(max-width:820px){
         #events-list{padding:22px 12px;overflow-x:visible}
         #events-list .ssa-page-intro{padding:0;margin:0 0 18px}
+        #events-list .ssa-page-intro-head{gap:14px}
+        #events-list .ssa-brand-mark{margin-top:2px}
+        #events-list .ssa-brand-mark img{width:52px}
         #events-list .ssa-page-intro h1{font-size:30px;line-height:1.08;margin-bottom:10px}
         #events-list .ssa-page-intro p{font-size:16px;line-height:1.35;max-width:330px}
+        #events-list .ssa-page-intro-credit{font-size:14px!important;margin-top:10px!important;max-width:330px}
         #events-list .ssa-controls{margin:0 0 18px;padding:18px 16px;gap:22px;border-radius:9px}
         #events-list .ssa-control-panel{margin:0 0 12px;padding:10px;border-radius:9px;box-shadow:0 12px 26px rgba(15,23,42,.10)}
         #events-list .ssa-sticky-date-section{top:0}
@@ -4290,6 +4490,59 @@
         border-color: var(--ssa-accent, #f07961) !important;
         -webkit-text-fill-color: var(--ssa-accent, #f07961) !important;
       }
+      html.dark-mode #events-list .ssa-sticky-view-section,
+      html body.dark-mode #events-list .ssa-sticky-view-section,
+      body.dark-mode #events-list .ssa-sticky-view-section,
+      html.dark-mode #events-list .ssa-sticky-date-section,
+      html body.dark-mode #events-list .ssa-sticky-date-section,
+      body.dark-mode #events-list .ssa-sticky-date-section {
+        background: var(--ssa-sticky-bar-bg, #524538) !important;
+        border: 2px solid var(--ssa-sticky-panel-border, #c9b8a4) !important;
+        box-shadow: var(--ssa-sticky-bar-shadow) !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+      }
+      html.dark-mode #events-list .ssa-sticky-control-section,
+      html body.dark-mode #events-list .ssa-sticky-control-section,
+      body.dark-mode #events-list .ssa-sticky-control-section {
+        background: var(--ssa-sticky-bar-bg, #524538) !important;
+        border: 2px solid var(--ssa-sticky-panel-border, #c9b8a4) !important;
+        box-shadow: var(--ssa-sticky-bar-shadow) !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+      }
+      html.dark-mode #events-list .ssa-sticky-control-section .ssa-filter-menu summary,
+      html body.dark-mode #events-list .ssa-sticky-control-section .ssa-filter-menu summary,
+      body.dark-mode #events-list .ssa-sticky-control-section .ssa-filter-menu summary {
+        color: var(--ssa-sticky-control-fg, #fbf7ef) !important;
+        background: var(--ssa-sticky-control-fill, #1a130f) !important;
+        border: 2px solid var(--ssa-sticky-control-border, #d9cbb8) !important;
+        -webkit-text-fill-color: var(--ssa-sticky-control-fg, #fbf7ef) !important;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.05) !important;
+      }
+      html.dark-mode #events-list .ssa-sticky-control-section.ssa-is-stuck,
+      html body.dark-mode #events-list .ssa-sticky-control-section.ssa-is-stuck,
+      body.dark-mode #events-list .ssa-sticky-control-section.ssa-is-stuck {
+        background: var(--ssa-sticky-bar-bg, #524538) !important;
+        border: 2px solid var(--ssa-sticky-panel-border, #c9b8a4) !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+      }
+      html.dark-mode #events-list .ssa-sticky-control-section .ssa-date-input,
+      html body.dark-mode #events-list .ssa-sticky-control-section .ssa-date-input,
+      body.dark-mode #events-list .ssa-sticky-control-section .ssa-date-input {
+        color: var(--ssa-sticky-control-fg, #fbf7ef) !important;
+        background: var(--ssa-sticky-control-fill, #1a130f) !important;
+        border: 2px solid var(--ssa-sticky-control-border, #d9cbb8) !important;
+        -webkit-text-fill-color: var(--ssa-sticky-control-fg, #fbf7ef) !important;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.05) !important;
+      }
+      html.dark-mode #events-list .ssa-sticky-control-section .ssa-date-clear-btn::before,
+      html body.dark-mode #events-list .ssa-sticky-control-section .ssa-date-clear-btn::before,
+      body.dark-mode #events-list .ssa-sticky-control-section .ssa-date-clear-btn::before {
+        color: var(--ssa-sticky-control-fg, #fbf7ef) !important;
+        border: 2px solid var(--ssa-sticky-control-border, #d9cbb8) !important;
+      }
     `;
     document.head.appendChild(keywordContrastCSS);
   }
@@ -4315,7 +4568,7 @@
         to: null,    // Explicitly null - fetch all events
         limit: opts.limit || 200
       };
-      const key = `ssa_events:${opts.url}:all:${opts.limit||200}`;
+      const key = `ssa_events_v20260618:${opts.url}:all:${opts.limit||200}`;
       const rows = await fetchEvents(fetchOpts);
       mount._allRows = rows; // Store for fallback
       sessionStorage.setItem(key, JSON.stringify(rows));
@@ -4362,7 +4615,7 @@
         from: state.fromDate || null,
         to: state.toDate || null
       };
-      const key = `ssa_events:${opts.url}:${fetchOpts.from || 'all'}:${fetchOpts.to || ''}:${opts.limit||200}`;
+      const key = `ssa_events_v20260618:${opts.url}:${fetchOpts.from || 'all'}:${fetchOpts.to || ''}:${opts.limit||200}`;
       const cached = sessionStorage.getItem(key);
       if (cached) {
         const cachedData = JSON.parse(cached);
@@ -4469,7 +4722,7 @@
           from: state.fromDate || null,
           to: state.toDate || null
         };
-        const key = `ssa_events:${opts.url}:${fetchOpts.from || 'all'}:${fetchOpts.to || ''}:${opts.limit||200}`;
+        const key = `ssa_events_v20260618:${opts.url}:${fetchOpts.from || 'all'}:${fetchOpts.to || ''}:${opts.limit||200}`;
         sessionStorage.removeItem(key);
         
         try {

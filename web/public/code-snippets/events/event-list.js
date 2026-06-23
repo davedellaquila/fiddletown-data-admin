@@ -1117,14 +1117,15 @@
 
       if (viewSection) {
         const viewRect = viewSection.getBoundingClientRect();
-        const viewStickyTop = height + 8;
+        const isLargeCompact = window.matchMedia && window.matchMedia('(min-width: 1120px)').matches;
+        const viewStickyTop = isLargeCompact ? 0 : height + 8;
         viewSection.classList.toggle('ssa-is-stuck', viewRect.top <= viewStickyTop + 1);
         const viewHeight = Math.ceil(viewSection.getBoundingClientRect().height);
         mount.style.setProperty('--ssa-sticky-view-height', `${viewHeight}px`);
 
         if (keywordSection) {
           const keywordRect = keywordSection.getBoundingClientRect();
-          const keywordStickyTop = height + viewHeight + 16;
+          const keywordStickyTop = height + (isLargeCompact ? 0 : viewHeight) + 16;
           keywordSection.classList.toggle('ssa-is-stuck', keywordRect.top <= keywordStickyTop + 1);
         }
       }
@@ -1512,7 +1513,7 @@
       eventsHTML = renderCalendarLayout(filteredRows, state);
     }
     
-    mount.innerHTML = pageHeaderHTML + controlsHTML + dateControlsHTML + viewControlsHTML + keywordControlsHTML + eventsHTML + footerHTML;
+    mount.innerHTML = pageHeaderHTML + controlsHTML + `<div class="ssa-compact-filter-shell">${dateControlsHTML + viewControlsHTML}</div>` + keywordControlsHTML + eventsHTML + footerHTML;
     syncStickyControlOffsets(mount);
     
     // Verify keyword cloud was rendered
@@ -4102,6 +4103,7 @@
       #events-list .ssa-controls-heading p{margin:0;color:var(--ssa-muted)!important;font-size:21px;line-height:1.35}
       #events-list .ssa-date-filters-section,#events-list .ssa-view-controls-section,#events-list .ssa-keyword-filters-section{background:color-mix(in srgb,var(--ssa-surface) 96%,transparent)!important}
       #events-list .ssa-view-controls-section:not(.ssa-is-stuck){background:transparent!important;border-color:transparent!important;box-shadow:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+      #events-list .ssa-compact-filter-shell{max-width:1600px;margin:0 auto 18px}
       #events-list .ssa-date-filters{display:flex;align-items:flex-end;gap:16px;justify-content:flex-start;flex-wrap:wrap}
       #events-list .ssa-date-inputs-row{display:flex;gap:16px;align-items:flex-end}
       #events-list .ssa-date-filters label{display:flex;flex-direction:column;align-items:flex-start;gap:8px;color:var(--ssa-muted)!important;font-size:17px;font-weight:700}
@@ -4285,11 +4287,34 @@
         #events-list .ssa-clear-dates:hover::before,#events-list .ssa-clear-dates:focus-visible::before{color:var(--ssa-accent)!important;transform:rotate(90deg) scale(1.08);box-shadow:0 0 0 5px rgba(169,51,38,.08)}
         #events-list .ssa-clear-dates:active::before{transform:rotate(90deg) scale(.92)}
       }
+      @media(min-width:1120px){
+        #events-list .ssa-compact-filter-shell{display:grid;grid-template-columns:minmax(430px,.86fr) minmax(560px,1.14fr);gap:14px;align-items:stretch}
+        #events-list .ssa-compact-filter-shell > .ssa-control-panel{max-width:none;width:100%;margin:0}
+        #events-list .ssa-compact-filter-shell .ssa-date-filters-section,#events-list .ssa-compact-filter-shell .ssa-view-controls-section{padding:16px 18px}
+        #events-list .ssa-compact-filter-shell .ssa-date-filters{display:block;width:100%}
+        #events-list .ssa-compact-filter-shell .ssa-date-inputs-row{grid-column:auto;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 44px;gap:18px;align-items:end;width:100%;min-width:0}
+        #events-list .ssa-compact-filter-shell .ssa-date-inputs-row label:first-of-type{grid-column:1}
+        #events-list .ssa-compact-filter-shell .ssa-date-inputs-row label:nth-of-type(2){grid-column:2}
+        #events-list .ssa-compact-filter-shell .ssa-date-clear-btn{grid-column:3;width:40px;min-width:40px;height:48px;align-self:end;justify-self:center}
+        #events-list .ssa-compact-filter-shell .ssa-date-input{height:48px;padding:0 14px;font-size:17px}
+        #events-list .ssa-compact-filter-shell .ssa-date-filters label span{display:block;margin-bottom:6px;padding-left:1px;font-size:13px;line-height:1.15}
+        #events-list .ssa-compact-filter-shell .ssa-view-controls-section{display:flex;align-items:end;justify-content:stretch}
+        #events-list .ssa-compact-filter-shell .ssa-filter-toolbar{width:100%;grid-template-columns:minmax(132px,1.05fr) minmax(126px,1fr) minmax(104px,.82fr) minmax(132px,1.05fr) auto;gap:10px;align-items:end}
+        #events-list .ssa-compact-filter-shell .ssa-filter-menu summary{height:48px;padding:0 12px;font-size:14px}
+        #events-list .ssa-compact-filter-shell .ssa-selection-count{height:48px;display:flex;align-items:center;white-space:nowrap;font-size:13px}
+        #events-list .ssa-compact-filter-shell .ssa-selected-keyword-row{grid-column:1/-1;padding-top:8px}
+        #events-list .ssa-sticky-view-section{top:0}
+        #events-list .ssa-sticky-keyword-section{top:calc(var(--ssa-sticky-date-height,92px) + 16px)}
+      }
       @media(max-width:820px){
         #events-list{padding:22px 12px;overflow-x:visible}
         #events-list .ssa-page-intro{padding:0;margin:0 0 18px}
+        #events-list .ssa-page-intro-head{gap:14px}
+        #events-list .ssa-brand-mark{margin-top:2px}
+        #events-list .ssa-brand-mark img{width:52px}
         #events-list .ssa-page-intro h1{font-size:30px;line-height:1.08;margin-bottom:10px}
         #events-list .ssa-page-intro p{font-size:16px;line-height:1.35;max-width:330px}
+        #events-list .ssa-page-intro-credit{font-size:14px!important;margin-top:10px!important;max-width:330px}
         #events-list .ssa-controls{margin:0 0 18px;padding:18px 16px;gap:22px;border-radius:9px}
         #events-list .ssa-control-panel{margin:0 0 12px;padding:10px;border-radius:9px;box-shadow:0 12px 26px rgba(15,23,42,.10)}
         #events-list .ssa-sticky-date-section{top:0}
