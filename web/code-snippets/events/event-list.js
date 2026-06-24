@@ -1444,7 +1444,7 @@
     dateControlsHTML += '<div class="ssa-date-inputs-row">';
     dateControlsHTML += `<label><span>From</span><input type="date" class="ssa-date-input ssa-from-date-input" id="ssa-from-date" value="${fromDate || ''}"></label>`;
     dateControlsHTML += `<label><span>To</span><input type="date" class="ssa-date-input ssa-to-date-input" id="ssa-to-date" value="${toDate || ''}" placeholder="Open"></label>`;
-    dateControlsHTML += `<button type="button" class="ssa-date-clear-btn ssa-clear-to-date" title="Clear To date" aria-label="Clear To date"></button>`;
+    dateControlsHTML += `<button type="button" class="ssa-date-clear-btn ssa-clear-to-date" title="Clear dates" aria-label="Clear dates"></button>`;
     dateControlsHTML += '</div>';
     dateControlsHTML += '</div>';
     dateControlsHTML += '</section>';
@@ -1676,7 +1676,7 @@
       clearToDateBtn.addEventListener('click', async function(e) {
         e.preventDefault();
         e.stopPropagation();
-        const newState = commitState({ ...getState(), toDate: null });
+        const newState = commitState({ ...getState(), fromDate: null, toDate: null });
         if (mount._widgetOpts) {
           await reloadEvents(mount, newState, mount._widgetOpts);
         } else {
@@ -4299,21 +4299,27 @@
         #events-list .ssa-clear-dates:active::before{transform:rotate(90deg) scale(.92)}
       }
       @media(min-width:1120px){
-        #events-list .ssa-compact-filter-shell{display:grid;grid-template-columns:minmax(430px,.86fr) minmax(560px,1.14fr);gap:14px;align-items:stretch}
+        #events-list .ssa-compact-filter-shell{display:grid;grid-template-columns:minmax(0,.86fr) minmax(0,1.14fr);gap:14px;align-items:stretch}
         #events-list .ssa-compact-filter-shell > .ssa-control-panel{max-width:none;width:100%;margin:0}
         #events-list .ssa-compact-filter-shell .ssa-date-filters-section,#events-list .ssa-compact-filter-shell .ssa-view-controls-section{padding:16px 18px}
         #events-list .ssa-compact-filter-shell .ssa-date-filters{display:block;width:100%}
-        #events-list .ssa-compact-filter-shell .ssa-date-inputs-row{grid-column:auto;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 44px;gap:18px;align-items:end;width:100%;min-width:0}
+        #events-list .ssa-compact-filter-shell .ssa-date-inputs-row{grid-column:auto;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 48px;column-gap:22px;align-items:end;width:100%;min-width:0;overflow:visible}
+        #events-list .ssa-compact-filter-shell .ssa-date-inputs-row > *{min-width:0}
         #events-list .ssa-compact-filter-shell .ssa-date-inputs-row label:first-of-type{grid-column:1}
         #events-list .ssa-compact-filter-shell .ssa-date-inputs-row label:nth-of-type(2){grid-column:2}
-        #events-list .ssa-compact-filter-shell .ssa-date-clear-btn{grid-column:3;width:40px;min-width:40px;height:48px;align-self:end;justify-self:center}
-        #events-list .ssa-compact-filter-shell .ssa-date-input{height:48px;padding:0 14px;font-size:17px}
+        #events-list .ssa-compact-filter-shell .ssa-date-filters label{min-width:0;width:100%;overflow:visible}
+        #events-list .ssa-compact-filter-shell .ssa-date-clear-btn{grid-column:3;width:44px;min-width:44px;height:48px;align-self:end;justify-self:center}
+        #events-list .ssa-compact-filter-shell .ssa-date-input{width:100%;max-width:100%;min-width:0;min-inline-size:0;height:48px;padding:0 10px;box-sizing:border-box;font-size:16px}
         #events-list .ssa-compact-filter-shell .ssa-date-filters label span{display:block;margin-bottom:6px;padding-left:1px;font-size:13px;line-height:1.15}
         #events-list .ssa-compact-filter-shell .ssa-view-controls-section{display:flex;align-items:stretch;justify-content:stretch}
-        #events-list .ssa-compact-filter-shell .ssa-filter-toolbar{width:100%;height:100%;grid-template-columns:minmax(132px,1.05fr) minmax(126px,1fr) minmax(104px,.82fr) minmax(132px,1.05fr);grid-template-rows:auto 48px;gap:8px 10px;align-items:end;align-content:space-between}
-        #events-list .ssa-compact-filter-shell .ssa-filter-menu{grid-row:2}
+        #events-list .ssa-compact-filter-shell .ssa-filter-toolbar{position:relative;width:100%;height:100%;grid-template-columns:minmax(132px,1.05fr) minmax(126px,1fr) minmax(104px,.82fr) minmax(132px,1.05fr);grid-template-rows:48px;gap:8px 10px;align-items:center;align-content:center}
+        #events-list .ssa-compact-filter-shell .ssa-filter-menu{grid-row:1;transform:translateY(14px)}
         #events-list .ssa-compact-filter-shell .ssa-filter-menu summary{height:48px;padding:0 12px;font-size:14px}
-        #events-list .ssa-compact-filter-shell .ssa-selection-count{grid-column:1/-1;grid-row:1;height:auto;display:flex;align-items:center;justify-content:center;justify-self:center;white-space:nowrap;font-size:13px;line-height:1.15;text-align:center}
+        #events-list .ssa-compact-filter-shell .ssa-selection-count{position:absolute;top:0;left:50%;transform:translate(-50%,-50%);grid-column:auto;grid-row:auto;height:auto;display:flex;align-items:center;justify-content:center;justify-self:center;padding:0 8px;background:color-mix(in srgb,var(--ssa-surface) 96%,transparent)!important;white-space:nowrap;font-size:13px;line-height:1.15;text-align:center}
+        #events-list .ssa-compact-filter-shell.ssa-is-stuck .ssa-view-controls-section{align-items:center}
+        #events-list .ssa-compact-filter-shell.ssa-is-stuck .ssa-filter-toolbar{grid-template-rows:48px;align-content:center;align-items:center}
+        #events-list .ssa-compact-filter-shell.ssa-is-stuck .ssa-filter-menu{grid-row:1}
+        #events-list .ssa-compact-filter-shell.ssa-is-stuck .ssa-selection-count{position:absolute;top:0;left:50%;transform:translate(-50%,-50%);grid-column:auto;grid-row:auto;padding:0 8px;background:var(--ssa-sticky-bar-bg)!important}
         #events-list .ssa-sticky-view-section{top:0}
         #events-list .ssa-sticky-keyword-section{top:calc(var(--ssa-sticky-date-height,92px) + 16px)}
       }
