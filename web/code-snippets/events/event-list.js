@@ -4318,7 +4318,7 @@
         #events-list .ssa-compact-filter-shell .ssa-selection-count{position:absolute;top:0;left:50%;transform:translate(-50%,-50%);grid-column:auto;grid-row:auto;height:auto;display:flex;align-items:center;justify-content:center;justify-self:center;padding:0 8px;background:color-mix(in srgb,var(--ssa-surface) 96%,transparent)!important;white-space:nowrap;font-size:13px;line-height:1.15;text-align:center}
         #events-list .ssa-compact-filter-shell.ssa-is-stuck .ssa-view-controls-section{align-items:center}
         #events-list .ssa-compact-filter-shell.ssa-is-stuck .ssa-filter-toolbar{grid-template-rows:48px;align-content:center;align-items:center}
-        #events-list .ssa-compact-filter-shell.ssa-is-stuck .ssa-filter-menu{grid-row:1}
+        #events-list .ssa-compact-filter-shell.ssa-is-stuck .ssa-filter-menu{grid-row:1;transform:none}
         #events-list .ssa-compact-filter-shell.ssa-is-stuck .ssa-selection-count{position:absolute;top:0;left:50%;transform:translate(-50%,-50%);grid-column:auto;grid-row:auto;padding:0 8px;background:var(--ssa-sticky-bar-bg)!important}
         #events-list .ssa-sticky-view-section{top:0}
         #events-list .ssa-sticky-keyword-section{top:calc(var(--ssa-sticky-date-height,92px) + 16px)}
