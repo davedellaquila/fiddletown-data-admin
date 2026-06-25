@@ -920,7 +920,7 @@
     let html = '';
     groups.forEach(groupKey => {
       const headerText = groupBy === 'day' ? formatDayHeader(groupKey) : groupKey;
-      html += `<h3 class="${headerClass}">${headerText}</h3>`;
+      html += `<h3 class="${headerClass} ssa-list-date-anchor" data-current-date-label="${escapeHtml(headerText)}">${headerText}</h3>`;
       html += `<ul class="ssa-events-list">`;
       
       grouped[groupKey].forEach((event, idx) => {
@@ -1133,6 +1133,11 @@
           keywordSection.classList.toggle('ssa-is-stuck', keywordRect.top <= keywordStickyTop + 1);
         }
       }
+
+      syncStickyCurrentDate(mount, dateIsStuck || compactShellIsStuck);
+      if (viewSection) {
+        mount.style.setProperty('--ssa-sticky-view-height', `${Math.ceil(viewSection.getBoundingClientRect().height)}px`);
+      }
     };
     const scheduleUpdate = () => requestAnimationFrame(update);
     scheduleUpdate();
@@ -1150,6 +1155,45 @@
       mount._stickyOffsetScrollHandler = scheduleUpdate;
       window.addEventListener('scroll', mount._stickyOffsetScrollHandler, { passive: true });
     }
+  }
+
+  function syncStickyCurrentDate(mount, controlsAreStuck) {
+    const state = mount._currentState || {};
+    const readout = mount.querySelector('.ssa-sticky-current-date');
+    if (!readout) return;
+
+    const isListView = (state.layout || LAYOUTS.LIST) === LAYOUTS.LIST;
+    if (!controlsAreStuck || !isListView) {
+      readout.textContent = '';
+      readout.classList.remove('ssa-sticky-current-date-visible');
+      return;
+    }
+
+    const headers = Array.from(mount.querySelectorAll('.ssa-list-date-anchor'));
+    if (!headers.length) {
+      readout.textContent = '';
+      readout.classList.remove('ssa-sticky-current-date-visible');
+      return;
+    }
+
+    const shell = mount.querySelector('.ssa-compact-filter-shell');
+    const anchorY = shell ? shell.getBoundingClientRect().bottom + 8 : 120;
+    let activeHeader = headers[0];
+    headers.forEach(header => {
+      if (header.getBoundingClientRect().top <= anchorY) {
+        activeHeader = header;
+      }
+    });
+
+    const label = activeHeader.dataset.currentDateLabel || activeHeader.textContent.trim();
+    if (!label) {
+      readout.textContent = '';
+      readout.classList.remove('ssa-sticky-current-date-visible');
+      return;
+    }
+
+    readout.textContent = `Showing ${label}`;
+    readout.classList.add('ssa-sticky-current-date-visible');
   }
 
   function renderGridLayout(events, state) {
@@ -1494,6 +1538,7 @@
     }
     viewControlsHTML += `<p class="ssa-selection-count" aria-label="${filteredRows.length} ${filteredRows.length === 1 ? 'event' : 'events'} in current selection">${filteredRows.length} ${filteredRows.length === 1 ? 'event' : 'events'}</p>`;
     viewControlsHTML += '</div>';
+    viewControlsHTML += '<div class="ssa-sticky-current-date" aria-live="polite"></div>';
     viewControlsHTML += '</section>';
 
     let selectedKeywordControlsHTML = '';
@@ -4133,6 +4178,8 @@
       #events-list .ssa-date-clear-btn:active::before{transform:rotate(90deg) scale(.92)}
       #events-list .ssa-view-controls-section{display:flex;flex-direction:column;gap:12px}
       #events-list .ssa-filter-toolbar{display:grid;grid-template-columns:repeat(4,minmax(150px,1fr)) auto;gap:12px;align-items:center}
+      #events-list .ssa-sticky-current-date{max-height:0;overflow:hidden;opacity:0;transform:translateY(-4px);color:var(--ssa-accent)!important;font-size:14px;font-weight:900;line-height:1.2;text-align:center;transition:max-height .18s ease,opacity .18s ease,transform .18s ease}
+      #events-list .ssa-sticky-current-date-visible{max-height:34px;opacity:1;transform:translateY(0)}
       #events-list .ssa-filter-menu{position:relative;min-width:0}
       #events-list .ssa-filter-menu summary{height:48px;padding:0 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid var(--ssa-control-border)!important;border-radius:10px;background:var(--ssa-surface)!important;color:var(--ssa-muted)!important;font-size:17px;font-weight:800;line-height:1;list-style:none;cursor:pointer;white-space:nowrap;box-shadow:0 1px 0 rgba(255,255,255,.35) inset!important}
       html.dark-mode #events-list .ssa-filter-menu summary,body.dark-mode #events-list .ssa-filter-menu summary{box-shadow:0 1px 0 rgba(255,255,255,.07) inset,0 2px 10px rgba(0,0,0,.24)!important}
