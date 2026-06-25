@@ -1192,7 +1192,7 @@
       return;
     }
 
-    readout.textContent = `Showing ${label}`;
+    readout.textContent = `| Showing ${label}`;
     readout.classList.add('ssa-sticky-current-date-visible');
   }
 
@@ -1541,7 +1541,7 @@
 
     let stickyMetaHTML = '<div class="ssa-sticky-meta-stack">';
     stickyMetaHTML += '<section class="ssa-sticky-filter-summary" aria-label="Current filter summary">';
-    stickyMetaHTML += `<p class="ssa-selection-count" aria-label="${filteredRows.length} ${filteredRows.length === 1 ? 'event' : 'events'} in current selection">${filteredRows.length} ${filteredRows.length === 1 ? 'event' : 'events'}</p>`;
+    stickyMetaHTML += `<p class="ssa-sticky-status" aria-label="${filteredRows.length} ${filteredRows.length === 1 ? 'event' : 'events'} in current selection"><span class="ssa-selection-count">${filteredRows.length} ${filteredRows.length === 1 ? 'event' : 'events'}</span><span class="ssa-sticky-current-date" aria-live="polite"></span></p>`;
     stickyMetaHTML += '<div class="ssa-selected-keyword-row ssa-sticky-selected-keywords" aria-label="Selected keywords">';
     if (selectedKeywordRows.length > 0) {
       selectedKeywordRows.forEach(kw => {
@@ -1550,7 +1550,6 @@
     }
     stickyMetaHTML += '</div>';
     stickyMetaHTML += '</section>';
-    stickyMetaHTML += '<div class="ssa-sticky-current-date" aria-live="polite"></div>';
     stickyMetaHTML += '</div>';
 
     const footerHTML = '<p class="ssa-events-footnote">Confirm dates and ticketing with organizers before driving out.</p>';
@@ -4180,10 +4179,11 @@
       #events-list .ssa-view-controls-section{display:flex;flex-direction:column;gap:12px}
       #events-list .ssa-filter-toolbar{display:grid;grid-template-columns:repeat(4,minmax(150px,1fr)) auto;gap:12px;align-items:center}
       #events-list .ssa-sticky-meta-stack{width:100%;min-width:0;align-self:stretch;display:flex;flex:0 0 auto;flex-direction:column;gap:8px;clear:both}
-      #events-list .ssa-sticky-filter-summary{display:flex;align-items:center;justify-content:center;gap:14px;width:100%;min-width:0;padding:10px 18px;background:color-mix(in srgb,var(--ssa-surface) 96%,transparent)!important;border:1px solid var(--ssa-border)!important;border-radius:12px;box-shadow:var(--ssa-shadow)!important;backdrop-filter:blur(14px)!important;-webkit-backdrop-filter:blur(14px)!important}
+      #events-list .ssa-sticky-filter-summary{display:flex;align-items:center;justify-content:flex-start;gap:18px;width:100%;min-width:0;padding:10px 18px;background:color-mix(in srgb,var(--ssa-surface) 96%,transparent)!important;border:1px solid var(--ssa-border)!important;border-radius:12px;box-shadow:var(--ssa-shadow)!important;backdrop-filter:blur(14px)!important;-webkit-backdrop-filter:blur(14px)!important}
+      #events-list .ssa-sticky-status{display:flex;align-items:center;gap:8px;flex:0 0 auto;min-width:max-content;margin:0;color:var(--ssa-muted)!important;font-size:16px;font-weight:800;line-height:1.2;white-space:nowrap}
       #events-list .ssa-sticky-selected-keywords{flex:1 1 auto;width:auto;min-width:0;margin:0;padding:0;justify-content:flex-start}
-      #events-list .ssa-sticky-current-date{max-height:0;overflow:hidden;opacity:0;transform:translateY(-4px);color:var(--ssa-accent)!important;font-size:14px;font-weight:900;line-height:1.2;text-align:center;transition:max-height .18s ease,opacity .18s ease,transform .18s ease}
-      #events-list .ssa-sticky-current-date-visible{max-height:34px;opacity:1;transform:translateY(0)}
+      #events-list .ssa-sticky-current-date{display:inline-block;max-width:0;overflow:hidden;opacity:0;color:var(--ssa-accent)!important;font-weight:900;vertical-align:bottom;transition:max-width .18s ease,opacity .18s ease}
+      #events-list .ssa-sticky-current-date-visible{max-width:360px;opacity:1}
       #events-list .ssa-filter-menu{position:relative;min-width:0}
       #events-list .ssa-filter-menu summary{height:48px;padding:0 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid var(--ssa-control-border)!important;border-radius:10px;background:var(--ssa-surface)!important;color:var(--ssa-muted)!important;font-size:17px;font-weight:800;line-height:1;list-style:none;cursor:pointer;white-space:nowrap;box-shadow:0 1px 0 rgba(255,255,255,.35) inset!important}
       html.dark-mode #events-list .ssa-filter-menu summary,body.dark-mode #events-list .ssa-filter-menu summary{box-shadow:0 1px 0 rgba(255,255,255,.07) inset,0 2px 10px rgba(0,0,0,.24)!important}
@@ -4507,6 +4507,12 @@
         #events-list .ssa-display-options-switcher,#events-list .ssa-group-switcher{grid-template-columns:1fr}
         #events-list .ssa-keyword-btn{flex-basis:100%}
         #events-list .ssa-keyword-row .ssa-keyword-btn{flex:0 0 auto;width:auto;min-width:max-content}
+      }
+      @media(max-width:700px){
+        #events-list .ssa-sticky-filter-summary{flex-wrap:wrap;gap:10px 14px}
+        #events-list .ssa-sticky-status{flex:1 1 100%;min-width:0}
+        #events-list .ssa-sticky-current-date-visible{max-width:calc(100vw - 150px)}
+        #events-list .ssa-sticky-selected-keywords{flex-basis:100%}
       }
       #events-list .ssa-filter-menu .ssa-clear-dates,#events-list .ssa-filter-menu .ssa-layout-btn,#events-list .ssa-filter-menu .ssa-group-btn,#events-list .ssa-filter-menu .ssa-keyword-btn{width:100%!important;min-width:0!important;height:42px!important;padding:0 12px!important;border:0!important;border-radius:8px!important;background:transparent!important;color:var(--ssa-muted)!important;font-size:15px!important;text-align:left!important;justify-content:flex-start!important;white-space:nowrap!important}
       #events-list .ssa-filter-menu .ssa-clear-dates::before{display:none!important;content:none!important}
