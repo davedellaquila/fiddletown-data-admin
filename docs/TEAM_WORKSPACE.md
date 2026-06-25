@@ -122,6 +122,7 @@ Newest entries at the top.
 
 | Date | Role | Topic | Message | Action needed |
 |------|------|-------|---------|---------------|
+| 2026-06-25 | Dev | Upcountry Jam archive event | Added archived past event `59320bec` for Second Annual Memorial Day Upcountry Jam with poster asset + 8 keywords; image asset pending Pages deploy. | Dave — verify archive row/image if desired |
 | 2026-06-25 | Dev | Events widget sticky date | List view sticky controls now show the current visible event date while scrolled; updated source + public widget copies. JS syntax checks pass; git diff blocked by existing short packfile in `.git/objects/pack`. | Dave — preview/deploy widget when ready |
 | 2026-06-18 | QA | Amador Cellars BBQ dupes | Archived duplicate Father's Day BBQ (June 21); keeper `d5f697f7` w/ 5 merged keywords. | Dave — hard-refresh events page |
 | 2026-06-18 | QA | Summer Sessions dupes | Archived 2 of 3 published Summer Sessions rows (June 20); keeper `25067e74` w/ 6 merged keywords. Widget fix: renamed shadowed `normalizeEventUrl` → `normalizeEventUrlForDedup`; dedupe on every `renderEvents`; cache key `v20260618`. | Dev — push widget to GH Pages; Dave — hard-refresh events page |
