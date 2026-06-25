@@ -122,6 +122,7 @@ Newest entries at the top.
 
 | Date | Role | Topic | Message | Action needed |
 |------|------|-------|---------|---------------|
+| 2026-06-25 | Dev | Events widget date readout | Removed "Showing" from the sticky selected-date readout and stacked the date below the event count in the keyword summary section. | Dave — hard-refresh events page after deploy |
 | 2026-06-25 | Dev | Events widget sticky summary | Combined event count and current "Showing <date>" readout into the left side of the selected-keyword summary section; keyword chips remain to the right. | Dave — hard-refresh events page after deploy |
 | 2026-06-25 | Dev | Events widget keyword summary | Moved the event count and selected keyword chips into their own sticky summary section below the date/filter menus; source/public widget copies match and JS syntax checks pass. | Dave — hard-refresh events page after deploy |
 | 2026-06-25 | Dev | Events widget sticky footer fix | Fixed wide sticky layout so selected keyword chips and current date stay full-width below the controls instead of drifting to the right; deployed to `gh-pages`, Pages CDN may serve old JS briefly. | Dave — hard-refresh after cache expires |
