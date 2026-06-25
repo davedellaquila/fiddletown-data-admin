@@ -1538,19 +1538,17 @@
     }
     viewControlsHTML += `<p class="ssa-selection-count" aria-label="${filteredRows.length} ${filteredRows.length === 1 ? 'event' : 'events'} in current selection">${filteredRows.length} ${filteredRows.length === 1 ? 'event' : 'events'}</p>`;
     viewControlsHTML += '</div>';
-    viewControlsHTML += '<div class="ssa-sticky-current-date" aria-live="polite"></div>';
-    viewControlsHTML += '</section>';
-
-    let selectedKeywordControlsHTML = '';
+    viewControlsHTML += '<div class="ssa-sticky-meta-stack">';
     if (selectedKeywordRows.length > 0) {
-      selectedKeywordControlsHTML += '<section class="ssa-control-panel ssa-selected-keywords-section" aria-label="Selected keywords">';
-      selectedKeywordControlsHTML += '<div class="ssa-selected-keyword-row">';
+      viewControlsHTML += '<div class="ssa-selected-keyword-row ssa-sticky-selected-keywords" aria-label="Selected keywords">';
       selectedKeywordRows.forEach(kw => {
-        selectedKeywordControlsHTML += `<button class="ssa-keyword-btn ssa-keyword-active ssa-keyword-remove-btn" data-keyword="${kw}">${kw}<span class="ssa-keyword-remove-icon" aria-hidden="true">×</span></button>`;
+        viewControlsHTML += `<button class="ssa-keyword-btn ssa-keyword-active ssa-keyword-remove-btn" data-keyword="${kw}">${kw}<span class="ssa-keyword-remove-icon" aria-hidden="true">×</span></button>`;
       });
-      selectedKeywordControlsHTML += '</div>';
-      selectedKeywordControlsHTML += '</section>';
+      viewControlsHTML += '</div>';
     }
+    viewControlsHTML += '<div class="ssa-sticky-current-date" aria-live="polite"></div>';
+    viewControlsHTML += '</div>';
+    viewControlsHTML += '</section>';
 
     const footerHTML = '<p class="ssa-events-footnote">Confirm dates and ticketing with organizers before driving out.</p>';
     
@@ -1564,7 +1562,7 @@
       eventsHTML = renderCalendarLayout(filteredRows, state);
     }
     
-    mount.innerHTML = pageHeaderHTML + controlsHTML + `<div class="ssa-compact-filter-shell">${dateControlsHTML + viewControlsHTML}</div>` + selectedKeywordControlsHTML + eventsHTML + footerHTML;
+    mount.innerHTML = pageHeaderHTML + controlsHTML + `<div class="ssa-compact-filter-shell">${dateControlsHTML + viewControlsHTML}</div>` + eventsHTML + footerHTML;
     syncStickyControlOffsets(mount);
     
     // Verify keyword cloud was rendered
@@ -4178,6 +4176,8 @@
       #events-list .ssa-date-clear-btn:active::before{transform:rotate(90deg) scale(.92)}
       #events-list .ssa-view-controls-section{display:flex;flex-direction:column;gap:12px}
       #events-list .ssa-filter-toolbar{display:grid;grid-template-columns:repeat(4,minmax(150px,1fr)) auto;gap:12px;align-items:center}
+      #events-list .ssa-sticky-meta-stack{display:flex;flex-direction:column;gap:8px;min-width:0}
+      #events-list .ssa-sticky-selected-keywords{margin:0;padding:0 0 1px;width:100%}
       #events-list .ssa-sticky-current-date{max-height:0;overflow:hidden;opacity:0;transform:translateY(-4px);color:var(--ssa-accent)!important;font-size:14px;font-weight:900;line-height:1.2;text-align:center;transition:max-height .18s ease,opacity .18s ease,transform .18s ease}
       #events-list .ssa-sticky-current-date-visible{max-height:34px;opacity:1;transform:translateY(0)}
       #events-list .ssa-filter-menu{position:relative;min-width:0}
