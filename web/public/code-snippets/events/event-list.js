@@ -4369,7 +4369,7 @@
         #events-list .ssa-compact-filter-shell .ssa-filter-menu summary{height:48px;padding:0 12px;font-size:14px}
         #events-list .ssa-compact-filter-shell .ssa-selection-count{height:auto;display:flex;align-items:center;justify-content:flex-start;flex:0 0 auto;padding:0;background:transparent!important;white-space:nowrap;font-size:13px;line-height:1.15;text-align:left}
         #events-list .ssa-compact-filter-shell.ssa-is-stuck .ssa-view-controls-section{align-items:stretch}
-        #events-list .ssa-compact-filter-shell.ssa-is-stuck .ssa-filter-toolbar{grid-template-rows:48px auto;align-content:center;align-items:center}
+        #events-list .ssa-compact-filter-shell.ssa-is-stuck .ssa-filter-toolbar{grid-template-rows:48px;align-content:center;align-items:center}
         #events-list .ssa-compact-filter-shell.ssa-is-stuck .ssa-filter-menu{grid-row:1;transform:none}
         #events-list .ssa-compact-filter-shell.ssa-is-stuck .ssa-selection-count{padding:0;background:transparent!important}
         #events-list .ssa-sticky-view-section{top:0}
