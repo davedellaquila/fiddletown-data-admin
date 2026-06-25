@@ -122,6 +122,7 @@ Newest entries at the top.
 
 | Date | Role | Topic | Message | Action needed |
 |------|------|-------|---------|---------------|
+| 2026-06-25 | Dev | Events widget sticky footer fix | Fixed wide sticky layout so selected keyword chips and current date stay full-width below the controls instead of drifting to the right; deployed to `gh-pages`, Pages CDN may serve old JS briefly. | Dave — hard-refresh after cache expires |
 | 2026-06-25 | Dev | Events widget sticky footer | Moved selected keyword chips into the sticky filter menu footer and placed the current visible list date below them while scrolled. Source/public widget copies match; JS syntax checks pass. | Dave — hard-refresh events page after deploy |
 | 2026-06-25 | Dev | Upcountry Jam archive event | Added archived past event `59320bec` for Second Annual Memorial Day Upcountry Jam with poster asset + 8 keywords; raw GitHub image URL verified. | Dave — verify archive row/image if desired |
 | 2026-06-25 | Dev | Events widget sticky date | List view sticky controls now show the current visible event date while scrolled; updated source + public widget copies. JS syntax checks pass; git diff blocked by existing short packfile in `.git/objects/pack`. | Dave — preview/deploy widget when ready |
