@@ -4176,7 +4176,7 @@
       #events-list .ssa-date-clear-btn:active::before{transform:rotate(90deg) scale(.92)}
       #events-list .ssa-view-controls-section{display:flex;flex-direction:column;gap:12px}
       #events-list .ssa-filter-toolbar{display:grid;grid-template-columns:repeat(4,minmax(150px,1fr)) auto;gap:12px;align-items:center}
-      #events-list .ssa-sticky-meta-stack{display:flex;flex-direction:column;gap:8px;min-width:0}
+      #events-list .ssa-sticky-meta-stack{width:100%;min-width:0;align-self:stretch;display:flex;flex:0 0 auto;flex-direction:column;gap:8px}
       #events-list .ssa-sticky-selected-keywords{margin:0;padding:0 0 1px;width:100%}
       #events-list .ssa-sticky-current-date{max-height:0;overflow:hidden;opacity:0;transform:translateY(-4px);color:var(--ssa-accent)!important;font-size:14px;font-weight:900;line-height:1.2;text-align:center;transition:max-height .18s ease,opacity .18s ease,transform .18s ease}
       #events-list .ssa-sticky-current-date-visible{max-height:34px;opacity:1;transform:translateY(0)}
@@ -4363,7 +4363,7 @@
         #events-list .ssa-compact-filter-shell .ssa-filter-menu{grid-row:1;transform:translateY(14px)}
         #events-list .ssa-compact-filter-shell .ssa-filter-menu summary{height:48px;padding:0 12px;font-size:14px}
         #events-list .ssa-compact-filter-shell .ssa-selection-count{position:absolute;top:0;left:50%;transform:translate(-50%,-50%);grid-column:auto;grid-row:auto;height:auto;display:flex;align-items:center;justify-content:center;justify-self:center;padding:0 8px;background:color-mix(in srgb,var(--ssa-surface) 96%,transparent)!important;white-space:nowrap;font-size:13px;line-height:1.15;text-align:center}
-        #events-list .ssa-compact-filter-shell.ssa-is-stuck .ssa-view-controls-section{align-items:center}
+        #events-list .ssa-compact-filter-shell.ssa-is-stuck .ssa-view-controls-section{align-items:stretch}
         #events-list .ssa-compact-filter-shell.ssa-is-stuck .ssa-filter-toolbar{grid-template-rows:48px;align-content:center;align-items:center}
         #events-list .ssa-compact-filter-shell.ssa-is-stuck .ssa-filter-menu{grid-row:1;transform:none}
         #events-list .ssa-compact-filter-shell.ssa-is-stuck .ssa-selection-count{position:absolute;top:0;left:50%;transform:translate(-50%,-50%);grid-column:auto;grid-row:auto;padding:0 8px;background:var(--ssa-sticky-bar-bg)!important}
