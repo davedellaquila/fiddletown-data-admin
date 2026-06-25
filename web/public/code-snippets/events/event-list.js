@@ -1536,20 +1536,20 @@
       viewControlsHTML += '</div>';
       viewControlsHTML += '</details>';
     }
-    viewControlsHTML += '<div class="ssa-sticky-filter-summary">';
-    viewControlsHTML += `<p class="ssa-selection-count" aria-label="${filteredRows.length} ${filteredRows.length === 1 ? 'event' : 'events'} in current selection">${filteredRows.length} ${filteredRows.length === 1 ? 'event' : 'events'}</p>`;
-    viewControlsHTML += '<div class="ssa-selected-keyword-row ssa-sticky-selected-keywords" aria-label="Selected keywords">';
-    if (selectedKeywordRows.length > 0) {
-      selectedKeywordRows.forEach(kw => {
-        viewControlsHTML += `<button class="ssa-keyword-btn ssa-keyword-active ssa-keyword-remove-btn" data-keyword="${kw}">${kw}<span class="ssa-keyword-remove-icon" aria-hidden="true">×</span></button>`;
-      });
-    }
-    viewControlsHTML += '</div>';
-    viewControlsHTML += '</div>';
     viewControlsHTML += '</div>';
     viewControlsHTML += '</section>';
 
     let stickyMetaHTML = '<div class="ssa-sticky-meta-stack">';
+    stickyMetaHTML += '<section class="ssa-sticky-filter-summary" aria-label="Current filter summary">';
+    stickyMetaHTML += `<p class="ssa-selection-count" aria-label="${filteredRows.length} ${filteredRows.length === 1 ? 'event' : 'events'} in current selection">${filteredRows.length} ${filteredRows.length === 1 ? 'event' : 'events'}</p>`;
+    stickyMetaHTML += '<div class="ssa-selected-keyword-row ssa-sticky-selected-keywords" aria-label="Selected keywords">';
+    if (selectedKeywordRows.length > 0) {
+      selectedKeywordRows.forEach(kw => {
+        stickyMetaHTML += `<button class="ssa-keyword-btn ssa-keyword-active ssa-keyword-remove-btn" data-keyword="${kw}">${kw}<span class="ssa-keyword-remove-icon" aria-hidden="true">×</span></button>`;
+      });
+    }
+    stickyMetaHTML += '</div>';
+    stickyMetaHTML += '</section>';
     stickyMetaHTML += '<div class="ssa-sticky-current-date" aria-live="polite"></div>';
     stickyMetaHTML += '</div>';
 
@@ -4180,7 +4180,7 @@
       #events-list .ssa-view-controls-section{display:flex;flex-direction:column;gap:12px}
       #events-list .ssa-filter-toolbar{display:grid;grid-template-columns:repeat(4,minmax(150px,1fr)) auto;gap:12px;align-items:center}
       #events-list .ssa-sticky-meta-stack{width:100%;min-width:0;align-self:stretch;display:flex;flex:0 0 auto;flex-direction:column;gap:8px;clear:both}
-      #events-list .ssa-sticky-filter-summary{grid-column:1/-1;display:flex;align-items:center;gap:14px;width:100%;min-width:0;padding:8px 0 1px;border-top:1px solid color-mix(in srgb,var(--ssa-border-soft) 72%,transparent)}
+      #events-list .ssa-sticky-filter-summary{display:flex;align-items:center;justify-content:center;gap:14px;width:100%;min-width:0;padding:10px 18px;background:color-mix(in srgb,var(--ssa-surface) 96%,transparent)!important;border:1px solid var(--ssa-border)!important;border-radius:12px;box-shadow:var(--ssa-shadow)!important;backdrop-filter:blur(14px)!important;-webkit-backdrop-filter:blur(14px)!important}
       #events-list .ssa-sticky-selected-keywords{flex:1 1 auto;width:auto;min-width:0;margin:0;padding:0;justify-content:flex-start}
       #events-list .ssa-sticky-current-date{max-height:0;overflow:hidden;opacity:0;transform:translateY(-4px);color:var(--ssa-accent)!important;font-size:14px;font-weight:900;line-height:1.2;text-align:center;transition:max-height .18s ease,opacity .18s ease,transform .18s ease}
       #events-list .ssa-sticky-current-date-visible{max-height:34px;opacity:1;transform:translateY(0)}
@@ -4364,8 +4364,8 @@
         #events-list .ssa-compact-filter-shell .ssa-date-input{width:100%;max-width:100%;min-width:0;min-inline-size:0;height:48px;padding:0 10px;box-sizing:border-box;font-size:16px}
         #events-list .ssa-compact-filter-shell .ssa-date-filters label span{display:block;margin-bottom:6px;padding-left:1px;font-size:13px;line-height:1.15}
         #events-list .ssa-compact-filter-shell .ssa-view-controls-section{display:flex;align-items:stretch;justify-content:stretch}
-        #events-list .ssa-compact-filter-shell .ssa-filter-toolbar{position:relative;width:100%;height:100%;grid-template-columns:minmax(132px,1.05fr) minmax(126px,1fr) minmax(104px,.82fr) minmax(132px,1.05fr);grid-template-rows:48px auto;gap:8px 10px;align-items:center;align-content:center}
-        #events-list .ssa-compact-filter-shell .ssa-filter-menu{grid-row:1;transform:translateY(14px)}
+        #events-list .ssa-compact-filter-shell .ssa-filter-toolbar{position:relative;width:100%;height:100%;grid-template-columns:minmax(132px,1.05fr) minmax(126px,1fr) minmax(104px,.82fr) minmax(132px,1.05fr);grid-template-rows:48px;gap:8px 10px;align-items:center;align-content:center}
+        #events-list .ssa-compact-filter-shell .ssa-filter-menu{grid-row:1;transform:none}
         #events-list .ssa-compact-filter-shell .ssa-filter-menu summary{height:48px;padding:0 12px;font-size:14px}
         #events-list .ssa-compact-filter-shell .ssa-selection-count{height:auto;display:flex;align-items:center;justify-content:flex-start;flex:0 0 auto;padding:0;background:transparent!important;white-space:nowrap;font-size:13px;line-height:1.15;text-align:left}
         #events-list .ssa-compact-filter-shell.ssa-is-stuck .ssa-view-controls-section{align-items:stretch}
