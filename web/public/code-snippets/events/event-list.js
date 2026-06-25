@@ -1538,17 +1538,18 @@
     }
     viewControlsHTML += `<p class="ssa-selection-count" aria-label="${filteredRows.length} ${filteredRows.length === 1 ? 'event' : 'events'} in current selection">${filteredRows.length} ${filteredRows.length === 1 ? 'event' : 'events'}</p>`;
     viewControlsHTML += '</div>';
-    viewControlsHTML += '<div class="ssa-sticky-meta-stack">';
-    if (selectedKeywordRows.length > 0) {
-      viewControlsHTML += '<div class="ssa-selected-keyword-row ssa-sticky-selected-keywords" aria-label="Selected keywords">';
-      selectedKeywordRows.forEach(kw => {
-        viewControlsHTML += `<button class="ssa-keyword-btn ssa-keyword-active ssa-keyword-remove-btn" data-keyword="${kw}">${kw}<span class="ssa-keyword-remove-icon" aria-hidden="true">×</span></button>`;
-      });
-      viewControlsHTML += '</div>';
-    }
-    viewControlsHTML += '<div class="ssa-sticky-current-date" aria-live="polite"></div>';
-    viewControlsHTML += '</div>';
     viewControlsHTML += '</section>';
+
+    let stickyMetaHTML = '<div class="ssa-sticky-meta-stack">';
+    if (selectedKeywordRows.length > 0) {
+      stickyMetaHTML += '<div class="ssa-selected-keyword-row ssa-sticky-selected-keywords" aria-label="Selected keywords">';
+      selectedKeywordRows.forEach(kw => {
+        stickyMetaHTML += `<button class="ssa-keyword-btn ssa-keyword-active ssa-keyword-remove-btn" data-keyword="${kw}">${kw}<span class="ssa-keyword-remove-icon" aria-hidden="true">×</span></button>`;
+      });
+      stickyMetaHTML += '</div>';
+    }
+    stickyMetaHTML += '<div class="ssa-sticky-current-date" aria-live="polite"></div>';
+    stickyMetaHTML += '</div>';
 
     const footerHTML = '<p class="ssa-events-footnote">Confirm dates and ticketing with organizers before driving out.</p>';
     
@@ -1562,7 +1563,7 @@
       eventsHTML = renderCalendarLayout(filteredRows, state);
     }
     
-    mount.innerHTML = pageHeaderHTML + controlsHTML + `<div class="ssa-compact-filter-shell">${dateControlsHTML + viewControlsHTML}</div>` + eventsHTML + footerHTML;
+    mount.innerHTML = pageHeaderHTML + controlsHTML + `<div class="ssa-compact-filter-shell">${dateControlsHTML + viewControlsHTML + stickyMetaHTML}</div>` + eventsHTML + footerHTML;
     syncStickyControlOffsets(mount);
     
     // Verify keyword cloud was rendered
@@ -4176,7 +4177,7 @@
       #events-list .ssa-date-clear-btn:active::before{transform:rotate(90deg) scale(.92)}
       #events-list .ssa-view-controls-section{display:flex;flex-direction:column;gap:12px}
       #events-list .ssa-filter-toolbar{display:grid;grid-template-columns:repeat(4,minmax(150px,1fr)) auto;gap:12px;align-items:center}
-      #events-list .ssa-sticky-meta-stack{width:100%;min-width:0;align-self:stretch;display:flex;flex:0 0 auto;flex-direction:column;gap:8px}
+      #events-list .ssa-sticky-meta-stack{width:100%;min-width:0;align-self:stretch;display:flex;flex:0 0 auto;flex-direction:column;gap:8px;clear:both}
       #events-list .ssa-sticky-selected-keywords{margin:0;padding:0 0 1px;width:100%}
       #events-list .ssa-sticky-current-date{max-height:0;overflow:hidden;opacity:0;transform:translateY(-4px);color:var(--ssa-accent)!important;font-size:14px;font-weight:900;line-height:1.2;text-align:center;transition:max-height .18s ease,opacity .18s ease,transform .18s ease}
       #events-list .ssa-sticky-current-date-visible{max-height:34px;opacity:1;transform:translateY(0)}
@@ -4347,6 +4348,7 @@
       }
       @media(min-width:1120px){
         #events-list .ssa-compact-filter-shell{display:grid;grid-template-columns:minmax(0,.86fr) minmax(0,1.14fr);gap:14px;align-items:stretch}
+        #events-list .ssa-compact-filter-shell > .ssa-sticky-meta-stack{grid-column:1/-1;grid-row:2;width:100%;max-width:none}
         #events-list .ssa-compact-filter-shell > .ssa-control-panel{max-width:none;width:100%;margin:0}
         #events-list .ssa-compact-filter-shell .ssa-date-filters-section,#events-list .ssa-compact-filter-shell .ssa-view-controls-section{padding:16px 18px}
         #events-list .ssa-compact-filter-shell .ssa-date-filters{display:block;width:100%}
