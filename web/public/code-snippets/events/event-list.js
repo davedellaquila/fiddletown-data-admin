@@ -1496,7 +1496,7 @@
     const selectedKeywordSet = new Set(selectedKeywords);
     const selectedKeywordRows = allKeywords.filter(kw => selectedKeywordSet.has(kw));
     const layoutLabel = layout === LAYOUTS.GRID ? 'Grid' : layout === LAYOUTS.CALENDAR ? 'Calendar' : 'List';
-    const groupLabel = (groupBy || 'day') === 'month' ? 'Month' : 'Day';
+    const groupLabel = (groupBy || 'day') === 'month' ? 'Group by Month' : 'Group by Day';
     const keywordLabel = selectedKeywordRows.length ? `Keywords ${selectedKeywordRows.length}` : 'Keywords';
 
     let viewControlsHTML = '<section class="ssa-control-panel ssa-view-controls-section ssa-sticky-control-section ssa-sticky-view-section" aria-label="Filter controls">';
@@ -1521,8 +1521,8 @@
     viewControlsHTML += '<details class="ssa-filter-menu ssa-group-menu">';
     viewControlsHTML += `<summary>${groupLabel}</summary>`;
     viewControlsHTML += '<div class="ssa-filter-menu-panel">';
-    viewControlsHTML += `<button class="ssa-filter-menu-item ssa-group-btn ${groupBy === 'day' ? 'ssa-active' : ''}" data-group="day"><span class="ssa-group-icon ssa-group-icon-day" aria-hidden="true"></span>Day</button>`;
-    viewControlsHTML += `<button class="ssa-filter-menu-item ssa-group-btn ${groupBy === 'month' ? 'ssa-active' : ''}" data-group="month"><span class="ssa-group-icon ssa-group-icon-month" aria-hidden="true"></span>Month</button>`;
+    viewControlsHTML += `<button class="ssa-filter-menu-item ssa-group-btn ${groupBy === 'day' ? 'ssa-active' : ''}" data-group="day"><span class="ssa-group-icon ssa-group-icon-day" aria-hidden="true"></span>Group by Day</button>`;
+    viewControlsHTML += `<button class="ssa-filter-menu-item ssa-group-btn ${groupBy === 'month' ? 'ssa-active' : ''}" data-group="month"><span class="ssa-group-icon ssa-group-icon-month" aria-hidden="true"></span>Group by Month</button>`;
     viewControlsHTML += '</div>';
     viewControlsHTML += '</details>';
     if (allKeywords.length > 0) {
