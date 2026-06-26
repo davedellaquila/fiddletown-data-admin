@@ -1457,9 +1457,12 @@
     const pageHeaderHTML = `
       <section class="ssa-page-intro">
         <div class="ssa-page-intro-head">
-          <a class="ssa-brand-mark" href="${SSA_HOME_URL}" aria-label="Visit the Sports Car Adventures home page">
-            <img src="${SSA_LOGO_URL}" alt="Sports Car Adventures" width="72" height="72" loading="lazy" decoding="async" />
-          </a>
+          <div class="ssa-brand-block">
+            <a class="ssa-brand-mark" href="${SSA_HOME_URL}" aria-label="Visit the Sports Car Adventures home page">
+              <img src="${SSA_LOGO_URL}" alt="Sports Car Adventures" width="72" height="72" loading="lazy" decoding="async" />
+            </a>
+            <p class="ssa-brand-tagline">Drive the Sierra like a local.</p>
+          </div>
           <div class="ssa-page-intro-copy">
             <h1>Gold Country Events</h1>
             <p>Drive-worthy happenings in Amador, El Dorado, and nearby foothill country.</p>
@@ -4120,8 +4123,10 @@
       #events-list{max-width:100%;margin:0 auto;padding:48px 0 28px;color:var(--ssa-text)!important;background:var(--ssa-bg)!important}
       #events-list .ssa-page-intro{max-width:1600px;margin:0 auto 42px;padding:0 64px}
       #events-list .ssa-page-intro-head{display:flex;align-items:flex-start;gap:24px}
+      #events-list .ssa-brand-block{flex:0 0 auto;width:min(18vw,132px);display:flex;flex-direction:column;align-items:center;gap:9px}
       #events-list .ssa-brand-mark{position:relative;z-index:1;flex:0 0 auto;display:block;line-height:0;margin-top:2px;cursor:pointer}
-      #events-list .ssa-brand-mark img{width:132px;max-width:18vw;height:auto;display:block;border-radius:8px}
+      #events-list .ssa-brand-mark img{width:100%;height:auto;display:block;border-radius:8px}
+      #events-list .ssa-brand-tagline{margin:0!important;color:var(--ssa-accent)!important;font-size:15px!important;line-height:1.18!important;font-weight:800!important;text-align:center}
       #events-list .ssa-page-intro-copy{min-width:0}
       #events-list .ssa-page-intro h1{margin:0 0 16px;color:var(--ssa-text)!important;font-size:64px;line-height:1.05;font-weight:800;letter-spacing:.01em}
       #events-list .ssa-page-intro p{margin:0;color:var(--ssa-muted)!important;font-size:25px;line-height:1.35;font-weight:400}
@@ -4383,8 +4388,10 @@
         #events-list{padding:0 12px 22px;overflow-x:visible}
         #events-list .ssa-page-intro{width:calc(100% + 24px);margin:0 -12px 18px;padding:0}
         #events-list .ssa-page-intro-head{flex-direction:column;gap:18px}
+        #events-list .ssa-brand-block{width:100%;align-items:stretch;gap:10px}
         #events-list .ssa-brand-mark{width:100%;margin:0}
         #events-list .ssa-brand-mark img{width:100%;max-width:none;border-radius:0}
+        #events-list .ssa-brand-tagline{padding:0 12px;font-size:18px!important;line-height:1.25!important;text-align:left}
         #events-list .ssa-page-intro-copy{padding:0 12px}
         #events-list .ssa-page-intro h1{font-size:30px;line-height:1.08;margin-bottom:10px}
         #events-list .ssa-page-intro p{font-size:16px;line-height:1.35;max-width:330px}

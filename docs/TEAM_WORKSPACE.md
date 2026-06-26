@@ -122,6 +122,7 @@ Newest entries at the top.
 
 | Date | Role | Topic | Message | Action needed |
 |------|------|-------|---------|---------------|
+| 2026-06-26 | Dev | Events widget logo tagline | Added the Sports Car Adventures tagline "Drive the Sierra like a local." below the linked logo, with responsive styling for mobile and desktop. Source/public widget copies match and JS syntax checks pass. | Dave — hard-refresh events page after deploy |
 | 2026-06-26 | Dev | Events widget logo link | Updated the Sports Car Adventures logo link to navigate directly to the homepage in the current tab and made the logo anchor explicitly clickable. Source/public widget copies match and JS syntax checks pass. | Dave — hard-refresh events page after deploy |
 | 2026-06-26 | Dev | Events widget logo sizing | Enlarged the Sports Car Adventures logo on desktop/tablet, made it full-width at the top on mobile, and switched to a higher-resolution Squarespace image rendition. Source/public widget copies match and JS syntax checks pass. | Dave — hard-refresh events page after deploy |
 | 2026-06-26 | Dev | Events widget group labels | Renamed the group filter menu labels from Day/Month to Group by Day/Group by Month in both source and public widget copies. JS syntax checks pass. | Dave — hard-refresh events page after deploy |
