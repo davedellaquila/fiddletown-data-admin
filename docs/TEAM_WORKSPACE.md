@@ -122,6 +122,7 @@ Newest entries at the top.
 
 | Date | Role | Topic | Message | Action needed |
 |------|------|-------|---------|---------------|
+| 2026-06-26 | Dev | Say Grace fish fry archive event | Added archived past event `ae1a1497` for Say Grace Neighborhood Fish Fry Thursday (June 25, 2026, 2–7 PM) with poster asset and keywords: community, family friendly, food. | Dave — verify in Admin archived/past events if desired |
 | 2026-06-26 | Dev | Street Heat image update | Updated published August 29 Gateway Street Heat Car Show event `8171b12f` with poster image asset; public API verifies new `image_url`. | Dave — refresh Admin/app calendar to verify |
 | 2026-06-26 | Dev | Foothill Classics image update | Updated published August 14 Foothill Classics Cruise Night event `52628e78` to use the working classic-car photo asset; public API verifies new `image_url`. | Dave — refresh Admin/app calendar to verify |
 | 2026-06-26 | Dev | Summer Harvest Days image update | Updated published July 25 Summer Harvest Days event `6e3c17c2` with new harvest-trail image asset; public API verifies new `image_url`. | Dave — refresh Admin/app calendar to verify |
