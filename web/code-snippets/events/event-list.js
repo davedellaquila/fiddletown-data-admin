@@ -1457,7 +1457,7 @@
     const pageHeaderHTML = `
       <section class="ssa-page-intro">
         <div class="ssa-page-intro-head">
-          <a class="ssa-brand-mark" href="${SSA_HOME_URL}" target="_blank" rel="noopener noreferrer" aria-label="Sports Car Adventures home">
+          <a class="ssa-brand-mark" href="${SSA_HOME_URL}" aria-label="Visit the Sports Car Adventures home page">
             <img src="${SSA_LOGO_URL}" alt="Sports Car Adventures" width="72" height="72" loading="lazy" decoding="async" />
           </a>
           <div class="ssa-page-intro-copy">
@@ -4120,7 +4120,7 @@
       #events-list{max-width:100%;margin:0 auto;padding:48px 0 28px;color:var(--ssa-text)!important;background:var(--ssa-bg)!important}
       #events-list .ssa-page-intro{max-width:1600px;margin:0 auto 42px;padding:0 64px}
       #events-list .ssa-page-intro-head{display:flex;align-items:flex-start;gap:24px}
-      #events-list .ssa-brand-mark{flex:0 0 auto;display:block;line-height:0;margin-top:2px}
+      #events-list .ssa-brand-mark{position:relative;z-index:1;flex:0 0 auto;display:block;line-height:0;margin-top:2px;cursor:pointer}
       #events-list .ssa-brand-mark img{width:132px;max-width:18vw;height:auto;display:block;border-radius:8px}
       #events-list .ssa-page-intro-copy{min-width:0}
       #events-list .ssa-page-intro h1{margin:0 0 16px;color:var(--ssa-text)!important;font-size:64px;line-height:1.05;font-weight:800;letter-spacing:.01em}
