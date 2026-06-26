@@ -122,6 +122,7 @@ Newest entries at the top.
 
 | Date | Role | Topic | Message | Action needed |
 |------|------|-------|---------|---------------|
+| 2026-06-26 | Dev | Jackson Independence Day event | Published event `adea592a` for Jackson Lions Club Independence Day Celebration (July 3, 2026, no listed time) with poster asset and keywords: community, family friendly, fireworks, holiday. | Dave — refresh Admin/app calendar to verify |
 | 2026-06-25 | Dev | Story Wine Club Party event | Published event `21bd3e44` for Story Wine Club Party (June 28, 2026, 1–4 PM) with poster asset and keywords: amador wine, food, live music, wine event, winery. | Dave — refresh Admin/app calendar to verify |
 | 2026-06-25 | Dev | Story Wine Club Party event | Prepared screenshot asset for Story Wine Club Party; initial anonymous insert was blocked by RLS. Superseded by published event row above after Supabase CLI auth. | None |
 | 2026-06-25 | Dev | Events widget date readout | Removed "Showing" from the sticky selected-date readout and stacked the date below the event count in the keyword summary section. | Dave — hard-refresh events page after deploy |
