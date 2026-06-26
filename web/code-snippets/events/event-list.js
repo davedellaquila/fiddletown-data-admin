@@ -4276,9 +4276,13 @@
       #events-list .ssa-grid{max-width:1600px;margin:0 auto 34px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px}
       #events-list .ssa-card{min-height:440px;display:flex;align-items:stretch;background:var(--ssa-surface)!important;border:1px solid var(--ssa-border-soft)!important;border-radius:10px;box-shadow:none!important;overflow:hidden}
       #events-list .ssa-card::before{display:none}
+      #events-list .ssa-card[data-has-image="true"]::after{content:'';position:absolute;inset:0;display:block;background-image:var(--card-bg-image);background-size:cover;background-position:center;background-repeat:no-repeat;opacity:.52;z-index:0}
+      #events-list .ssa-card[data-has-image="true"]::before{content:'';position:absolute;inset:0;display:block;background:linear-gradient(180deg,color-mix(in srgb,var(--ssa-surface) 70%,transparent) 0%,color-mix(in srgb,var(--ssa-surface) 58%,transparent) 42%,color-mix(in srgb,var(--ssa-surface) 86%,transparent) 100%);z-index:1}
       #events-list .ssa-card-content{position:relative;z-index:1;width:100%;min-height:440px;padding:26px 24px!important;background:var(--ssa-surface)!important}
+      #events-list .ssa-card[data-has-image="true"] .ssa-card-content{z-index:2;background:transparent!important}
       #events-list .ssa-card-head{display:block}
       #events-list .ssa-card-image-icon{display:none!important}
+      #events-list .ssa-title,#events-list .ssa-title *{background:transparent!important;box-shadow:none!important}
       #events-list .ssa-title{display:block;margin:0 0 12px}
       #events-list .ssa-calendar-container{max-width:1600px;margin:0 auto 34px;border:1px solid var(--ssa-border)!important;border-radius:10px;overflow:hidden;background:var(--ssa-surface)!important}
       #events-list .ssa-calendar-month-header{margin:0;padding:26px 28px;background:linear-gradient(180deg,rgba(169,51,38,.12),rgba(169,51,38,.04));color:var(--ssa-accent)!important;text-align:left;font-size:32px!important;font-weight:800!important}
