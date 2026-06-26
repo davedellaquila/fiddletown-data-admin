@@ -122,6 +122,7 @@ Newest entries at the top.
 
 | Date | Role | Topic | Message | Action needed |
 |------|------|-------|---------|---------------|
+| 2026-06-26 | Dev | Events widget logo sizing | Enlarged the Sports Car Adventures logo on desktop/tablet, made it full-width at the top on mobile, and switched to a higher-resolution Squarespace image rendition. Source/public widget copies match and JS syntax checks pass. | Dave — hard-refresh events page after deploy |
 | 2026-06-26 | Dev | Events widget group labels | Renamed the group filter menu labels from Day/Month to Group by Day/Group by Month in both source and public widget copies. JS syntax checks pass. | Dave — hard-refresh events page after deploy |
 | 2026-06-26 | Dev | Events widget grid cards | Restored image-backed grid cards and removed the mismatched title-strip background so event names render on the same card surface. Source/public widget copies match and JS syntax checks pass. | Dave — hard-refresh events page after deploy |
 | 2026-06-26 | Dev | Say Grace fish fry archive event | Added archived past event `ae1a1497` for Say Grace Neighborhood Fish Fry Thursday (June 25, 2026, 2–7 PM) with poster asset and keywords: community, family friendly, food. | Dave — verify in Admin archived/past events if desired |

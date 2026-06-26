@@ -55,7 +55,7 @@
   };
   const SIGNATURE_EVENT_KEYWORD = 'signature event';
   const SSA_HOME_URL = 'https://sportscaradventures.com/';
-  const SSA_LOGO_URL = 'https://static1.squarespace.com/static/5461a83be4b02a78c5fde7d7/t/66c61c7415d203318d4a220d/1724259446656/Sports+Car+Adventures+logo.png?format=300w';
+  const SSA_LOGO_URL = 'https://static1.squarespace.com/static/5461a83be4b02a78c5fde7d7/t/66c61c7415d203318d4a220d/1724259446656/Sports+Car+Adventures+logo.png?format=1000w';
 
   async function fetchEvents({ url, key, from = null, to = null, limit = 200 }) {
       const api = new URL(url + '/rest/v1/events');
@@ -4119,9 +4119,9 @@
       #events-list,#events-list *{box-sizing:border-box;font-family:var(--ssa-font);letter-spacing:0}
       #events-list{max-width:100%;margin:0 auto;padding:48px 0 28px;color:var(--ssa-text)!important;background:var(--ssa-bg)!important}
       #events-list .ssa-page-intro{max-width:1600px;margin:0 auto 42px;padding:0 64px}
-      #events-list .ssa-page-intro-head{display:flex;align-items:flex-start;gap:22px}
-      #events-list .ssa-brand-mark{flex:0 0 auto;display:block;line-height:0;margin-top:6px}
-      #events-list .ssa-brand-mark img{width:72px;height:auto;display:block;border-radius:8px}
+      #events-list .ssa-page-intro-head{display:flex;align-items:flex-start;gap:24px}
+      #events-list .ssa-brand-mark{flex:0 0 auto;display:block;line-height:0;margin-top:2px}
+      #events-list .ssa-brand-mark img{width:132px;max-width:18vw;height:auto;display:block;border-radius:8px}
       #events-list .ssa-page-intro-copy{min-width:0}
       #events-list .ssa-page-intro h1{margin:0 0 16px;color:var(--ssa-text)!important;font-size:64px;line-height:1.05;font-weight:800;letter-spacing:.01em}
       #events-list .ssa-page-intro p{margin:0;color:var(--ssa-muted)!important;font-size:25px;line-height:1.35;font-weight:400}
@@ -4380,11 +4380,12 @@
         #events-list .ssa-sticky-keyword-section{top:calc(var(--ssa-sticky-date-height,92px) + 16px)}
       }
       @media(max-width:820px){
-        #events-list{padding:22px 12px;overflow-x:visible}
-        #events-list .ssa-page-intro{padding:0;margin:0 0 18px}
-        #events-list .ssa-page-intro-head{gap:14px}
-        #events-list .ssa-brand-mark{margin-top:2px}
-        #events-list .ssa-brand-mark img{width:52px}
+        #events-list{padding:0 12px 22px;overflow-x:visible}
+        #events-list .ssa-page-intro{width:calc(100% + 24px);margin:0 -12px 18px;padding:0}
+        #events-list .ssa-page-intro-head{flex-direction:column;gap:18px}
+        #events-list .ssa-brand-mark{width:100%;margin:0}
+        #events-list .ssa-brand-mark img{width:100%;max-width:none;border-radius:0}
+        #events-list .ssa-page-intro-copy{padding:0 12px}
         #events-list .ssa-page-intro h1{font-size:30px;line-height:1.08;margin-bottom:10px}
         #events-list .ssa-page-intro p{font-size:16px;line-height:1.35;max-width:330px}
         #events-list .ssa-page-intro-credit{font-size:14px!important;margin-top:10px!important;max-width:330px}
