@@ -122,6 +122,7 @@ Newest entries at the top.
 
 | Date | Role | Topic | Message | Action needed |
 |------|------|-------|---------|---------------|
+| 2026-06-26 | Dev | Foothill Classics image update | Updated published July 10 Foothill Classics Cruise Night event `58d243f9` with new classic-car photo asset; public API verifies new `image_url`. | Dave — refresh Admin/app calendar to verify |
 | 2026-06-26 | Dev | Jackson Independence Day event | Published event `adea592a` for Jackson Lions Club Independence Day Celebration (July 3, 2026, no listed time) with poster asset and keywords: community, family friendly, fireworks, holiday. | Dave — refresh Admin/app calendar to verify |
 | 2026-06-25 | Dev | Story Wine Club Party event | Published event `21bd3e44` for Story Wine Club Party (June 28, 2026, 1–4 PM) with poster asset and keywords: amador wine, food, live music, wine event, winery. | Dave — refresh Admin/app calendar to verify |
 | 2026-06-25 | Dev | Story Wine Club Party event | Prepared screenshot asset for Story Wine Club Party; initial anonymous insert was blocked by RLS. Superseded by published event row above after Supabase CLI auth. | None |
