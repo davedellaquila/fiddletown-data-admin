@@ -122,7 +122,8 @@ Newest entries at the top.
 
 | Date | Role | Topic | Message | Action needed |
 |------|------|-------|---------|---------------|
-| 2026-06-25 | Dev | Story Wine Club Party event | Prepared screenshot asset for Story Wine Club Party (June 28, 2026) but Supabase anonymous insert is blocked by RLS; no admin Supabase session/token is available in this environment. | Dave — provide Supabase admin auth/session or add event manually |
+| 2026-06-25 | Dev | Story Wine Club Party event | Published event `21bd3e44` for Story Wine Club Party (June 28, 2026, 1–4 PM) with poster asset and keywords: amador wine, food, live music, wine event, winery. | Dave — refresh Admin/app calendar to verify |
+| 2026-06-25 | Dev | Story Wine Club Party event | Prepared screenshot asset for Story Wine Club Party; initial anonymous insert was blocked by RLS. Superseded by published event row above after Supabase CLI auth. | None |
 | 2026-06-25 | Dev | Events widget date readout | Removed "Showing" from the sticky selected-date readout and stacked the date below the event count in the keyword summary section. | Dave — hard-refresh events page after deploy |
 | 2026-06-25 | Dev | Events widget sticky summary | Combined event count and current "Showing <date>" readout into the left side of the selected-keyword summary section; keyword chips remain to the right. | Dave — hard-refresh events page after deploy |
 | 2026-06-25 | Dev | Events widget keyword summary | Moved the event count and selected keyword chips into their own sticky summary section below the date/filter menus; source/public widget copies match and JS syntax checks pass. | Dave — hard-refresh events page after deploy |
