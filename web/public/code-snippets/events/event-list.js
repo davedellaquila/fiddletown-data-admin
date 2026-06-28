@@ -4760,30 +4760,34 @@
     let touchCurrentY = 0;
     let isPulling = false;
     let pullDistance = 0;
-    const pullThreshold = 110; // Larger indicator needs a little more travel before refresh.
+    const pullThreshold = 125; // High-contrast indicator needs a little more travel before refresh.
     
     // Create refresh indicator element - attach to body for page-level pull-to-refresh
     const refreshIndicator = document.createElement('div');
     refreshIndicator.className = 'ssa-pull-to-refresh';
     refreshIndicator.style.cssText = `
       position: fixed;
-      top: -110px;
+      top: -132px;
       left: 50%;
       transform: translateX(-50%);
-      width: 88px;
-      height: 88px;
+      width: 112px;
+      height: 112px;
       border-radius: 50%;
-      background: #3b82f6;
-      color: white;
+      background: #f97316;
+      color: #ffffff;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 44px;
+      font-size: 64px;
+      font-weight: 900;
+      line-height: 1;
+      border: 6px solid #ffffff;
       opacity: 0;
       transition: opacity 0.2s, top 0.2s;
       pointer-events: none;
       z-index: 10000;
-      box-shadow: 0 6px 20px rgba(0,0,0,0.28);
+      text-shadow: 0 2px 6px rgba(0,0,0,0.35);
+      box-shadow: 0 0 0 5px #2563eb, 0 10px 30px rgba(0,0,0,0.45);
     `;
     refreshIndicator.innerHTML = '↻';
     document.body.appendChild(refreshIndicator);
@@ -4809,7 +4813,7 @@
         
         // Update indicator position and opacity
         const progress = Math.min(pullDistance / pullThreshold, 1);
-        refreshIndicator.style.top = `${pullDistance - 110}px`;
+        refreshIndicator.style.top = `${pullDistance - 132}px`;
         refreshIndicator.style.opacity = progress;
         
         // Rotate icon based on pull distance
@@ -4826,7 +4830,7 @@
       
       if (pullDistance >= pullThreshold && window.scrollY === 0) {
         // Trigger refresh
-        refreshIndicator.style.top = '24px';
+        refreshIndicator.style.top = '28px';
         refreshIndicator.style.opacity = '1';
         
         // Clear cache and reload events
@@ -4863,7 +4867,7 @@
     const resetPullState = function() {
       isPulling = false;
       pullDistance = 0;
-      refreshIndicator.style.top = '-110px';
+      refreshIndicator.style.top = '-132px';
       refreshIndicator.style.opacity = '0';
       refreshIndicator.style.transform = 'translateX(-50%) rotate(0deg)';
     };
