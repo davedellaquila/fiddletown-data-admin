@@ -105,7 +105,7 @@ Add a row to the **Team Log** using this format:
 
 | Item | Doc | Notes |
 |------|-----|-------|
-| Ad Management System (FE-001) | [ad-management-system.md](./future-enhancements/ad-management-system.md) | PRD review + scope adjustments before promotion to `features/` |
+| Regional Advertising Manager (FE-001) | [ad-management-system.md](./future-enhancements/ad-management-system.md) | Review M1 placement/pricing scope before promotion to `features/` |
 | iPad parity (FE-003) | [ipad-shared-logic-architecture.md](./future-enhancements/ipad-shared-logic-architecture.md) | Foundation shipped; Events/Routes parity + new web features TBD |
 | Event selection email (FE-004) | [event-selection-email.md](./future-enhancements/event-selection-email.md) | Squarespace widget + Edge Function |
 | Repeat events expansion (FE-002) | [smarter-repeat-events.md](./future-enhancements/smarter-repeat-events.md) | Client-side recurrence expansion |
@@ -122,6 +122,7 @@ Newest entries at the top.
 
 | Date | Role | Topic | Message | Action needed |
 |------|------|-------|---------|---------------|
+| 2026-06-28 | PM | FE-001 regional ads | Rewrote the ad-management future enhancement as a complete Regional Advertising Manager spec for selling local-business sponsorships by region on the Sports Car Adventures events page. No implementation started. | Dave — review M1 placement/pricing open questions |
 | 2026-06-28 | PM | FE-005 event notifications | Added a planning-only future enhancement spec for opt-in new-event email notifications, distinct from FE-004's session-based "email my selected events" feature. No implementation started. | Dave — review open questions before promotion |
 | 2026-06-28 | Dev | Events widget sticky weather | Added a compact weather badge beside the sticky current date, with condition icon plus precipitation or sunny likelihood when meaningful. The full sticky date/weather readout and full daily weather tile now link to the detailed weather.gov forecast page. Source/public widget copies match and JS syntax checks pass. | Dave — verify sticky weather/date tap targets on scroll |
 | 2026-06-28 | Dev | Events widget date scroll reset | Date range inputs, date chips, and date presets now await the refreshed render and smoothly scroll back to the first visible results section instead of retaining the old scroll position. Source/public widget copies match and JS syntax checks pass. | Dave — verify date-range changes on mobile |
@@ -229,7 +230,7 @@ Cross-feature decisions only. Feature-specific decisions go in the feature spec 
 - [Event Candidate Review spec](./features/event-candidate-review.md)
 - [Future enhancements registry](./future-enhancements/README.md)
 - [iPad parity (FE-003)](./future-enhancements/ipad-shared-logic-architecture.md)
-- [Ad Management System (FE-001)](./future-enhancements/ad-management-system.md)
+- [Regional Advertising Manager (FE-001)](./future-enhancements/ad-management-system.md)
 - [Style guide](./design/STYLE_GUIDE.md)
 - [Event triage mockups (Pencil)](./design/event-triage-mockups.pen)
 - [Feature specs & workflow](./features/README.md)

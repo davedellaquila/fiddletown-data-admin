@@ -42,7 +42,7 @@ Large, documented capabilities **not yet scheduled**. Full PRDs live here until 
 
 | ID | Enhancement | Status | Doc |
 |----|-------------|--------|-----|
-| FE-001 | Ad Management System | Under review (deferred) | [future-enhancements/ad-management-system.md](./future-enhancements/ad-management-system.md) |
+| FE-001 | Regional Advertising Manager | Specced | [future-enhancements/ad-management-system.md](./future-enhancements/ad-management-system.md) |
 | FE-005 | New event email notifications | Specced | [future-enhancements/new-event-email-notifications.md](./future-enhancements/new-event-email-notifications.md) |
 | FE-004 | Event selection & email | Specced | [future-enhancements/event-selection-email.md](./future-enhancements/event-selection-email.md) |
 | FE-003 | iPad shared logic & parity | Specced (foundation done) | [future-enhancements/ipad-shared-logic-architecture.md](./future-enhancements/ipad-shared-logic-architecture.md) |
