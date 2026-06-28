@@ -122,6 +122,7 @@ Newest entries at the top.
 
 | Date | Role | Topic | Message | Action needed |
 |------|------|-------|---------|---------------|
+| 2026-06-27 | Dev | Events widget date range guard | Added a widget date-input guard so To cannot be earlier than From; changing To below From snaps To to From, and raising From clamps any earlier To. Source/public widget copies match and JS syntax checks pass. | Dave — hard-refresh events page after deploy |
 | 2026-06-27 | Dev | Unity Ranch Rib Cook Off event | Published event `8dd1a103` for Unity Ranch Rib Cook Off (June 28, 2026, 2–10 PM) with poster asset and keywords: community, family friendly, food, live music. | Dave — refresh Admin/app calendar to verify |
 | 2026-06-27 | Dev | Delta Chicks July 4 event | Published event `f8db6469` for Delta Chicks at the Lube Room Saloon (July 4, 2026, 3–6 PM) with poster asset and keywords: community, family friendly, food, holiday, live music. | Dave — refresh Admin/app calendar to verify |
 | 2026-06-27 | Dev | Events widget date clear placement | Moved the date clear button into the From/To label row and made the date inputs a two-column row below it, giving both fields more usable width in compact layouts. Source/public widget copies match and JS syntax checks pass. | Dave — hard-refresh events page after deploy |

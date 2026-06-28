@@ -1695,6 +1695,14 @@
     const toInput = toInputs[0];
     const setFromInputs = value => fromInputs.forEach(input => { input.value = value || ''; });
     const setToInputs = value => toInputs.forEach(input => { input.value = value || ''; });
+    const clampToDate = nextState => {
+      const normalizedFrom = normalizeDateString(nextState.fromDate);
+      const normalizedTo = normalizeDateString(nextState.toDate);
+      if (normalizedFrom && normalizedTo && normalizedTo < normalizedFrom) {
+        return { ...nextState, toDate: normalizedFrom };
+      }
+      return nextState;
+    };
     const openFromDatePicker = () => {
       const nextFromInput = mount.querySelector('.ssa-from-date-input');
       if (!nextFromInput) return;
@@ -1713,7 +1721,8 @@
     fromInputs.forEach(input => {
       input.addEventListener('change', async function() {
         const newFromDate = this.value || null;
-        const newState = commitState({ ...getState(), fromDate: newFromDate });
+        const newState = commitState(clampToDate({ ...getState(), fromDate: newFromDate }));
+        setToInputs(newState.toDate);
         // Reload events if date filter changed
         if (mount._widgetOpts) {
           reloadEvents(mount, newState, mount._widgetOpts);
@@ -1727,7 +1736,8 @@
     toInputs.forEach(input => {
       input.addEventListener('change', async function() {
         const newToDate = this.value || null;
-        const newState = commitState({ ...getState(), toDate: newToDate });
+        const newState = commitState(clampToDate({ ...getState(), toDate: newToDate }));
+        setToInputs(newState.toDate);
         // Reload events if date filter changed
         if (mount._widgetOpts) {
           reloadEvents(mount, newState, mount._widgetOpts);
