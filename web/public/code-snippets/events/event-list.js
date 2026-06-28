@@ -4414,7 +4414,7 @@
       #events-list .ssa-controls-heading p{margin:0;color:var(--ssa-muted)!important;font-size:21px;line-height:1.35}
       #events-list .ssa-date-filters-section,#events-list .ssa-view-controls-section,#events-list .ssa-keyword-filters-section{background:color-mix(in srgb,var(--ssa-surface) 96%,transparent)!important}
       #events-list .ssa-view-controls-section:not(.ssa-is-stuck){background:color-mix(in srgb,var(--ssa-surface) 96%,transparent)!important;border-color:var(--ssa-border)!important;box-shadow:var(--ssa-shadow)!important;backdrop-filter:blur(14px)!important;-webkit-backdrop-filter:blur(14px)!important}
-      #events-list .ssa-compact-filter-shell{width:calc(100% - (var(--ssa-content-gutter) * 2));max-width:var(--ssa-content-max);min-width:0;margin:0 auto 18px;position:sticky;top:0;z-index:42;overflow-x:clip}
+      #events-list .ssa-compact-filter-shell{width:calc(100% - (var(--ssa-content-gutter) * 2));max-width:var(--ssa-content-max);min-width:0;margin:0 auto 18px;position:sticky;top:0;z-index:42;overflow:visible}
       #events-list .ssa-compact-filter-shell > .ssa-sticky-control-section{position:static;min-width:0;max-width:100%}
       #events-list .ssa-date-filters{display:flex;flex-direction:column;align-items:stretch;gap:8px;justify-content:flex-start}
       #events-list .ssa-date-labels-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 58px;gap:16px;align-items:center;width:100%}
@@ -4466,8 +4466,8 @@
       #events-list .ssa-filter-menu[open] summary{border-color:var(--ssa-accent-soft)!important;color:var(--ssa-accent)!important;background:rgba(169,51,38,.045)!important}
       #events-list .ssa-filter-menu[open] summary::after{transform:translateY(-35%) rotate(225deg)}
       #events-list .ssa-filter-menu-panel{position:absolute;z-index:70;top:calc(100% + 8px);left:0;min-width:100%;width:max-content;max-width:min(340px,calc(100vw - 36px));padding:8px;display:flex;flex-direction:column;gap:4px;border:1px solid var(--ssa-border)!important;border-radius:10px;background:var(--ssa-surface)!important;box-shadow:0 18px 46px rgba(15,23,42,.22)}
-      #events-list .ssa-keyword-menu-panel{width:320px;max-height:min(410px,58vh);overflow:auto}
-      #events-list .ssa-filter-menu-item,#events-list .ssa-filter-menu .ssa-clear-dates,#events-list .ssa-filter-menu .ssa-layout-btn,#events-list .ssa-filter-menu .ssa-group-btn,#events-list .ssa-filter-menu .ssa-keyword-btn{width:100%;height:42px;min-width:0;padding:0 12px;display:flex;align-items:center;justify-content:flex-start;gap:10px;border:0!important;border-radius:8px;background:transparent!important;color:var(--ssa-muted)!important;font-size:15px;font-weight:800;line-height:1;text-align:left;box-shadow:none!important;white-space:nowrap}
+      #events-list .ssa-keyword-menu-panel{left:0;right:0;width:100%;min-width:100%;max-width:100%;max-height:min(410px,58vh);overflow:auto}
+      #events-list .ssa-filter-menu-item,#events-list .ssa-filter-menu .ssa-clear-dates,#events-list .ssa-filter-menu .ssa-layout-btn,#events-list .ssa-filter-menu .ssa-group-btn,#events-list .ssa-filter-menu .ssa-keyword-btn{width:100%;height:42px;min-width:0;overflow:hidden;text-overflow:ellipsis;padding:0 12px;display:flex;align-items:center;justify-content:flex-start;gap:10px;border:0!important;border-radius:8px;background:transparent!important;color:var(--ssa-muted)!important;font-size:15px;font-weight:800;line-height:1;text-align:left;box-shadow:none!important;white-space:nowrap}
       #events-list .ssa-filter-menu-item:hover,#events-list .ssa-filter-menu-item:focus-visible,#events-list .ssa-filter-menu .ssa-keyword-btn:hover{background:rgba(169,51,38,.055)!important;color:var(--ssa-accent)!important}
       #events-list .ssa-filter-menu-item.ssa-active,#events-list .ssa-filter-menu .ssa-keyword-active{background:rgba(169,51,38,.08)!important;color:var(--ssa-accent)!important}
       #events-list .ssa-filter-menu .ssa-clear-dates::before{display:none!important;content:none!important}
@@ -4627,7 +4627,7 @@
       @media(min-width:1120px){
         #events-list .ssa-compact-filter-shell{display:grid;grid-template-columns:minmax(0,.68fr) minmax(0,1.32fr);gap:14px;align-items:stretch}
         #events-list .ssa-compact-filter-shell > .ssa-sticky-meta-stack{grid-column:1/-1;grid-row:2;width:100%;max-width:none}
-        #events-list .ssa-compact-filter-shell > .ssa-control-panel{max-width:none;width:100%;min-width:0;margin:0;overflow:hidden}
+        #events-list .ssa-compact-filter-shell > .ssa-control-panel{max-width:none;width:100%;min-width:0;margin:0;overflow:visible}
         #events-list .ssa-compact-filter-shell .ssa-date-filters-section,#events-list .ssa-compact-filter-shell .ssa-view-controls-section{padding:16px 18px}
         #events-list .ssa-compact-filter-shell .ssa-date-filters{display:flex;flex-direction:column;gap:6px;width:100%}
         #events-list .ssa-compact-filter-shell .ssa-date-labels-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 40px;column-gap:14px}
@@ -4805,7 +4805,7 @@
       }
       @media(max-width:560px){
         #events-list .ssa-filter-toolbar{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
-        #events-list .ssa-keyword-menu-panel{width:min(320px,calc(100vw - 44px))}
+        #events-list .ssa-keyword-menu-panel{width:100%;max-width:100%}
         #events-list .ssa-filter-menu-panel{max-width:calc(100vw - 44px)}
       }
       @media(max-height:520px) and (orientation:landscape){
