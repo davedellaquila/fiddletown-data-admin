@@ -1831,8 +1831,8 @@
           newState.toDate = null;
         }
         newState = commitState(newState);
-        if ((chipType === 'from' || chipType === 'to') && mount._widgetOpts) {
-          await reloadEvents(mount, newState, mount._widgetOpts);
+        if (chipType === 'from' || chipType === 'to') {
+          await rerenderForDateChange(newState);
         } else {
           await renderEvents(mount, rows, newState);
         }
@@ -1868,19 +1868,21 @@
       }
       nextFromInput.click();
     };
+    const rerenderForDateChange = async (newState, sourceRows = rows) => {
+      if (mount._widgetOpts) {
+        await reloadEvents(mount, newState, mount._widgetOpts);
+      } else {
+        await renderEvents(mount, sourceRows, newState);
+      }
+      scrollToResultsStart(mount);
+    };
     
     fromInputs.forEach(input => {
       input.addEventListener('change', async function() {
         const newFromDate = this.value || null;
         const newState = commitState(clampToDate({ ...getState(), fromDate: newFromDate }));
         setToInputs(newState.toDate);
-        // Reload events if date filter changed
-        if (mount._widgetOpts) {
-          reloadEvents(mount, newState, mount._widgetOpts);
-        } else {
-          // Fallback: filter client-side if opts not available
-          await renderEvents(mount, rows, newState);
-        }
+        await rerenderForDateChange(newState);
       });
     });
     
@@ -1889,13 +1891,7 @@
         const newToDate = this.value || null;
         const newState = commitState(clampToDate({ ...getState(), toDate: newToDate }));
         setToInputs(newState.toDate);
-        // Reload events if date filter changed
-        if (mount._widgetOpts) {
-          reloadEvents(mount, newState, mount._widgetOpts);
-        } else {
-          // Fallback: filter client-side if opts not available
-          await renderEvents(mount, rows, newState);
-        }
+        await rerenderForDateChange(newState);
       });
     });
     
@@ -1905,11 +1901,7 @@
         e.stopPropagation();
         const currentState = getState();
         const newState = commitState({ ...currentState, toDate: null });
-        if (mount._widgetOpts) {
-          await reloadEvents(mount, newState, mount._widgetOpts);
-        } else {
-          await renderEvents(mount, rows, newState);
-        }
+        await rerenderForDateChange(newState);
         openFromDatePicker();
       });
     });
@@ -1918,13 +1910,7 @@
       clearDatesBtn.addEventListener('click', async function(e) {
         e.preventDefault();
         const newState = commitState({ ...getState(), toDate: null, selectedKeywords: [] });
-        // Reload events to show all
-        if (mount._widgetOpts) {
-          await reloadEvents(mount, newState, mount._widgetOpts);
-        } else {
-          // Fallback: filter client-side if opts not available
-          await renderEvents(mount, rows, newState);
-        }
+        await rerenderForDateChange(newState);
       });
     });
     
@@ -1948,17 +1934,8 @@
         setFromInputs(weekend.from);
         setToInputs(weekend.to);
         // Reload events with weekend filter
-        if (mount._widgetOpts) {
-          console.log('🔄 Calling reloadEvents');
-          reloadEvents(mount, newState, mount._widgetOpts);
-        } else {
-          // Fallback: filter client-side if opts not available
-          // Use mount._allRows to ensure we have all events for filtering
-          console.log('⚠️ No widgetOpts, using client-side filtering');
-          const allRows = mount._allRows || rows;
-          console.log('📊 Using rows:', { allRowsLength: allRows.length, mountAllRowsLength: mount._allRows ? mount._allRows.length : 0 });
-          await renderEvents(mount, allRows, newState);
-        }
+        console.log('🔄 Calling date-range render');
+        await rerenderForDateChange(newState, mount._allRows || rows);
       });
     });
     
@@ -1973,17 +1950,8 @@
         setFromInputs(weekend.from);
         setToInputs(weekend.to);
         // Reload events with next weekend filter
-        if (mount._widgetOpts) {
-          console.log('🔄 Calling reloadEvents for Next Weekend');
-          reloadEvents(mount, newState, mount._widgetOpts);
-        } else {
-          // Fallback: filter client-side if opts not available
-          // Use mount._allRows to ensure we have all events for filtering
-          console.log('⚠️ No widgetOpts, using client-side filtering for Next Weekend');
-          const allRows = mount._allRows || rows;
-          console.log('📊 Available rows for Next Weekend:', { allRowsLength: allRows.length });
-          await renderEvents(mount, allRows, newState);
-        }
+        console.log('🔄 Calling date-range render for Next Weekend');
+        await rerenderForDateChange(newState, mount._allRows || rows);
       });
     });
     
@@ -1997,17 +1965,8 @@
         setFromInputs(week.from);
         setToInputs(week.to);
         // Reload events with week filter
-        if (mount._widgetOpts) {
-          console.log('🔄 Calling reloadEvents');
-          reloadEvents(mount, newState, mount._widgetOpts);
-        } else {
-          // Fallback: filter client-side if opts not available
-          // Use mount._allRows to ensure we have all events for filtering
-          console.log('⚠️ No widgetOpts, using client-side filtering');
-          const allRows = mount._allRows || rows;
-          console.log('📊 Using rows:', { allRowsLength: allRows.length, mountAllRowsLength: mount._allRows ? mount._allRows.length : 0 });
-          await renderEvents(mount, allRows, newState);
-        }
+        console.log('🔄 Calling date-range render');
+        await rerenderForDateChange(newState, mount._allRows || rows);
       });
     });
     
@@ -4819,6 +4778,21 @@
   }
 
   // Helper function to reload events when filters change
+  function scrollToResultsStart(mount) {
+    if (!mount) return;
+    const target = mount.querySelector('.ssa-list-date-anchor, .ssa-events-list, .ssa-grid, .ssa-calendar-container, .ssa-empty');
+    if (!target) return;
+    const stickyShell = mount.querySelector('.ssa-compact-filter-shell');
+    const stickyOffset = stickyShell ? Math.min(stickyShell.getBoundingClientRect().height || 0, 260) : 0;
+    const top = target.getBoundingClientRect().top + window.scrollY - stickyOffset - 14;
+    window.requestAnimationFrame(() => {
+      window.scrollTo({
+        top: Math.max(top, 0),
+        behavior: 'smooth'
+      });
+    });
+  }
+
   async function reloadEvents(mount, state, opts) {
     if (!opts || !opts.url || !opts.key) {
       console.error('reloadEvents: Missing required opts (url, key)', opts);
