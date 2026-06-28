@@ -4453,7 +4453,7 @@
       #events-list .ssa-sticky-weather-chance{font-size:12px;font-weight:900;line-height:1}
       #events-list .ssa-filter-menu{position:relative;min-width:0}
       #events-list .ssa-group-menu{min-width:0}
-      #events-list .ssa-filter-menu summary{height:48px;padding:0 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid var(--ssa-control-border)!important;border-radius:10px;background:var(--ssa-surface)!important;color:var(--ssa-muted)!important;font-size:17px;font-weight:800;line-height:1;list-style:none;cursor:pointer;white-space:nowrap;box-shadow:0 1px 0 rgba(255,255,255,.35) inset!important}
+      #events-list .ssa-filter-menu summary{position:relative;height:48px;padding:0 42px 0 16px;display:flex;align-items:center;justify-content:flex-start;gap:12px;min-width:0;overflow:hidden;border:1px solid var(--ssa-control-border)!important;border-radius:10px;background:var(--ssa-surface)!important;color:var(--ssa-muted)!important;font-size:17px;font-weight:800;line-height:1;list-style:none;cursor:pointer;white-space:nowrap;box-shadow:0 1px 0 rgba(255,255,255,.35) inset!important}
       html.dark-mode #events-list .ssa-filter-menu summary,body.dark-mode #events-list .ssa-filter-menu summary{box-shadow:0 1px 0 rgba(255,255,255,.07) inset,0 2px 10px rgba(0,0,0,.24)!important}
       html.dark-mode #events-list .ssa-sticky-control-section .ssa-filter-menu summary,body.dark-mode #events-list .ssa-sticky-control-section .ssa-filter-menu summary{color:var(--ssa-sticky-control-fg)!important;background:var(--ssa-sticky-control-fill)!important;border:2px solid var(--ssa-sticky-control-border)!important;-webkit-text-fill-color:var(--ssa-sticky-control-fg)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.05)!important}
       html.dark-mode #events-list .ssa-sticky-control-section .ssa-date-input,body.dark-mode #events-list .ssa-sticky-control-section .ssa-date-input{color:var(--ssa-sticky-control-fg)!important;background:var(--ssa-sticky-control-fill)!important;border:2px solid var(--ssa-sticky-control-border)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.05)!important;-webkit-text-fill-color:var(--ssa-sticky-control-fg)!important}
@@ -4461,9 +4461,9 @@
       html.dark-mode #events-list .ssa-sticky-control-section .ssa-date-clear-btn::before,body.dark-mode #events-list .ssa-sticky-control-section .ssa-date-clear-btn::before{color:var(--ssa-sticky-control-fg)!important;border:2px solid var(--ssa-sticky-control-border)!important}
       html.dark-mode #events-list .ssa-sticky-control-section.ssa-is-stuck .ssa-filter-menu summary,body.dark-mode #events-list .ssa-sticky-control-section.ssa-is-stuck .ssa-filter-menu summary{border:2px solid var(--ssa-sticky-control-border)!important}
       #events-list .ssa-filter-menu summary::-webkit-details-marker{display:none}
-      #events-list .ssa-filter-menu summary::after{content:'⌄';color:currentColor;font-size:18px;line-height:1;transition:transform .18s ease}
+      #events-list .ssa-filter-menu summary::after{content:'';position:absolute;right:16px;top:50%;width:9px;height:9px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:translateY(-65%) rotate(45deg);transform-origin:center;opacity:.95;pointer-events:none;transition:transform .18s ease,opacity .18s ease}
       #events-list .ssa-filter-menu[open] summary{border-color:var(--ssa-accent-soft)!important;color:var(--ssa-accent)!important;background:rgba(169,51,38,.045)!important}
-      #events-list .ssa-filter-menu[open] summary::after{transform:rotate(180deg)}
+      #events-list .ssa-filter-menu[open] summary::after{transform:translateY(-35%) rotate(225deg)}
       #events-list .ssa-filter-menu-panel{position:absolute;z-index:70;top:calc(100% + 8px);left:0;min-width:100%;width:max-content;max-width:min(340px,calc(100vw - 36px));padding:8px;display:flex;flex-direction:column;gap:4px;border:1px solid var(--ssa-border)!important;border-radius:10px;background:var(--ssa-surface)!important;box-shadow:0 18px 46px rgba(15,23,42,.22)}
       #events-list .ssa-keyword-menu-panel{width:320px;max-height:min(410px,58vh);overflow:auto}
       #events-list .ssa-filter-menu-item,#events-list .ssa-filter-menu .ssa-clear-dates,#events-list .ssa-filter-menu .ssa-layout-btn,#events-list .ssa-filter-menu .ssa-group-btn,#events-list .ssa-filter-menu .ssa-keyword-btn{width:100%;height:42px;min-width:0;padding:0 12px;display:flex;align-items:center;justify-content:flex-start;gap:10px;border:0!important;border-radius:8px;background:transparent!important;color:var(--ssa-muted)!important;font-size:15px;font-weight:800;line-height:1;text-align:left;box-shadow:none!important;white-space:nowrap}
@@ -4638,7 +4638,8 @@
         #events-list .ssa-compact-filter-shell .ssa-view-controls-section{display:flex;align-items:stretch;justify-content:stretch}
         #events-list .ssa-compact-filter-shell .ssa-filter-toolbar{position:relative;width:100%;height:100%;grid-template-columns:minmax(0,1fr) minmax(0,.92fr) minmax(190px,1.35fr) minmax(0,1fr);grid-template-rows:48px;gap:8px 10px;align-items:center;align-content:center}
         #events-list .ssa-compact-filter-shell .ssa-filter-menu{grid-row:1;transform:none}
-        #events-list .ssa-compact-filter-shell .ssa-filter-menu summary{height:48px;padding:0 12px;font-size:14px}
+        #events-list .ssa-compact-filter-shell .ssa-filter-menu summary{height:48px;padding:0 34px 0 12px;font-size:14px}
+        #events-list .ssa-compact-filter-shell .ssa-filter-menu summary::after{right:12px;width:8px;height:8px}
         #events-list .ssa-compact-filter-shell .ssa-selection-count{height:auto;display:flex;align-items:center;justify-content:flex-start;flex:0 0 auto;padding:0;background:transparent!important;white-space:nowrap;font-size:13px;line-height:1.15;text-align:left}
         #events-list .ssa-compact-filter-shell.ssa-is-stuck .ssa-view-controls-section{align-items:stretch}
         #events-list .ssa-compact-filter-shell.ssa-is-stuck .ssa-filter-toolbar{grid-template-rows:48px;align-content:center;align-items:center}
@@ -4798,7 +4799,8 @@
       @media(max-width:920px){
         #events-list .ssa-filter-toolbar{grid-template-columns:minmax(0,1fr) minmax(0,.95fr) minmax(174px,1.25fr) minmax(0,1fr);gap:8px}
         #events-list .ssa-filter-toolbar .ssa-selection-count{grid-column:1/-1}
-        #events-list .ssa-filter-menu summary{height:44px;padding:0 12px;font-size:14px}
+        #events-list .ssa-filter-menu summary{height:44px;padding:0 34px 0 12px;font-size:14px}
+        #events-list .ssa-filter-menu summary::after{right:12px;width:8px;height:8px}
       }
       @media(max-width:560px){
         #events-list .ssa-filter-toolbar{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
@@ -4812,7 +4814,8 @@
         #events-list .ssa-date-clear-btn{height:42px}
         #events-list .ssa-filter-toolbar{grid-template-columns:repeat(4,minmax(0,1fr)) auto;gap:8px}
         #events-list .ssa-filter-toolbar .ssa-selection-count{grid-column:auto}
-        #events-list .ssa-filter-menu summary{height:38px;font-size:13px;padding:0 10px}
+        #events-list .ssa-filter-menu summary{height:38px;font-size:13px;padding:0 30px 0 10px}
+        #events-list .ssa-filter-menu summary::after{right:10px;width:7px;height:7px}
         #events-list .ssa-selection-count{font-size:13px}
         #events-list .ssa-selected-keyword-row .ssa-keyword-btn{height:36px;font-size:13px}
       }
