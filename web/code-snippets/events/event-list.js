@@ -4564,7 +4564,6 @@
       }
       @media(max-width:560px){
         #events-list .ssa-filter-toolbar{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
-        #events-list .ssa-group-menu{grid-column:1/-1}
         #events-list .ssa-keyword-menu-panel{width:min(320px,calc(100vw - 44px))}
         #events-list .ssa-filter-menu-panel{max-width:calc(100vw - 44px)}
       }
