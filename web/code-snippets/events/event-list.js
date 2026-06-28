@@ -326,36 +326,34 @@
     return Array.from(keywordSet).sort();
   }
 
-  // Calculate upcoming weekend dates (Friday, Saturday, and Sunday)
+  // Calculate this weekend, starting with today once the weekend is underway.
   function getUpcomingWeekend() {
     const today = new Date();
     const dayOfWeek = today.getDay(); // 0 = Sunday, 6 = Saturday
     
-    let friday, sunday;
+    let startDate, sunday;
     
     if (dayOfWeek === 5) {
       // If today is Friday, use this weekend (today through Sunday)
-      friday = new Date(today);
+      startDate = new Date(today);
       sunday = new Date(today);
       sunday.setDate(today.getDate() + 2); // This Sunday
     } else if (dayOfWeek === 6) {
-      // If today is Saturday, use this weekend (yesterday through tomorrow)
-      friday = new Date(today);
-      friday.setDate(today.getDate() - 1); // Yesterday (Friday)
+      // If today is Saturday, show the remaining weekend (today through Sunday)
+      startDate = new Date(today);
       sunday = new Date(today);
       sunday.setDate(today.getDate() + 1); // Tomorrow (Sunday)
     } else if (dayOfWeek === 0) {
-      // If today is Sunday, use this weekend (Friday through today)
-      friday = new Date(today);
-      friday.setDate(today.getDate() - 2); // Friday (2 days ago)
+      // If today is Sunday, show only the remaining day in this weekend
+      startDate = new Date(today);
       sunday = new Date(today);
     } else {
       // Monday-Thursday: use this coming weekend
       const daysUntilFriday = 5 - dayOfWeek; // 1=Mon(4), 2=Tue(3), 3=Wed(2), 4=Thu(1)
-      friday = new Date(today);
-      friday.setDate(today.getDate() + daysUntilFriday);
-      sunday = new Date(friday);
-      sunday.setDate(friday.getDate() + 2); // Sunday (2 days after Friday)
+      startDate = new Date(today);
+      startDate.setDate(today.getDate() + daysUntilFriday);
+      sunday = new Date(startDate);
+      sunday.setDate(startDate.getDate() + 2); // Sunday (2 days after Friday)
     }
     
     // Format dates as YYYY-MM-DD using local time to avoid timezone issues
@@ -367,7 +365,7 @@
     }
     
     return {
-      from: formatLocalDate(friday),
+      from: formatLocalDate(startDate),
       to: formatLocalDate(sunday)
     };
   }
