@@ -22,6 +22,7 @@ Major capabilities and product ideas that are **documented but not scheduled** f
 | ID | Enhancement | Status | Priority | Effort | Doc |
 |----|-------------|--------|----------|--------|-----|
 | FE-001 | Ad Management System | Under review (deferred) | After Event Triage M1 | ~13 weeks (7 phases) | [ad-management-system.md](./ad-management-system.md) |
+| FE-005 | New event email notifications | Specced | TBD | Medium | [new-event-email-notifications.md](./new-event-email-notifications.md) |
 | FE-004 | Event selection & email | Specced | After Event Triage M1 | Medium | [event-selection-email.md](./event-selection-email.md) |
 | FE-003 | iPad shared logic & parity | Specced (foundation done) | After Event Triage M1 | Large | [ipad-shared-logic-architecture.md](./ipad-shared-logic-architecture.md) |
 | FE-002 | Smarter repeat events | Specced | After Event Triage M1 | Medium | [smarter-repeat-events.md](./smarter-repeat-events.md) |

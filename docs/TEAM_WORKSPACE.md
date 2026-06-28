@@ -122,6 +122,7 @@ Newest entries at the top.
 
 | Date | Role | Topic | Message | Action needed |
 |------|------|-------|---------|---------------|
+| 2026-06-28 | PM | FE-005 event notifications | Added a planning-only future enhancement spec for opt-in new-event email notifications, distinct from FE-004's session-based "email my selected events" feature. No implementation started. | Dave — review open questions before promotion |
 | 2026-06-28 | Dev | Events widget sticky weather | Added a compact weather badge beside the sticky current date, with condition icon plus precipitation or sunny likelihood when meaningful. The full sticky date/weather readout and full daily weather tile now link to the detailed weather.gov forecast page. Source/public widget copies match and JS syntax checks pass. | Dave — verify sticky weather/date tap targets on scroll |
 | 2026-06-28 | Dev | Events widget date scroll reset | Date range inputs, date chips, and date presets now await the refreshed render and smoothly scroll back to the first visible results section instead of retaining the old scroll position. Source/public widget copies match and JS syntax checks pass. | Dave — verify date-range changes on mobile |
 | 2026-06-28 | Dev | Events widget weather phase 1 | Added Gold Country daily weather summaries under day headers when List View is grouped by day, using NWS forecast data with session cache and graceful fallback. Source/public widget copies match, JS syntax checks pass, and NWS smoke test returned forecast data. | Dave — review live day-grouped list after deploy |
