@@ -56,6 +56,14 @@
   const SIGNATURE_EVENT_KEYWORD = 'signature event';
   const SSA_HOME_URL = 'https://sportscaradventures.com/';
   const SSA_LOGO_URL = 'https://static1.squarespace.com/static/5461a83be4b02a78c5fde7d7/t/66c61c7415d203318d4a220d/1724259446656/Sports+Car+Adventures+logo.png?format=1000w';
+  const DEFAULT_WEATHER_REGION = {
+    name: 'Gold Country',
+    slug: 'gold-country',
+    lat: 38.4819,
+    lng: -120.8447,
+    timezone: 'America/Los_Angeles'
+  };
+  const WEATHER_CACHE_TTL_MS = 45 * 60 * 1000;
 
   async function fetchEvents({ url, key, from = null, to = null, limit = 200 }) {
       const api = new URL(url + '/rest/v1/events');
@@ -200,6 +208,145 @@
       
       return dedupeEventsBySchedule(events);
     }
+
+  function getWeatherRegion(opts = {}) {
+    if (opts.weather === false) return null;
+    const supplied = opts.weatherRegion || {};
+    return {
+      ...DEFAULT_WEATHER_REGION,
+      ...supplied,
+      lat: Number.isFinite(Number(supplied.lat)) ? Number(supplied.lat) : DEFAULT_WEATHER_REGION.lat,
+      lng: Number.isFinite(Number(supplied.lng)) ? Number(supplied.lng) : DEFAULT_WEATHER_REGION.lng
+    };
+  }
+
+  function weatherCacheKey(region) {
+    return `ssa_weather_v20260628:${region.slug || region.name}:${region.lat},${region.lng}`;
+  }
+
+  function getWeatherPeriodDate(period, timezone) {
+    if (!period || !period.startTime) return null;
+    const date = new Date(period.startTime);
+    if (Number.isNaN(date.getTime())) return null;
+    try {
+      const parts = new Intl.DateTimeFormat('en-CA', {
+        timeZone: timezone || DEFAULT_WEATHER_REGION.timezone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      }).formatToParts(date);
+      const lookup = Object.fromEntries(parts.map(part => [part.type, part.value]));
+      return `${lookup.year}-${lookup.month}-${lookup.day}`;
+    } catch (error) {
+      return period.startTime.slice(0, 10);
+    }
+  }
+
+  function makeWeatherDrivingNote(summary) {
+    const condition = `${summary.condition || ''} ${summary.wind || ''}`.toLowerCase();
+    if ((summary.precipChance || 0) >= 50 || /rain|shower|thunder|storm/.test(condition)) {
+      return 'Watch for wet roads.';
+    }
+    if (/fog|haze|smoke/.test(condition)) {
+      return 'Visibility may vary.';
+    }
+    if ((summary.high || 0) >= 95) {
+      return 'Hot afternoon driving.';
+    }
+    if (/wind|breezy|gust/.test(condition)) {
+      return 'Expect breezy driving.';
+    }
+    if (/sun|clear|fair/.test(condition)) {
+      return 'Good driving weather.';
+    }
+    return 'Check conditions before heading out.';
+  }
+
+  function summarizeWeatherDay(day) {
+    const dayPeriod = day.daytime || day.periods.find(period => period.isDaytime) || day.periods[0];
+    const nightPeriod = day.nighttime || [...day.periods].reverse().find(period => !period.isDaytime);
+    const temps = day.periods.map(period => Number(period.temperature)).filter(Number.isFinite);
+    const precipValues = day.periods
+      .map(period => period.probabilityOfPrecipitation && period.probabilityOfPrecipitation.value)
+      .filter(value => Number.isFinite(Number(value)))
+      .map(Number);
+    const summary = {
+      condition: dayPeriod?.shortForecast || 'Forecast available',
+      high: Number.isFinite(Number(dayPeriod?.temperature)) ? Number(dayPeriod.temperature) : (temps.length ? Math.max(...temps) : null),
+      low: Number.isFinite(Number(nightPeriod?.temperature)) ? Number(nightPeriod.temperature) : (temps.length ? Math.min(...temps) : null),
+      precipChance: precipValues.length ? Math.max(...precipValues) : null,
+      wind: dayPeriod?.windSpeed || ''
+    };
+    summary.note = makeWeatherDrivingNote(summary);
+    return summary;
+  }
+
+  function normalizeWeatherPeriods(periods, region) {
+    const days = {};
+    (periods || []).forEach(period => {
+      const dateKey = getWeatherPeriodDate(period, region.timezone);
+      if (!dateKey) return;
+      if (!days[dateKey]) days[dateKey] = { periods: [] };
+      days[dateKey].periods.push(period);
+      if (period.isDaytime) days[dateKey].daytime = period;
+      if (!period.isDaytime) days[dateKey].nighttime = period;
+    });
+
+    return Object.fromEntries(
+      Object.entries(days)
+        .filter(([, day]) => day.periods.length > 0)
+        .map(([dateKey, day]) => [dateKey, summarizeWeatherDay(day)])
+    );
+  }
+
+  async function fetchRegionalWeather(region) {
+    if (!region) return {};
+    const cacheKey = weatherCacheKey(region);
+    try {
+      const cached = JSON.parse(sessionStorage.getItem(cacheKey) || 'null');
+      if (cached && cached.savedAt && Date.now() - cached.savedAt < WEATHER_CACHE_TTL_MS && cached.weatherByDate) {
+        return cached.weatherByDate;
+      }
+    } catch (error) {
+      // Ignore malformed cache entries.
+    }
+
+    try {
+      const pointRes = await fetch(`https://api.weather.gov/points/${region.lat},${region.lng}`, {
+        headers: { Accept: 'application/geo+json' }
+      });
+      if (!pointRes.ok) throw new Error(`NWS point lookup failed: ${pointRes.status}`);
+      const point = await pointRes.json();
+      const forecastUrl = point?.properties?.forecast;
+      if (!forecastUrl) throw new Error('NWS point lookup did not include a forecast URL');
+
+      const forecastRes = await fetch(forecastUrl, {
+        headers: { Accept: 'application/geo+json' }
+      });
+      if (!forecastRes.ok) throw new Error(`NWS forecast failed: ${forecastRes.status}`);
+      const forecast = await forecastRes.json();
+      const weatherByDate = normalizeWeatherPeriods(forecast?.properties?.periods || [], region);
+      sessionStorage.setItem(cacheKey, JSON.stringify({ savedAt: Date.now(), weatherByDate }));
+      return weatherByDate;
+    } catch (error) {
+      console.warn('Weather forecast unavailable:', error);
+      return {};
+    }
+  }
+
+  function renderWeatherSummary(weather) {
+    if (!weather) return '';
+    const tempText = weather.high !== null && weather.low !== null
+      ? `${weather.high} / ${weather.low}`
+      : weather.high !== null
+        ? `High ${weather.high}`
+        : weather.low !== null
+          ? `Low ${weather.low}`
+          : '';
+    const rainText = weather.precipChance !== null ? `${weather.precipChance}% rain` : '';
+    const pieces = [weather.condition, tempText, rainText, weather.note].filter(Boolean);
+    return `<div class="ssa-day-weather" aria-label="Weather forecast"><span class="ssa-weather-icon" aria-hidden="true"></span><span>${escapeHtml(pieces.join('. '))}</span></div>`;
+  }
 
   function fmtRange(s, e){
     if (!s && !e) return '';
@@ -868,7 +1015,7 @@
     return grouped;
   }
 
-  function renderListLayout(events, state) {
+  function renderListLayout(events, state, weatherByDate = {}) {
     const groupBy = state.groupBy || 'day';
     const { fromDate = null, toDate = null } = state;
     let grouped, groups, headerClass;
@@ -919,6 +1066,9 @@
     groups.forEach(groupKey => {
       const headerText = groupBy === 'day' ? formatDayHeader(groupKey) : groupKey;
       html += `<h3 class="${headerClass} ssa-list-date-anchor" data-current-date-label="${escapeHtml(headerText)}">${headerText}</h3>`;
+      if (groupBy === 'day' && weatherByDate[groupKey]) {
+        html += renderWeatherSummary(weatherByDate[groupKey]);
+      }
       html += `<ul class="ssa-events-list">`;
       
       grouped[groupKey].forEach((event, idx) => {
@@ -1433,6 +1583,9 @@
     // If we used filteredRows (after keyword filtering), users would only see keywords that co-occur
     // with already-selected keywords, which would be confusing
     const allKeywords = getAllKeywords(dateFilteredRows);
+    const weatherByDate = layout === LAYOUTS.LIST && groupBy === 'day'
+      ? await fetchRegionalWeather(mount._weatherRegion)
+      : {};
     
     // Debug logging to help diagnose keyword cloud updates
     console.log('🔍 Keyword cloud update:', {
@@ -1562,7 +1715,7 @@
     // Render events based on layout
     let eventsHTML = '';
     if (layout === LAYOUTS.LIST) {
-      eventsHTML = renderListLayout(filteredRows, state);
+      eventsHTML = renderListLayout(filteredRows, state, weatherByDate);
     } else if (layout === LAYOUTS.GRID) {
       eventsHTML = renderGridLayout(filteredRows, state);
     } else if (layout === LAYOUTS.CALENDAR) {
@@ -4289,6 +4442,9 @@
       #events-list .ssa-results-summary{width:calc(100% - (var(--ssa-content-gutter) * 2));max-width:var(--ssa-content-max);margin:0 auto 26px;color:var(--ssa-muted)!important}
       #events-list .ssa-results-summary p{margin:0;color:var(--ssa-muted)!important;font-size:21px;line-height:1.4}
       #events-list .ssa-day-header,#events-list h3.ssa-day-header,#events-list .ssa-month-header{width:calc(100% - (var(--ssa-content-gutter) * 2));max-width:var(--ssa-content-max);margin:28px auto 18px;padding:0 0 20px;border-bottom:3px solid rgba(169,51,38,.14);color:var(--ssa-accent)!important;font-size:34px!important;line-height:1.15;font-weight:800!important}
+      #events-list .ssa-day-weather{width:calc(100% - (var(--ssa-content-gutter) * 2));max-width:var(--ssa-content-max);margin:-8px auto 18px;padding:12px 16px;display:flex;align-items:center;gap:10px;border:1px solid var(--ssa-border-soft)!important;border-radius:12px;background:color-mix(in srgb,var(--ssa-surface) 92%,#f7c873 8%)!important;color:var(--ssa-text)!important;font-size:16px;font-weight:700;line-height:1.35;box-shadow:0 8px 22px rgba(15,23,42,.08)}
+      #events-list .ssa-weather-icon{width:28px;height:28px;flex:0 0 28px;border-radius:999px;background:#f7c873;box-shadow:0 0 0 4px rgba(247,200,115,.22),10px 4px 0 -4px rgba(169,51,38,.32)}
+      html.dark-mode #events-list .ssa-day-weather,body.dark-mode #events-list .ssa-day-weather{background:rgba(247,200,115,.10)!important;border-color:rgba(247,200,115,.36)!important;color:var(--ssa-text)!important;box-shadow:0 10px 28px rgba(0,0,0,.24)}
       #events-list .ssa-events-list{width:calc(100% - (var(--ssa-content-gutter) * 2));max-width:var(--ssa-content-max);margin:0 auto 34px;padding:0;display:flex;flex-direction:column;gap:18px}
       #events-list .ssa-event-item{margin:0;padding:26px 24px;background:var(--ssa-surface)!important;border:1px solid var(--ssa-border-soft)!important;border-radius:10px;box-shadow:none!important}
       #events-list .ssa-event-content{display:grid;grid-template-columns:auto 1fr;gap:24px;align-items:start}
@@ -4487,6 +4643,8 @@
         #events-list .ssa-active-filter-chip{height:38px;font-size:14px;padding:0 12px}
         #events-list .ssa-results-summary p{font-size:14px}
         #events-list .ssa-day-header,#events-list h3.ssa-day-header,#events-list .ssa-month-header{margin:20px 0 12px;padding-bottom:12px;font-size:20px!important}
+        #events-list .ssa-day-weather{width:100%;margin:-4px 0 14px;padding:10px 12px;font-size:13px;border-radius:10px}
+        #events-list .ssa-weather-icon{width:22px;height:22px;flex-basis:22px}
         #events-list .ssa-events-list{margin:0 0 26px;gap:14px}
         #events-list .ssa-event-item{padding:14px;border-radius:7px}
         #events-list .ssa-event-content{display:flex;flex-direction:column;gap:14px}
@@ -4718,6 +4876,7 @@
     
     // Store opts for reloadEvents
     mount._widgetOpts = opts;
+    mount._weatherRegion = getWeatherRegion(opts);
     
     mount.innerHTML = `<div class="ssa-grid"><div class="ssa-skel"></div><div class="ssa-skel"></div><div class="ssa-skel"></div></div>`;
     

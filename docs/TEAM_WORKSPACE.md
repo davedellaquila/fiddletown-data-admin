@@ -122,6 +122,7 @@ Newest entries at the top.
 
 | Date | Role | Topic | Message | Action needed |
 |------|------|-------|---------|---------------|
+| 2026-06-28 | Dev | Events widget weather phase 1 | Added Gold Country daily weather summaries under day headers when List View is grouped by day, using NWS forecast data with session cache and graceful fallback. Source/public widget copies match, JS syntax checks pass, and NWS smoke test returned forecast data. | Dave — review live day-grouped list after deploy |
 | 2026-06-28 | Dev | Events widget refresh contrast | Increased the mobile pull-to-refresh indicator to 112px, used a high-contrast orange fill, added a white border/blue outer ring, and enlarged the glyph to 64px. Source/public widget copies match and JS syntax checks pass. | Dave — hard-refresh events page after deploy |
 | 2026-06-28 | Dev | Events widget refresh indicator | Enlarged the mobile pull-to-refresh indicator from 40px to 88px with a larger icon and adjusted pull positioning/threshold for the bigger target. Source/public widget copies match and JS syntax checks pass. | Dave — hard-refresh events page after deploy |
 | 2026-06-28 | Dev | Events widget summary row | Put the visible date and event count on one summary row, with the date on the left and event count aligned to the right. Source/public widget copies match and JS syntax checks pass. | Dave — hard-refresh events page after deploy |
