@@ -122,6 +122,7 @@ Newest entries at the top.
 
 | Date | Role | Topic | Message | Action needed |
 |------|------|-------|---------|---------------|
+| 2026-06-27 | Dev | Events widget date field controls | Narrowed the date entry fields/panel allocation and changed the date clear icon to clear only the To date, preserve From, and focus/open the From date picker. Source/public widget copies match and JS syntax checks pass. | Dave — hard-refresh events page after deploy |
 | 2026-06-27 | Dev | Events widget compact filter layout | Rebalanced the compact date/filter split so the widened Group by menu no longer pushes Keywords outside the filter panel; stacks panels below 1280px. Source/public widget copies match and JS syntax checks pass. | Dave — hard-refresh events page after deploy |
 | 2026-06-27 | Dev | Events widget group menu width | Widened the Group by filter menu/toolbar column so "Group by Month" fits, including compact and narrow responsive layouts. Source/public widget copies match and JS syntax checks pass. | Dave — hard-refresh events page after deploy |
 | 2026-06-26 | Dev | Events widget logo tagline | Added the Sports Car Adventures tagline "Drive the Sierra like a local." below the linked logo, with responsive styling for mobile and desktop. Source/public widget copies match and JS syntax checks pass. | Dave — hard-refresh events page after deploy |

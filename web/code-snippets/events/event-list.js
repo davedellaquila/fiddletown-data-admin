@@ -1491,7 +1491,7 @@
     dateControlsHTML += '<div class="ssa-date-inputs-row">';
     dateControlsHTML += `<label><span>From</span><input type="date" class="ssa-date-input ssa-from-date-input" id="ssa-from-date" value="${fromDate || ''}"></label>`;
     dateControlsHTML += `<label><span>To</span><input type="date" class="ssa-date-input ssa-to-date-input" id="ssa-to-date" value="${toDate || ''}" placeholder="Open"></label>`;
-    dateControlsHTML += `<button type="button" class="ssa-date-clear-btn ssa-clear-to-date" title="Clear dates" aria-label="Clear dates"></button>`;
+    dateControlsHTML += `<button type="button" class="ssa-date-clear-btn ssa-clear-to-date" title="Clear To date and edit From date" aria-label="Clear To date and edit From date"></button>`;
     dateControlsHTML += '</div>';
     dateControlsHTML += '</div>';
     dateControlsHTML += '</section>';
@@ -1691,6 +1691,20 @@
     const toInput = toInputs[0];
     const setFromInputs = value => fromInputs.forEach(input => { input.value = value || ''; });
     const setToInputs = value => toInputs.forEach(input => { input.value = value || ''; });
+    const openFromDatePicker = () => {
+      const nextFromInput = mount.querySelector('.ssa-from-date-input');
+      if (!nextFromInput) return;
+      nextFromInput.focus({ preventScroll: true });
+      if (typeof nextFromInput.showPicker === 'function') {
+        try {
+          nextFromInput.showPicker();
+          return;
+        } catch (err) {
+          console.debug('Date picker could not be opened programmatically:', err);
+        }
+      }
+      nextFromInput.click();
+    };
     
     fromInputs.forEach(input => {
       input.addEventListener('change', async function() {
@@ -1724,12 +1738,14 @@
       clearToDateBtn.addEventListener('click', async function(e) {
         e.preventDefault();
         e.stopPropagation();
-        const newState = commitState({ ...getState(), fromDate: null, toDate: null });
+        const currentState = getState();
+        const newState = commitState({ ...currentState, toDate: null });
         if (mount._widgetOpts) {
           await reloadEvents(mount, newState, mount._widgetOpts);
         } else {
           await renderEvents(mount, rows, newState);
         }
+        openFromDatePicker();
       });
     });
     
@@ -4164,7 +4180,7 @@
       #events-list .ssa-date-filters{display:flex;align-items:flex-end;gap:16px;justify-content:flex-start;flex-wrap:wrap}
       #events-list .ssa-date-inputs-row{display:flex;gap:16px;align-items:flex-end}
       #events-list .ssa-date-filters label{display:flex;flex-direction:column;align-items:flex-start;gap:8px;color:var(--ssa-muted)!important;font-size:17px;font-weight:700}
-      #events-list .ssa-date-input{width:230px;height:58px;padding:0 16px;background:var(--ssa-surface-soft)!important;border:1px solid var(--ssa-control-border)!important;border-radius:10px;color:var(--ssa-text)!important;font-size:20px;font-weight:700;box-shadow:0 1px 0 rgba(255,255,255,.35) inset!important}
+      #events-list .ssa-date-input{width:190px;height:58px;padding:0 14px;background:var(--ssa-surface-soft)!important;border:1px solid var(--ssa-control-border)!important;border-radius:10px;color:var(--ssa-text)!important;font-size:19px;font-weight:700;box-shadow:0 1px 0 rgba(255,255,255,.35) inset!important}
       html.dark-mode #events-list .ssa-sticky-control-section .ssa-date-input,body.dark-mode #events-list .ssa-sticky-control-section .ssa-date-input{box-shadow:0 1px 0 rgba(255,255,255,.06) inset,0 2px 10px rgba(0,0,0,.22)!important}
       #events-list button{font-family:var(--ssa-font);letter-spacing:0}
       #events-list .ssa-weekend-btn,#events-list .ssa-clear-dates,#events-list .ssa-date-clear-btn,#events-list .ssa-layout-btn,#events-list .ssa-group-btn,#events-list .ssa-show-images-toggle,#events-list .ssa-signature-events-toggle,#events-list .ssa-dark-mode-toggle,#events-list .ssa-keyword-btn{height:52px;padding:0 22px;display:inline-flex;align-items:center;justify-content:center;background:var(--ssa-surface)!important;border:1px solid var(--ssa-border-soft)!important;border-radius:10px;color:var(--ssa-muted)!important;font-size:20px;font-weight:700;line-height:1;box-shadow:none!important;transform:none!important;white-space:nowrap}
@@ -4360,17 +4376,17 @@
         #events-list .ssa-clear-dates:active::before{transform:rotate(90deg) scale(.92)}
       }
       @media(min-width:1120px){
-        #events-list .ssa-compact-filter-shell{display:grid;grid-template-columns:minmax(520px,.78fr) minmax(680px,1.22fr);gap:14px;align-items:stretch}
+        #events-list .ssa-compact-filter-shell{display:grid;grid-template-columns:minmax(460px,.68fr) minmax(720px,1.32fr);gap:14px;align-items:stretch}
         #events-list .ssa-compact-filter-shell > .ssa-sticky-meta-stack{grid-column:1/-1;grid-row:2;width:100%;max-width:none}
         #events-list .ssa-compact-filter-shell > .ssa-control-panel{max-width:none;width:100%;margin:0}
         #events-list .ssa-compact-filter-shell .ssa-date-filters-section,#events-list .ssa-compact-filter-shell .ssa-view-controls-section{padding:16px 18px}
         #events-list .ssa-compact-filter-shell .ssa-date-filters{display:block;width:100%}
-        #events-list .ssa-compact-filter-shell .ssa-date-inputs-row{grid-column:auto;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 48px;column-gap:22px;align-items:end;width:100%;min-width:0;overflow:visible}
+        #events-list .ssa-compact-filter-shell .ssa-date-inputs-row{grid-column:auto;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 44px;column-gap:14px;align-items:end;width:100%;min-width:0;overflow:visible}
         #events-list .ssa-compact-filter-shell .ssa-date-inputs-row > *{min-width:0}
         #events-list .ssa-compact-filter-shell .ssa-date-inputs-row label:first-of-type{grid-column:1}
         #events-list .ssa-compact-filter-shell .ssa-date-inputs-row label:nth-of-type(2){grid-column:2}
         #events-list .ssa-compact-filter-shell .ssa-date-filters label{min-width:0;width:100%;overflow:visible}
-        #events-list .ssa-compact-filter-shell .ssa-date-clear-btn{grid-column:3;width:44px;min-width:44px;height:48px;align-self:end;justify-self:center}
+        #events-list .ssa-compact-filter-shell .ssa-date-clear-btn{grid-column:3;width:40px;min-width:40px;height:48px;align-self:end;justify-self:center}
         #events-list .ssa-compact-filter-shell .ssa-date-input{width:100%;max-width:100%;min-width:0;min-inline-size:0;height:48px;padding:0 10px;box-sizing:border-box;font-size:16px}
         #events-list .ssa-compact-filter-shell .ssa-date-filters label span{display:block;margin-bottom:6px;padding-left:1px;font-size:13px;line-height:1.15}
         #events-list .ssa-compact-filter-shell .ssa-view-controls-section{display:flex;align-items:stretch;justify-content:stretch}
