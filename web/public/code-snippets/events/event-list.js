@@ -224,6 +224,11 @@
     return `ssa_weather_v20260628:${region.slug || region.name}:${region.lat},${region.lng}`;
   }
 
+  function getWeatherDetailUrl(region) {
+    const activeRegion = region || DEFAULT_WEATHER_REGION;
+    return `https://forecast.weather.gov/MapClick.php?lat=${encodeURIComponent(activeRegion.lat)}&lon=${encodeURIComponent(activeRegion.lng)}`;
+  }
+
   function getWeatherPeriodDate(period, timezone) {
     if (!period || !period.startTime) return null;
     const date = new Date(period.startTime);
@@ -334,7 +339,7 @@
     }
   }
 
-  function renderWeatherSummary(weather) {
+  function renderWeatherSummary(weather, region = DEFAULT_WEATHER_REGION) {
     if (!weather) return '';
     const tempText = weather.high !== null && weather.low !== null
       ? `${weather.high} / ${weather.low}`
@@ -345,7 +350,31 @@
           : '';
     const rainText = weather.precipChance !== null ? `${weather.precipChance}% rain` : '';
     const pieces = [weather.condition, tempText, rainText, weather.note].filter(Boolean);
-    return `<div class="ssa-day-weather" aria-label="Weather forecast"><span class="ssa-weather-icon" aria-hidden="true"></span><span>${escapeHtml(pieces.join('. '))}</span></div>`;
+    const weatherUrl = getWeatherDetailUrl(region);
+    return `<div class="ssa-day-weather" aria-label="Weather forecast"><a class="ssa-weather-icon-link" href="${weatherUrl}" target="_blank" rel="noopener" aria-label="Open detailed weather forecast"><span class="ssa-weather-icon" aria-hidden="true"></span></a><span>${escapeHtml(pieces.join('. '))}</span></div>`;
+  }
+
+  function getWeatherBadgeIcon(weather) {
+    if (!weather) return '';
+    const condition = `${weather.condition || ''}`.toLowerCase();
+    if ((weather.precipChance || 0) >= 40 || /rain|shower|thunder|storm/.test(condition)) return '🌧';
+    if (/snow|sleet|ice/.test(condition)) return '❄';
+    if (/cloud|overcast/.test(condition)) return '☁';
+    if (/fog|haze|smoke/.test(condition)) return '🌫';
+    if (/wind|breezy|gust/.test(condition)) return '💨';
+    if (/sun|clear|fair/.test(condition)) return '☀';
+    return '🌤';
+  }
+
+  function renderStickyWeatherBadge(weather, region = DEFAULT_WEATHER_REGION) {
+    if (!weather) return '';
+    const icon = getWeatherBadgeIcon(weather);
+    const rainText = Number.isFinite(Number(weather.precipChance)) && Number(weather.precipChance) >= 30
+      ? `<span class="ssa-sticky-weather-chance">${Math.round(Number(weather.precipChance))}%</span>`
+      : '';
+    const label = [weather.condition, rainText ? `${Math.round(Number(weather.precipChance))}% precipitation` : ''].filter(Boolean).join(', ');
+    const weatherUrl = getWeatherDetailUrl(region);
+    return `<a class="ssa-sticky-weather-badge" href="${weatherUrl}" target="_blank" rel="noopener" aria-label="${escapeHtml(label ? `${label}. Open detailed weather forecast` : 'Open detailed weather forecast')}"><span aria-hidden="true">${icon}</span>${rainText}</a>`;
   }
 
   function fmtRange(s, e){
@@ -1015,7 +1044,7 @@
     return grouped;
   }
 
-  function renderListLayout(events, state, weatherByDate = {}) {
+  function renderListLayout(events, state, weatherByDate = {}, weatherRegion = DEFAULT_WEATHER_REGION) {
     const groupBy = state.groupBy || 'day';
     const { fromDate = null, toDate = null } = state;
     let grouped, groups, headerClass;
@@ -1065,9 +1094,9 @@
     let html = '';
     groups.forEach(groupKey => {
       const headerText = groupBy === 'day' ? formatDayHeader(groupKey) : groupKey;
-      html += `<h3 class="${headerClass} ssa-list-date-anchor" data-current-date-label="${escapeHtml(headerText)}">${headerText}</h3>`;
+      html += `<h3 class="${headerClass} ssa-list-date-anchor" data-current-date-label="${escapeHtml(headerText)}" data-date-key="${escapeHtml(groupKey)}">${headerText}</h3>`;
       if (groupBy === 'day' && weatherByDate[groupKey]) {
-        html += renderWeatherSummary(weatherByDate[groupKey]);
+        html += renderWeatherSummary(weatherByDate[groupKey], weatherRegion);
       }
       html += `<ul class="ssa-events-list">`;
       
@@ -1312,14 +1341,14 @@
 
     const isListView = (state.layout || LAYOUTS.LIST) === LAYOUTS.LIST;
     if (!controlsAreStuck || !isListView) {
-      readout.textContent = '';
+      readout.innerHTML = '';
       readout.classList.remove('ssa-sticky-current-date-visible');
       return;
     }
 
     const headers = Array.from(mount.querySelectorAll('.ssa-list-date-anchor'));
     if (!headers.length) {
-      readout.textContent = '';
+      readout.innerHTML = '';
       readout.classList.remove('ssa-sticky-current-date-visible');
       return;
     }
@@ -1334,13 +1363,16 @@
     });
 
     const label = activeHeader.dataset.currentDateLabel || activeHeader.textContent.trim();
+    const dateKey = activeHeader.dataset.dateKey;
     if (!label) {
-      readout.textContent = '';
+      readout.innerHTML = '';
       readout.classList.remove('ssa-sticky-current-date-visible');
       return;
     }
 
-    readout.textContent = label;
+    const weather = dateKey && mount._weatherByDate ? mount._weatherByDate[dateKey] : null;
+    const weatherBadge = weather ? renderStickyWeatherBadge(weather, mount._weatherRegion) : '';
+    readout.innerHTML = `<span class="ssa-sticky-current-date-label">${escapeHtml(label)}</span>${weatherBadge}`;
     readout.classList.add('ssa-sticky-current-date-visible');
   }
 
@@ -1586,6 +1618,7 @@
     const weatherByDate = layout === LAYOUTS.LIST && groupBy === 'day'
       ? await fetchRegionalWeather(mount._weatherRegion)
       : {};
+    mount._weatherByDate = weatherByDate;
     
     // Debug logging to help diagnose keyword cloud updates
     console.log('🔍 Keyword cloud update:', {
@@ -1715,7 +1748,7 @@
     // Render events based on layout
     let eventsHTML = '';
     if (layout === LAYOUTS.LIST) {
-      eventsHTML = renderListLayout(filteredRows, state, weatherByDate);
+      eventsHTML = renderListLayout(filteredRows, state, weatherByDate, mount._weatherRegion);
     } else if (layout === LAYOUTS.GRID) {
       eventsHTML = renderGridLayout(filteredRows, state);
     } else if (layout === LAYOUTS.CALENDAR) {
@@ -4328,8 +4361,12 @@
       #events-list .ssa-sticky-filter-summary{display:flex;align-items:center;justify-content:flex-start;gap:18px;width:100%;min-width:0;padding:10px 18px;background:color-mix(in srgb,var(--ssa-surface) 96%,transparent)!important;border:1px solid var(--ssa-border)!important;border-radius:12px;box-shadow:var(--ssa-shadow)!important;backdrop-filter:blur(14px)!important;-webkit-backdrop-filter:blur(14px)!important}
       #events-list .ssa-sticky-status{display:flex;align-items:center;justify-content:space-between;gap:16px;flex:1 1 auto;min-width:0;width:100%;margin:0;color:var(--ssa-muted)!important;font-size:16px;font-weight:800;line-height:1.2;white-space:nowrap}
       #events-list .ssa-sticky-selected-keywords{flex:1 1 auto;width:auto;min-width:0;margin:0;padding:0;justify-content:flex-start}
-      #events-list .ssa-sticky-current-date{display:block;max-width:0;max-height:0;overflow:hidden;opacity:0;color:var(--ssa-accent)!important;font-size:14px;font-weight:900;line-height:1.15;transition:max-width .18s ease,max-height .18s ease,opacity .18s ease}
+      #events-list .ssa-sticky-current-date{display:flex;align-items:center;gap:8px;max-width:0;max-height:0;overflow:hidden;opacity:0;color:var(--ssa-accent)!important;font-size:14px;font-weight:900;line-height:1.15;transition:max-width .18s ease,max-height .18s ease,opacity .18s ease}
       #events-list .ssa-sticky-current-date-visible{max-width:100%;max-height:22px;opacity:1}
+      #events-list .ssa-sticky-current-date-label{display:inline-block;min-width:0;overflow:hidden;text-overflow:ellipsis}
+      #events-list .ssa-sticky-weather-badge{min-width:34px;height:28px;padding:0 8px;display:inline-flex;align-items:center;justify-content:center;gap:4px;border:1px solid rgba(169,51,38,.26)!important;border-radius:999px;background:rgba(247,200,115,.22)!important;color:var(--ssa-accent)!important;font-size:17px;font-weight:900;line-height:1;text-decoration:none!important;box-shadow:0 2px 8px rgba(15,23,42,.08)}
+      #events-list .ssa-sticky-weather-badge:hover,#events-list .ssa-sticky-weather-badge:focus-visible{border-color:var(--ssa-accent)!important;background:rgba(247,200,115,.34)!important;outline:none}
+      #events-list .ssa-sticky-weather-chance{font-size:12px;font-weight:900;line-height:1}
       #events-list .ssa-filter-menu{position:relative;min-width:0}
       #events-list .ssa-group-menu{min-width:0}
       #events-list .ssa-filter-menu summary{height:48px;padding:0 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid var(--ssa-control-border)!important;border-radius:10px;background:var(--ssa-surface)!important;color:var(--ssa-muted)!important;font-size:17px;font-weight:800;line-height:1;list-style:none;cursor:pointer;white-space:nowrap;box-shadow:0 1px 0 rgba(255,255,255,.35) inset!important}
@@ -4402,6 +4439,7 @@
       #events-list .ssa-results-summary p{margin:0;color:var(--ssa-muted)!important;font-size:21px;line-height:1.4}
       #events-list .ssa-day-header,#events-list h3.ssa-day-header,#events-list .ssa-month-header{width:calc(100% - (var(--ssa-content-gutter) * 2));max-width:var(--ssa-content-max);margin:28px auto 18px;padding:0 0 20px;border-bottom:3px solid rgba(169,51,38,.14);color:var(--ssa-accent)!important;font-size:34px!important;line-height:1.15;font-weight:800!important}
       #events-list .ssa-day-weather{width:calc(100% - (var(--ssa-content-gutter) * 2));max-width:var(--ssa-content-max);margin:-8px auto 18px;padding:12px 16px;display:flex;align-items:center;gap:10px;border:1px solid var(--ssa-border-soft)!important;border-radius:12px;background:color-mix(in srgb,var(--ssa-surface) 92%,#f7c873 8%)!important;color:var(--ssa-text)!important;font-size:16px;font-weight:700;line-height:1.35;box-shadow:0 8px 22px rgba(15,23,42,.08)}
+      #events-list .ssa-weather-icon-link{width:34px;height:34px;flex:0 0 34px;display:inline-flex;align-items:center;justify-content:center;border-radius:999px;text-decoration:none!important}
       #events-list .ssa-weather-icon{width:28px;height:28px;flex:0 0 28px;border-radius:999px;background:#f7c873;box-shadow:0 0 0 4px rgba(247,200,115,.22),10px 4px 0 -4px rgba(169,51,38,.32)}
       html.dark-mode #events-list .ssa-day-weather,body.dark-mode #events-list .ssa-day-weather{background:rgba(247,200,115,.10)!important;border-color:rgba(247,200,115,.36)!important;color:var(--ssa-text)!important;box-shadow:0 10px 28px rgba(0,0,0,.24)}
       #events-list .ssa-events-list{width:calc(100% - (var(--ssa-content-gutter) * 2));max-width:var(--ssa-content-max);margin:0 auto 34px;padding:0;display:flex;flex-direction:column;gap:18px}
