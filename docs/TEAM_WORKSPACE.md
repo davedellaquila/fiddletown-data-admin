@@ -122,6 +122,7 @@ Newest entries at the top.
 
 | Date | Role | Topic | Message | Action needed |
 |------|------|-------|---------|---------------|
+| 2026-06-28 | Dev | Events widget sticky keywords | Changed the sticky summary to a two-row grid so date/weather and event count stay on the first row while selected keyword chips render in a contained full-width row below without clipping. Source/public widget copies match and JS syntax checks pass. | Dave — hard-refresh events page after deploy |
 | 2026-06-28 | Dev | Events widget filter chevrons | Replaced the filter menu text chevron with an internal CSS-drawn chevron and reserved right padding across compact/mobile breakpoints so the icon stays inside each filter button. Source/public widget copies match and JS syntax checks pass. | Dave — hard-refresh events page after deploy |
 | 2026-06-28 | Dev | Events widget weather links | Replaced Weather.gov-only detail links with smart weather links: iOS attempts the native Weather app, Android attempts the Google app/weather intent, and both fall back to a Google weather result for the forecast point. Source/public widget copies match and JS syntax checks pass. | Dave — verify weather tap behavior on iPhone |
 | 2026-06-28 | PM | FE-001 regional ads | Rewrote the ad-management future enhancement as a complete Regional Advertising Manager spec for selling local-business sponsorships by region on the Sports Car Adventures events page. No implementation started. | Dave — review M1 placement/pricing open questions |
