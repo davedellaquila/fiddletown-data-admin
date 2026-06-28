@@ -122,6 +122,7 @@ Newest entries at the top.
 
 | Date | Role | Topic | Message | Action needed |
 |------|------|-------|---------|---------------|
+| 2026-06-28 | Dev | Events widget keyword menu width | Let the Keywords dropdown expand left from its button with a viewport cap and raised open filter controls above the summary row so keyword labels remain readable and unobstructed. Source/public widget copies match and JS syntax checks pass. | Dave — hard-refresh events page after deploy |
 | 2026-06-28 | Dev | Events widget group menu layering | Raised the open filter menu layer above the sticky summary row so Group by dropdown items render visibly instead of appearing as clipped red text underneath the menu. Source/public widget copies match and JS syntax checks pass. | Dave — hard-refresh events page after deploy |
 | 2026-06-28 | Dev | Events widget dropdown clipping | Let compact filter dropdown panels render outside the control panel and constrained the Keywords dropdown to its own menu width with clipped item text, fixing the clipped Group by panel and over-wide keyword menu. Source/public widget copies match and JS syntax checks pass. | Dave — hard-refresh events page after deploy |
 | 2026-06-28 | Dev | Events widget sticky keywords | Changed the sticky summary to a two-row grid so date/weather and event count stay on the first row while selected keyword chips render in a contained full-width row below without clipping. Source/public widget copies match and JS syntax checks pass. | Dave — hard-refresh events page after deploy |
