@@ -351,7 +351,7 @@
     const rainText = weather.precipChance !== null ? `${weather.precipChance}% rain` : '';
     const pieces = [weather.condition, tempText, rainText, weather.note].filter(Boolean);
     const weatherUrl = getWeatherDetailUrl(region);
-    return `<div class="ssa-day-weather" aria-label="Weather forecast"><a class="ssa-weather-icon-link" href="${weatherUrl}" target="_blank" rel="noopener" aria-label="Open detailed weather forecast"><span class="ssa-weather-icon" aria-hidden="true"></span></a><span>${escapeHtml(pieces.join('. '))}</span></div>`;
+    return `<a class="ssa-day-weather" href="${weatherUrl}" target="_blank" rel="noopener" aria-label="${escapeHtml(`${pieces.join('. ')}. Open detailed weather forecast`)}"><span class="ssa-weather-icon-link" aria-hidden="true"><span class="ssa-weather-icon"></span></span><span>${escapeHtml(pieces.join('. '))}</span></a>`;
   }
 
   function getWeatherBadgeIcon(weather) {
@@ -366,15 +366,39 @@
     return '🌤';
   }
 
-  function renderStickyWeatherBadge(weather, region = DEFAULT_WEATHER_REGION) {
+  function getStickyWeatherChance(weather) {
+    if (!weather) return null;
+    const condition = `${weather.condition || ''}`.toLowerCase();
+    const precipChance = Number(weather.precipChance);
+    if (Number.isFinite(precipChance) && (precipChance >= 30 || /rain|shower|thunder|storm/.test(condition))) {
+      return {
+        value: Math.round(precipChance),
+        label: 'precipitation'
+      };
+    }
+    if (/sun|clear|fair/.test(condition)) {
+      return {
+        value: Number.isFinite(precipChance) ? Math.max(0, Math.round(100 - precipChance)) : 100,
+        label: 'sunny'
+      };
+    }
+    return null;
+  }
+
+  function renderStickyWeatherBadge(weather, region = DEFAULT_WEATHER_REGION, asLink = true) {
     if (!weather) return '';
     const icon = getWeatherBadgeIcon(weather);
-    const rainText = Number.isFinite(Number(weather.precipChance)) && Number(weather.precipChance) >= 30
-      ? `<span class="ssa-sticky-weather-chance">${Math.round(Number(weather.precipChance))}%</span>`
+    const chance = getStickyWeatherChance(weather);
+    const chanceText = chance
+      ? `<span class="ssa-sticky-weather-chance">${chance.value}%</span>`
       : '';
-    const label = [weather.condition, rainText ? `${Math.round(Number(weather.precipChance))}% precipitation` : ''].filter(Boolean).join(', ');
+    const label = [weather.condition, chance ? `${chance.value}% ${chance.label}` : ''].filter(Boolean).join(', ');
     const weatherUrl = getWeatherDetailUrl(region);
-    return `<a class="ssa-sticky-weather-badge" href="${weatherUrl}" target="_blank" rel="noopener" aria-label="${escapeHtml(label ? `${label}. Open detailed weather forecast` : 'Open detailed weather forecast')}"><span aria-hidden="true">${icon}</span>${rainText}</a>`;
+    const content = `<span aria-hidden="true">${icon}</span>${chanceText}`;
+    if (!asLink) {
+      return `<span class="ssa-sticky-weather-badge" aria-label="${escapeHtml(label || 'Weather forecast')}">${content}</span>`;
+    }
+    return `<a class="ssa-sticky-weather-badge" href="${weatherUrl}" target="_blank" rel="noopener" aria-label="${escapeHtml(label ? `${label}. Open detailed weather forecast` : 'Open detailed weather forecast')}">${content}</a>`;
   }
 
   function fmtRange(s, e){
@@ -1371,8 +1395,14 @@
     }
 
     const weather = dateKey && mount._weatherByDate ? mount._weatherByDate[dateKey] : null;
-    const weatherBadge = weather ? renderStickyWeatherBadge(weather, mount._weatherRegion) : '';
-    readout.innerHTML = `<span class="ssa-sticky-current-date-label">${escapeHtml(label)}</span>${weatherBadge}`;
+    if (weather) {
+      const weatherUrl = getWeatherDetailUrl(mount._weatherRegion);
+      const weatherBadge = renderStickyWeatherBadge(weather, mount._weatherRegion, false);
+      const labelText = `${label}. ${weather.condition || 'Weather forecast'}. Open detailed weather forecast`;
+      readout.innerHTML = `<a class="ssa-sticky-current-date-link" href="${weatherUrl}" target="_blank" rel="noopener" aria-label="${escapeHtml(labelText)}"><span class="ssa-sticky-current-date-label">${escapeHtml(label)}</span>${weatherBadge}</a>`;
+    } else {
+      readout.innerHTML = `<span class="ssa-sticky-current-date-label">${escapeHtml(label)}</span>`;
+    }
     readout.classList.add('ssa-sticky-current-date-visible');
   }
 
@@ -4363,6 +4393,8 @@
       #events-list .ssa-sticky-selected-keywords{flex:1 1 auto;width:auto;min-width:0;margin:0;padding:0;justify-content:flex-start}
       #events-list .ssa-sticky-current-date{display:flex;align-items:center;gap:8px;max-width:0;max-height:0;overflow:hidden;opacity:0;color:var(--ssa-accent)!important;font-size:14px;font-weight:900;line-height:1.15;transition:max-width .18s ease,max-height .18s ease,opacity .18s ease}
       #events-list .ssa-sticky-current-date-visible{max-width:100%;max-height:22px;opacity:1}
+      #events-list .ssa-sticky-current-date-link{display:inline-flex;align-items:center;gap:8px;min-width:0;color:inherit!important;text-decoration:none!important;border-radius:999px}
+      #events-list .ssa-sticky-current-date-link:hover,#events-list .ssa-sticky-current-date-link:focus-visible{color:var(--ssa-accent)!important;outline:none}
       #events-list .ssa-sticky-current-date-label{display:inline-block;min-width:0;overflow:hidden;text-overflow:ellipsis}
       #events-list .ssa-sticky-weather-badge{min-width:34px;height:28px;padding:0 8px;display:inline-flex;align-items:center;justify-content:center;gap:4px;border:1px solid rgba(169,51,38,.26)!important;border-radius:999px;background:rgba(247,200,115,.22)!important;color:var(--ssa-accent)!important;font-size:17px;font-weight:900;line-height:1;text-decoration:none!important;box-shadow:0 2px 8px rgba(15,23,42,.08)}
       #events-list .ssa-sticky-weather-badge:hover,#events-list .ssa-sticky-weather-badge:focus-visible{border-color:var(--ssa-accent)!important;background:rgba(247,200,115,.34)!important;outline:none}
@@ -4438,7 +4470,8 @@
       #events-list .ssa-results-summary{width:calc(100% - (var(--ssa-content-gutter) * 2));max-width:var(--ssa-content-max);margin:0 auto 26px;color:var(--ssa-muted)!important}
       #events-list .ssa-results-summary p{margin:0;color:var(--ssa-muted)!important;font-size:21px;line-height:1.4}
       #events-list .ssa-day-header,#events-list h3.ssa-day-header,#events-list .ssa-month-header{width:calc(100% - (var(--ssa-content-gutter) * 2));max-width:var(--ssa-content-max);margin:28px auto 18px;padding:0 0 20px;border-bottom:3px solid rgba(169,51,38,.14);color:var(--ssa-accent)!important;font-size:34px!important;line-height:1.15;font-weight:800!important}
-      #events-list .ssa-day-weather{width:calc(100% - (var(--ssa-content-gutter) * 2));max-width:var(--ssa-content-max);margin:-8px auto 18px;padding:12px 16px;display:flex;align-items:center;gap:10px;border:1px solid var(--ssa-border-soft)!important;border-radius:12px;background:color-mix(in srgb,var(--ssa-surface) 92%,#f7c873 8%)!important;color:var(--ssa-text)!important;font-size:16px;font-weight:700;line-height:1.35;box-shadow:0 8px 22px rgba(15,23,42,.08)}
+      #events-list .ssa-day-weather{width:calc(100% - (var(--ssa-content-gutter) * 2));max-width:var(--ssa-content-max);margin:-8px auto 18px;padding:12px 16px;display:flex;align-items:center;gap:10px;border:1px solid var(--ssa-border-soft)!important;border-radius:12px;background:color-mix(in srgb,var(--ssa-surface) 92%,#f7c873 8%)!important;color:var(--ssa-text)!important;font-size:16px;font-weight:700;line-height:1.35;text-decoration:none!important;box-shadow:0 8px 22px rgba(15,23,42,.08)}
+      #events-list .ssa-day-weather:hover,#events-list .ssa-day-weather:focus-visible{border-color:var(--ssa-accent-soft)!important;color:var(--ssa-text)!important;outline:none;box-shadow:0 10px 28px rgba(15,23,42,.12),0 0 0 4px rgba(247,200,115,.18)}
       #events-list .ssa-weather-icon-link{width:34px;height:34px;flex:0 0 34px;display:inline-flex;align-items:center;justify-content:center;border-radius:999px;text-decoration:none!important}
       #events-list .ssa-weather-icon{width:28px;height:28px;flex:0 0 28px;border-radius:999px;background:#f7c873;box-shadow:0 0 0 4px rgba(247,200,115,.22),10px 4px 0 -4px rgba(169,51,38,.32)}
       html.dark-mode #events-list .ssa-day-weather,body.dark-mode #events-list .ssa-day-weather{background:rgba(247,200,115,.10)!important;border-color:rgba(247,200,115,.36)!important;color:var(--ssa-text)!important;box-shadow:0 10px 28px rgba(0,0,0,.24)}
