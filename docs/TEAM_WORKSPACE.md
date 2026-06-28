@@ -122,6 +122,7 @@ Newest entries at the top.
 
 | Date | Role | Topic | Message | Action needed |
 |------|------|-------|---------|---------------|
+| 2026-06-28 | Dev | Events widget keyword divider | Removed the mobile-only divider line above event keyword chips so keywords read as part of the current event card. Source/public widget copies match and JS syntax checks pass. | Dave — hard-refresh events page after deploy |
 | 2026-06-28 | Dev | Events widget mobile filters | Removed the narrow mobile rule that forced Group by to span both toolbar columns, so Group by and Keywords sit on the same row on phone layouts. Source/public widget copies match and JS syntax checks pass. | Dave — hard-refresh events page after deploy |
 | 2026-06-27 | Dev | Events widget date range guard | Added a widget date-input guard so To cannot be earlier than From; changing To below From snaps To to From, and raising From clamps any earlier To. Source/public widget copies match and JS syntax checks pass. | Dave — hard-refresh events page after deploy |
 | 2026-06-27 | Dev | Unity Ranch Rib Cook Off event | Published event `8dd1a103` for Unity Ranch Rib Cook Off (June 28, 2026, 2–10 PM) with poster asset and keywords: community, family friendly, food, live music. | Dave — refresh Admin/app calendar to verify |

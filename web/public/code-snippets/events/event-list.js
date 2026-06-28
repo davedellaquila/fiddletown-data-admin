@@ -3414,7 +3414,7 @@
         .ssa-event-meta{margin-top:12px;gap:6px;max-width:100%}
         .ssa-event-meta-item{font-size:0.95rem;line-height:1.6;overflow-wrap:break-word;word-wrap:break-word}
         .ssa-event-meta-item strong{display:inline}
-        .ssa-event-keywords{margin-top:12px;padding-top:12px;border-top:1px solid #e5e7eb;display:flex;flex-wrap:wrap;gap:6px;max-width:100%}
+        .ssa-event-keywords{margin-top:12px;padding-top:0;display:flex;flex-wrap:wrap;gap:6px;max-width:100%}
         .ssa-keyword-tag-clickable{padding:10px 14px;font-size:0.9rem;min-height:44px;border-radius:22px}
         .ssa-info-popover{max-width:calc(100vw - 20px);width:calc(100vw - 20px);left:10px!important;right:10px;font-size:1rem;line-height:1.6;max-height:60vh;padding:16px}
         .ssa-popover-close{width:32px;height:32px;font-size:24px;top:8px;right:8px}
