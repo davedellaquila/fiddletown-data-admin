@@ -122,6 +122,7 @@ Newest entries at the top.
 
 | Date | Role | Topic | Message | Action needed |
 |------|------|-------|---------|---------------|
+| 2026-06-27 | Dev | Delta Chicks July 4 event | Published event `f8db6469` for Delta Chicks at the Lube Room Saloon (July 4, 2026, 3–6 PM) with poster asset and keywords: community, family friendly, food, holiday, live music. | Dave — refresh Admin/app calendar to verify |
 | 2026-06-27 | Dev | Events widget date clear placement | Moved the date clear button into the From/To label row and made the date inputs a two-column row below it, giving both fields more usable width in compact layouts. Source/public widget copies match and JS syntax checks pass. | Dave — hard-refresh events page after deploy |
 | 2026-06-27 | Dev | Events widget filter overflow | Removed fixed minimum widths from the compact filter split and toolbar items so the filter menu row stays inside the page content width at medium/desktop sizes. Source/public widget copies match and JS syntax checks pass. | Dave — hard-refresh events page after deploy |
 | 2026-06-27 | Dev | Events widget content width follow-up | Tightened the shared content max width to 1536px so the filter bar/results align with the visual width of the intro card. Source/public widget copies match and JS syntax checks pass. | Dave — hard-refresh events page after deploy |
