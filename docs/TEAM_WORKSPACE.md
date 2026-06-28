@@ -122,6 +122,7 @@ Newest entries at the top.
 
 | Date | Role | Topic | Message | Action needed |
 |------|------|-------|---------|---------------|
+| 2026-06-27 | Dev | Events widget filter overflow | Removed fixed minimum widths from the compact filter split and toolbar items so the filter menu row stays inside the page content width at medium/desktop sizes. Source/public widget copies match and JS syntax checks pass. | Dave — hard-refresh events page after deploy |
 | 2026-06-27 | Dev | Events widget content width follow-up | Tightened the shared content max width to 1536px so the filter bar/results align with the visual width of the intro card. Source/public widget copies match and JS syntax checks pass. | Dave — hard-refresh events page after deploy |
 | 2026-06-27 | Dev | Events widget content width | Normalized the filter shell, intro, summaries, event lists/grid/calendar, and footnote to use one shared content width/gutter so the filter bar aligns with the rest of the page. Source/public widget copies match and JS syntax checks pass. | Dave — hard-refresh events page after deploy |
 | 2026-06-27 | Dev | Events widget date field controls | Narrowed the date entry fields/panel allocation and changed the date clear icon to clear only the To date, preserve From, and focus/open the From date picker. Source/public widget copies match and JS syntax checks pass. | Dave — hard-refresh events page after deploy |
