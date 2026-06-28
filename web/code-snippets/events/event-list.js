@@ -4136,7 +4136,7 @@
         --ssa-sticky-control-border:#d9cbb8;
       }
       #events-list,#events-list *{box-sizing:border-box;font-family:var(--ssa-font);letter-spacing:0}
-      #events-list{--ssa-content-max:1600px;--ssa-content-gutter:clamp(24px,3vw,64px)}
+      #events-list{--ssa-content-max:1536px;--ssa-content-gutter:clamp(24px,3vw,64px)}
       #events-list{max-width:100%;margin:0 auto;padding:48px 0 28px;color:var(--ssa-text)!important;background:var(--ssa-bg)!important}
       #events-list .ssa-page-intro{width:min(var(--ssa-content-max),calc(100% - (var(--ssa-content-gutter) * 2)));max-width:var(--ssa-content-max);margin:0 auto 42px;padding:0}
       #events-list .ssa-page-intro-head{display:flex;align-items:flex-start;gap:24px}
