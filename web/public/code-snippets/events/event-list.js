@@ -1546,7 +1546,7 @@
 
     let stickyMetaHTML = '<div class="ssa-sticky-meta-stack">';
     stickyMetaHTML += '<section class="ssa-sticky-filter-summary" aria-label="Current filter summary">';
-    stickyMetaHTML += `<p class="ssa-sticky-status" aria-label="${filteredRows.length} ${filteredRows.length === 1 ? 'event' : 'events'} in current selection"><span class="ssa-selection-count">${filteredRows.length} ${filteredRows.length === 1 ? 'event' : 'events'}</span><span class="ssa-sticky-current-date" aria-live="polite"></span></p>`;
+    stickyMetaHTML += `<p class="ssa-sticky-status" aria-label="${filteredRows.length} ${filteredRows.length === 1 ? 'event' : 'events'} in current selection"><span class="ssa-sticky-current-date" aria-live="polite"></span><span class="ssa-selection-count">${filteredRows.length} ${filteredRows.length === 1 ? 'event' : 'events'}</span></p>`;
     stickyMetaHTML += '<div class="ssa-selected-keyword-row ssa-sticky-selected-keywords" aria-label="Selected keywords">';
     if (selectedKeywordRows.length > 0) {
       selectedKeywordRows.forEach(kw => {
@@ -4214,10 +4214,10 @@
       #events-list .ssa-filter-toolbar{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.95fr) minmax(180px,1.2fr) minmax(0,1fr) auto;gap:12px;align-items:center;min-width:0;max-width:100%}
       #events-list .ssa-sticky-meta-stack{width:100%;min-width:0;align-self:stretch;display:flex;flex:0 0 auto;flex-direction:column;gap:8px;clear:both}
       #events-list .ssa-sticky-filter-summary{display:flex;align-items:center;justify-content:flex-start;gap:18px;width:100%;min-width:0;padding:10px 18px;background:color-mix(in srgb,var(--ssa-surface) 96%,transparent)!important;border:1px solid var(--ssa-border)!important;border-radius:12px;box-shadow:var(--ssa-shadow)!important;backdrop-filter:blur(14px)!important;-webkit-backdrop-filter:blur(14px)!important}
-      #events-list .ssa-sticky-status{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:3px;flex:0 0 auto;min-width:max-content;margin:0;color:var(--ssa-muted)!important;font-size:16px;font-weight:800;line-height:1.2;white-space:nowrap}
+      #events-list .ssa-sticky-status{display:flex;align-items:center;justify-content:space-between;gap:16px;flex:1 1 auto;min-width:0;width:100%;margin:0;color:var(--ssa-muted)!important;font-size:16px;font-weight:800;line-height:1.2;white-space:nowrap}
       #events-list .ssa-sticky-selected-keywords{flex:1 1 auto;width:auto;min-width:0;margin:0;padding:0;justify-content:flex-start}
-      #events-list .ssa-sticky-current-date{display:block;max-height:0;overflow:hidden;opacity:0;color:var(--ssa-accent)!important;font-size:14px;font-weight:900;line-height:1.15;transition:max-height .18s ease,opacity .18s ease}
-      #events-list .ssa-sticky-current-date-visible{max-height:22px;opacity:1}
+      #events-list .ssa-sticky-current-date{display:block;max-width:0;max-height:0;overflow:hidden;opacity:0;color:var(--ssa-accent)!important;font-size:14px;font-weight:900;line-height:1.15;transition:max-width .18s ease,max-height .18s ease,opacity .18s ease}
+      #events-list .ssa-sticky-current-date-visible{max-width:100%;max-height:22px;opacity:1}
       #events-list .ssa-filter-menu{position:relative;min-width:0}
       #events-list .ssa-group-menu{min-width:0}
       #events-list .ssa-filter-menu summary{height:48px;padding:0 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid var(--ssa-control-border)!important;border-radius:10px;background:var(--ssa-surface)!important;color:var(--ssa-muted)!important;font-size:17px;font-weight:800;line-height:1;list-style:none;cursor:pointer;white-space:nowrap;box-shadow:0 1px 0 rgba(255,255,255,.35) inset!important}
