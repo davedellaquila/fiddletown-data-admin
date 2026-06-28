@@ -226,7 +226,58 @@
 
   function getWeatherDetailUrl(region) {
     const activeRegion = region || DEFAULT_WEATHER_REGION;
+    return `https://www.google.com/search?q=${encodeURIComponent(`weather ${activeRegion.lat},${activeRegion.lng}`)}`;
+  }
+
+  function getWeatherGovUrl(region) {
+    const activeRegion = region || DEFAULT_WEATHER_REGION;
     return `https://forecast.weather.gov/MapClick.php?lat=${encodeURIComponent(activeRegion.lat)}&lon=${encodeURIComponent(activeRegion.lng)}`;
+  }
+
+  function getIosWeatherUrl(region) {
+    const activeRegion = region || DEFAULT_WEATHER_REGION;
+    return `weather://?lat=${encodeURIComponent(activeRegion.lat)}&lon=${encodeURIComponent(activeRegion.lng)}`;
+  }
+
+  function getAndroidWeatherIntentUrl(region) {
+    const fallbackUrl = getWeatherDetailUrl(region);
+    const activeRegion = region || DEFAULT_WEATHER_REGION;
+    const query = encodeURIComponent(`weather ${activeRegion.lat},${activeRegion.lng}`);
+    return `intent://www.google.com/search?q=${query}#Intent;scheme=https;package=com.google.android.googlequicksearchbox;S.browser_fallback_url=${encodeURIComponent(fallbackUrl)};end`;
+  }
+
+  function getWeatherLinkAttributes(region) {
+    const fallbackUrl = getWeatherDetailUrl(region);
+    return `href="${fallbackUrl}" target="_blank" rel="noopener" data-ssa-weather-link="true" data-weather-ios-url="${escapeHtml(getIosWeatherUrl(region))}" data-weather-android-url="${escapeHtml(getAndroidWeatherIntentUrl(region))}" data-weather-fallback-url="${escapeHtml(fallbackUrl)}" data-weather-gov-url="${escapeHtml(getWeatherGovUrl(region))}"`;
+  }
+
+  function isIosDevice() {
+    const platform = navigator.platform || '';
+    const userAgent = navigator.userAgent || '';
+    return /iPad|iPhone|iPod/.test(userAgent) || (platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  }
+
+  function isAndroidDevice() {
+    return /Android/i.test(navigator.userAgent || '');
+  }
+
+  function handleWeatherLinkClick(event) {
+    const link = event.target && event.target.closest ? event.target.closest('[data-ssa-weather-link="true"]') : null;
+    if (!link || event.defaultPrevented || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    const fallbackUrl = link.dataset.weatherFallbackUrl || link.href;
+    const appUrl = isIosDevice()
+      ? link.dataset.weatherIosUrl
+      : isAndroidDevice()
+        ? link.dataset.weatherAndroidUrl
+        : '';
+    if (!appUrl) return;
+    event.preventDefault();
+    window.location.href = appUrl;
+    window.setTimeout(() => {
+      if (!document.hidden) {
+        window.location.href = fallbackUrl;
+      }
+    }, 900);
   }
 
   function getWeatherPeriodDate(period, timezone) {
@@ -350,8 +401,7 @@
           : '';
     const rainText = weather.precipChance !== null ? `${weather.precipChance}% rain` : '';
     const pieces = [weather.condition, tempText, rainText, weather.note].filter(Boolean);
-    const weatherUrl = getWeatherDetailUrl(region);
-    return `<a class="ssa-day-weather" href="${weatherUrl}" target="_blank" rel="noopener" aria-label="${escapeHtml(`${pieces.join('. ')}. Open detailed weather forecast`)}"><span class="ssa-weather-icon-link" aria-hidden="true"><span class="ssa-weather-icon"></span></span><span>${escapeHtml(pieces.join('. '))}</span></a>`;
+    return `<a class="ssa-day-weather" ${getWeatherLinkAttributes(region)} aria-label="${escapeHtml(`${pieces.join('. ')}. Open detailed weather forecast`)}"><span class="ssa-weather-icon-link" aria-hidden="true"><span class="ssa-weather-icon"></span></span><span>${escapeHtml(pieces.join('. '))}</span></a>`;
   }
 
   function getWeatherBadgeIcon(weather) {
@@ -393,12 +443,11 @@
       ? `<span class="ssa-sticky-weather-chance">${chance.value}%</span>`
       : '';
     const label = [weather.condition, chance ? `${chance.value}% ${chance.label}` : ''].filter(Boolean).join(', ');
-    const weatherUrl = getWeatherDetailUrl(region);
     const content = `<span aria-hidden="true">${icon}</span>${chanceText}`;
     if (!asLink) {
       return `<span class="ssa-sticky-weather-badge" aria-label="${escapeHtml(label || 'Weather forecast')}">${content}</span>`;
     }
-    return `<a class="ssa-sticky-weather-badge" href="${weatherUrl}" target="_blank" rel="noopener" aria-label="${escapeHtml(label ? `${label}. Open detailed weather forecast` : 'Open detailed weather forecast')}">${content}</a>`;
+    return `<a class="ssa-sticky-weather-badge" ${getWeatherLinkAttributes(region)} aria-label="${escapeHtml(label ? `${label}. Open detailed weather forecast` : 'Open detailed weather forecast')}">${content}</a>`;
   }
 
   function fmtRange(s, e){
@@ -1396,10 +1445,9 @@
 
     const weather = dateKey && mount._weatherByDate ? mount._weatherByDate[dateKey] : null;
     if (weather) {
-      const weatherUrl = getWeatherDetailUrl(mount._weatherRegion);
       const weatherBadge = renderStickyWeatherBadge(weather, mount._weatherRegion, false);
       const labelText = `${label}. ${weather.condition || 'Weather forecast'}. Open detailed weather forecast`;
-      readout.innerHTML = `<a class="ssa-sticky-current-date-link" href="${weatherUrl}" target="_blank" rel="noopener" aria-label="${escapeHtml(labelText)}"><span class="ssa-sticky-current-date-label">${escapeHtml(label)}</span>${weatherBadge}</a>`;
+      readout.innerHTML = `<a class="ssa-sticky-current-date-link" ${getWeatherLinkAttributes(mount._weatherRegion)} aria-label="${escapeHtml(labelText)}"><span class="ssa-sticky-current-date-label">${escapeHtml(label)}</span>${weatherBadge}</a>`;
     } else {
       readout.innerHTML = `<span class="ssa-sticky-current-date-label">${escapeHtml(label)}</span>`;
     }
@@ -1786,6 +1834,10 @@
     }
     
     mount.innerHTML = pageHeaderHTML + controlsHTML + `<div class="ssa-compact-filter-shell">${dateControlsHTML + viewControlsHTML + stickyMetaHTML}</div>` + eventsHTML + footerHTML;
+    if (!mount._weatherLinkHandlerAttached) {
+      mount.addEventListener('click', handleWeatherLinkClick);
+      mount._weatherLinkHandlerAttached = true;
+    }
     syncStickyControlOffsets(mount);
     
     // Verify keyword cloud was rendered

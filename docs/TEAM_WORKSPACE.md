@@ -122,6 +122,7 @@ Newest entries at the top.
 
 | Date | Role | Topic | Message | Action needed |
 |------|------|-------|---------|---------------|
+| 2026-06-28 | Dev | Events widget weather links | Replaced Weather.gov-only detail links with smart weather links: iOS attempts the native Weather app, Android attempts the Google app/weather intent, and both fall back to a Google weather result for the forecast point. Source/public widget copies match and JS syntax checks pass. | Dave — verify weather tap behavior on iPhone |
 | 2026-06-28 | PM | FE-001 regional ads | Rewrote the ad-management future enhancement as a complete Regional Advertising Manager spec for selling local-business sponsorships by region on the Sports Car Adventures events page. No implementation started. | Dave — review M1 placement/pricing open questions |
 | 2026-06-28 | PM | FE-005 event notifications | Added a planning-only future enhancement spec for opt-in new-event email notifications, distinct from FE-004's session-based "email my selected events" feature. No implementation started. | Dave — review open questions before promotion |
 | 2026-06-28 | Dev | Events widget sticky weather | Added a compact weather badge beside the sticky current date, with condition icon plus precipitation or sunny likelihood when meaningful. The full sticky date/weather readout and full daily weather tile now link to the detailed weather.gov forecast page. Source/public widget copies match and JS syntax checks pass. | Dave — verify sticky weather/date tap targets on scroll |
