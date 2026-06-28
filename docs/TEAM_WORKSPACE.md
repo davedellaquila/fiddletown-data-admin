@@ -122,6 +122,7 @@ Newest entries at the top.
 
 | Date | Role | Topic | Message | Action needed |
 |------|------|-------|---------|---------------|
+| 2026-06-28 | Dev | Events widget refresh indicator | Enlarged the mobile pull-to-refresh indicator from 40px to 88px with a larger icon and adjusted pull positioning/threshold for the bigger target. Source/public widget copies match and JS syntax checks pass. | Dave — hard-refresh events page after deploy |
 | 2026-06-28 | Dev | Events widget summary row | Put the visible date and event count on one summary row, with the date on the left and event count aligned to the right. Source/public widget copies match and JS syntax checks pass. | Dave — hard-refresh events page after deploy |
 | 2026-06-28 | Dev | Events widget weekend preset | Changed the This Weekend preset to show only remaining days once the weekend starts: Fri-Sun on Friday or earlier, Sat-Sun on Saturday, and Sunday only on Sunday. Source/public widget copies match and JS syntax checks pass. | Dave — hard-refresh events page after deploy |
 | 2026-06-28 | Dev | Events widget keyword divider | Removed the mobile-only divider line above event keyword chips so keywords read as part of the current event card. Source/public widget copies match and JS syntax checks pass. | Dave — hard-refresh events page after deploy |

@@ -4760,30 +4760,30 @@
     let touchCurrentY = 0;
     let isPulling = false;
     let pullDistance = 0;
-    const pullThreshold = 80; // Distance in pixels to trigger refresh
+    const pullThreshold = 110; // Larger indicator needs a little more travel before refresh.
     
     // Create refresh indicator element - attach to body for page-level pull-to-refresh
     const refreshIndicator = document.createElement('div');
     refreshIndicator.className = 'ssa-pull-to-refresh';
     refreshIndicator.style.cssText = `
       position: fixed;
-      top: -60px;
+      top: -110px;
       left: 50%;
       transform: translateX(-50%);
-      width: 40px;
-      height: 40px;
+      width: 88px;
+      height: 88px;
       border-radius: 50%;
       background: #3b82f6;
       color: white;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 20px;
+      font-size: 44px;
       opacity: 0;
       transition: opacity 0.2s, top 0.2s;
       pointer-events: none;
       z-index: 10000;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.28);
     `;
     refreshIndicator.innerHTML = '↻';
     document.body.appendChild(refreshIndicator);
@@ -4809,7 +4809,7 @@
         
         // Update indicator position and opacity
         const progress = Math.min(pullDistance / pullThreshold, 1);
-        refreshIndicator.style.top = `${pullDistance - 60}px`;
+        refreshIndicator.style.top = `${pullDistance - 110}px`;
         refreshIndicator.style.opacity = progress;
         
         // Rotate icon based on pull distance
@@ -4826,7 +4826,7 @@
       
       if (pullDistance >= pullThreshold && window.scrollY === 0) {
         // Trigger refresh
-        refreshIndicator.style.top = '20px';
+        refreshIndicator.style.top = '24px';
         refreshIndicator.style.opacity = '1';
         
         // Clear cache and reload events
@@ -4863,7 +4863,7 @@
     const resetPullState = function() {
       isPulling = false;
       pullDistance = 0;
-      refreshIndicator.style.top = '-60px';
+      refreshIndicator.style.top = '-110px';
       refreshIndicator.style.opacity = '0';
       refreshIndicator.style.transform = 'translateX(-50%) rotate(0deg)';
     };
