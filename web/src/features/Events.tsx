@@ -38,7 +38,7 @@ import { supabase } from '../lib/supabaseClient'
 import FormField from '../shared/components/FormField'
 import AutoSaveEditDialog from '../shared/components/AutoSaveEditDialog'
 import KeywordSelector from '../shared/components/KeywordSelector'
-import ActionMenu, { ActionMenuItem } from '../shared/components/ActionMenu'
+import ActionMenu from '../shared/components/ActionMenu'
 import { parseEventText as parseEventTextImproved } from '../shared/utils/ocrParser'
 import { slugify } from '../../shared/utils/slugify'
 import { normalizeUrl, formatTimeToAMPM, convertTo24Hour, formatISO } from '../../shared/utils/dateUtils'
@@ -46,6 +46,7 @@ import type { EventRow } from '../../shared/types/models'
 import { suggestEventKeywords } from '../../shared/utils/suggestCandidateKeywords'
 import { syncEventKeywords } from '../../shared/utils/eventKeywords'
 
+type DatePreset = 'upcoming' | 'today' | 'tomorrow' | 'this-weekend' | 'next-weekend' | 'next-7-days' | 'custom' | 'archive'
 
 /**
  * Run OCR on an image file using optimized Tesseract settings
@@ -87,6 +88,27 @@ async function runOptimizedOCR(file: File): Promise<string> {
   await worker.terminate()
 
   return (data?.text || '').trim()
+}
+
+function formatLocalDate(date: Date) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+function addDays(date: Date, days: number) {
+  const next = new Date(date)
+  next.setDate(date.getDate() + days)
+  return next
+}
+
+function formatDateSummary(from: string, to: string) {
+  if (!from && !to) return 'All dates'
+  if (from && !to) return `From ${from}`
+  if (!from && to) return `Through ${to}`
+  if (from === to) return from
+  return `${from} - ${to}`
 }
 
 /**
@@ -319,6 +341,7 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
     return new Date().toISOString().slice(0, 10)
   })
   const [to, setTo] = useState('')
+  const [datePreset, setDatePreset] = useState<DatePreset>('upcoming')
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [hoverThumbId, setHoverThumbId] = useState<number | null>(null)
   const [hoverPreviewStyle, setHoverPreviewStyle] = useState<{ top: number, left: number, height: number, width: number } | null>(null)
@@ -472,6 +495,62 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
     const weekend = getNextWeekend()
     setFrom(weekend.from)
     setTo(weekend.to)
+  }
+
+  const applyDatePreset = (preset: DatePreset) => {
+    const today = new Date()
+    setDatePreset(preset)
+
+    if (preset === 'custom') return
+
+    if (preset === 'upcoming') {
+      const value = formatLocalDate(today)
+      setFrom(value)
+      setTo('')
+      return
+    }
+
+    if (preset === 'today') {
+      const value = formatLocalDate(today)
+      setFrom(value)
+      setTo(value)
+      return
+    }
+
+    if (preset === 'tomorrow') {
+      const value = formatLocalDate(addDays(today, 1))
+      setFrom(value)
+      setTo(value)
+      return
+    }
+
+    if (preset === 'this-weekend') {
+      setWeekendFilter()
+      return
+    }
+
+    if (preset === 'next-weekend') {
+      setNextWeekendFilter()
+      return
+    }
+
+    if (preset === 'next-7-days') {
+      setFrom(formatLocalDate(today))
+      setTo(formatLocalDate(addDays(today, 7)))
+      return
+    }
+
+    if (preset === 'archive') {
+      setFrom('')
+      setTo(formatLocalDate(addDays(today, -1)))
+    }
+  }
+
+  const clearFilters = () => {
+    setQ('')
+    applyDatePreset('upcoming')
+    setSelectedKeywordFilters([])
+    setShowSignatureEventsOnly(false)
   }
 
   // OCR / Image-to-Event state with persistence
@@ -1425,10 +1504,10 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
     load()
   }, [from, to, sortBy, sortOrder])
 
-  // Apply client-side search filtering when search query or keyword filters change
+  // Apply client-side search filtering when search, keyword, or signature filters change
   useEffect(() => {
     applyFilters(allRows)
-  }, [q, selectedKeywordFilters, allRows])
+  }, [q, selectedKeywordFilters, showSignatureEventsOnly, allRows])
 
   // Persist OCR state to localStorage
   useEffect(() => {
@@ -1648,55 +1727,23 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
             </button>
           </div>
           
-          <div className="responsive-toolbar-controls" style={{ marginLeft: 'auto', flexShrink: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <button
-              className="btn"
-              onClick={exportCSV}
-              disabled={importing}
-              title="Export"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '6px',
-                background: darkMode ? '#374151' : '#ffffff',
-                border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`,
-                color: darkMode ? '#f9fafb' : '#374151',
-                borderRadius: '6px',
-                cursor: importing ? 'not-allowed' : 'pointer',
-                fontSize: '16px',
-                minWidth: '32px',
-                height: '32px',
-                opacity: importing ? 0.6 : 1
-              }}
-            >
-              ⬇️
-            </button>
-            <button
-              className="btn"
-              onClick={() => importFileInputRef.current?.click()}
-              disabled={importing}
-              title="Import"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '6px',
-                background: darkMode ? '#374151' : '#ffffff',
-                border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`,
-                color: darkMode ? '#f9fafb' : '#374151',
-                borderRadius: '6px',
-                cursor: importing ? 'not-allowed' : 'pointer',
-                fontSize: '16px',
-                minWidth: '32px',
-                height: '32px',
-                opacity: importing ? 0.6 : 1
-              }}
-            >
-              ⬆️
-            </button>
+          <div className="events-toolbar-actions" style={{ marginLeft: 'auto', flexShrink: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
             <ActionMenu
           items={[
+            {
+              id: 'export',
+              label: 'Export',
+              icon: '⬇️',
+              onClick: exportCSV,
+              disabled: importing
+            },
+            {
+              id: 'import',
+              label: 'Import',
+              icon: '⬆️',
+              onClick: () => importFileInputRef.current?.click(),
+              disabled: importing
+            },
             {
               id: 'ocr',
               label: 'OCR',
@@ -1770,17 +1817,18 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
         <input ref={importFileInputRef} type="file" accept=".csv,.tsv,text/csv,text/tab-separated-values" onChange={handleImportFile} style={{ display: 'none' }} disabled={importing} />
         </div>
 
-        {/* Bottom row: Search and filter controls */}
+        {/* Compact filters */}
         <div
           className="responsive-filters"
           style={{
-            display: 'flex',
-            flexWrap: 'wrap',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
             gap: 8,
-            alignItems: 'center'
+            alignItems: 'center',
+            width: '100%'
           }}
         >
-          <div className="responsive-search" style={{ position: 'relative', flex: 1, minWidth: 220 }}>
+          <div className="responsive-search" style={{ position: 'relative', gridColumn: '1 / -1' }}>
             <input 
               placeholder="Search events..." 
               value={q} 
@@ -1818,183 +1866,132 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
               </button>
             )}
           </div>
-          
-          {/* Date filters grouped together */}
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'nowrap' }}>
-            <label style={{ color: darkMode ? '#f9fafb' : '#374151', whiteSpace: 'nowrap' }}>
-              From <input 
-                type="date" 
-                value={from} 
-                onChange={e=>setFrom(e.target.value)} 
-                style={{
-                  background: darkMode ? '#374151' : '#ffffff',
-                  border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`,
-                  borderRadius: '6px',
-                  color: darkMode ? '#f9fafb' : '#1f2937',
-                  padding: '4px'
-                }}
-              />
-            </label>
-            
-            <label style={{ color: darkMode ? '#f9fafb' : '#374151', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-              To{' '}
-              <input
-                key={`events-to-date-${to || 'empty'}`}
-                type="date"
-                value={to}
-                onChange={e => setTo(e.target.value)}
-                style={{
-                  background: darkMode ? '#374151' : '#ffffff',
-                  border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`,
-                  borderRadius: '6px',
-                  color: darkMode ? '#f9fafb' : '#1f2937',
-                  padding: '4px'
-                }}
-              />
-              {to ? (
-                <button
-                  type="button"
-                  onClick={() => setTo('')}
-                  title="Clear To date"
-                  aria-label="Clear To date"
-                  style={{
-                    border: 'none',
-                    background: 'transparent',
-                    color: darkMode ? '#d1d5db' : '#6b7280',
-                    cursor: 'pointer',
-                    padding: '2px 4px',
-                    lineHeight: 1,
-                    fontSize: '18px',
-                  }}
-                >
-                  ×
-                </button>
-              ) : null}
-            </label>
-          </div>
 
-          {/* Weekend buttons grouped together */}
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'nowrap' }}>
-            <button
-              onClick={setWeekendFilter}
-              title="Set date range to upcoming weekend"
-              style={{
-                padding: '6px 12px',
-                background: darkMode ? '#374151' : '#ffffff',
-                border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`,
-                borderRadius: '6px',
-                color: darkMode ? '#f9fafb' : '#374151',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: '500',
-                whiteSpace: 'nowrap',
-                transition: 'all 0.2s ease'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = darkMode ? '#4b5563' : '#f3f4f6'
-                e.currentTarget.style.borderColor = darkMode ? '#6b7280' : '#9ca3af'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = darkMode ? '#374151' : '#ffffff'
-                e.currentTarget.style.borderColor = darkMode ? '#4b5563' : '#d1d5db'
-              }}
-            >
-              📅 This Weekend
-            </button>
-            <button
-              type="button"
-              onClick={setNextWeekendFilter}
-              title="Set date range to next weekend"
-              style={{
-                padding: '6px 12px',
-                background: darkMode ? '#374151' : '#ffffff',
-                border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`,
-                borderRadius: '6px',
-                color: darkMode ? '#f9fafb' : '#374151',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: '500',
-                whiteSpace: 'nowrap',
-                transition: 'all 0.2s ease'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = darkMode ? '#4b5563' : '#f3f4f6'
-                e.currentTarget.style.borderColor = darkMode ? '#6b7280' : '#9ca3af'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = darkMode ? '#374151' : '#ffffff'
-                e.currentTarget.style.borderColor = darkMode ? '#4b5563' : '#d1d5db'
-              }}
-            >
-              📅 Next Weekend
-            </button>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => {
-              setQ('')
-              setFrom(new Date().toISOString().slice(0, 10))
-              setTo('')
-              setSelectedKeywordFilters([])
-              setShowSignatureEventsOnly(false)
-            }}
-            title="Clear all filters"
+          <select
+            value={datePreset}
+            onChange={(e) => applyDatePreset(e.target.value as DatePreset)}
             style={{
-              padding: '6px 12px',
+              width: '100%',
+              padding: '8px 12px',
               background: darkMode ? '#374151' : '#ffffff',
               border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`,
               borderRadius: '6px',
-              color: darkMode ? '#f9fafb' : '#374151',
-              cursor: 'pointer',
-              fontSize: '14px',
-              fontWeight: '500',
-              whiteSpace: 'nowrap',
-              transition: 'all 0.2s ease'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = darkMode ? '#4b5563' : '#f3f4f6'
-              e.currentTarget.style.borderColor = darkMode ? '#6b7280' : '#9ca3af'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = darkMode ? '#374151' : '#ffffff'
-              e.currentTarget.style.borderColor = darkMode ? '#4b5563' : '#d1d5db'
+              color: darkMode ? '#f9fafb' : '#1f2937',
+              fontSize: '14px'
             }}
           >
-            Clear
-          </button>
+            <option value="upcoming">Upcoming</option>
+            <option value="today">Today</option>
+            <option value="tomorrow">Tomorrow</option>
+            <option value="this-weekend">This Weekend</option>
+            <option value="next-weekend">Next Weekend</option>
+            <option value="next-7-days">Next 7 Days</option>
+            <option value="custom">Custom Range</option>
+            <option value="archive">Past / Archive</option>
+          </select>
+
+          <div
+            style={{
+              padding: '8px 12px',
+              background: darkMode ? '#111827' : '#f9fafb',
+              border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`,
+              borderRadius: '6px',
+              color: darkMode ? '#d1d5db' : '#4b5563',
+              fontSize: '13px',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis'
+            }}
+            title={formatDateSummary(from, to)}
+          >
+            {formatDateSummary(from, to)}
+          </div>
+
+          {datePreset === 'custom' && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, gridColumn: '1 / -1' }}>
+              <label style={{ color: darkMode ? '#f9fafb' : '#374151', display: 'grid', gap: 4, fontSize: 12 }}>
+                From
+                <input 
+                  type="date" 
+                  value={from} 
+                  onChange={e => setFrom(e.target.value)} 
+                  style={{
+                    background: darkMode ? '#374151' : '#ffffff',
+                    border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`,
+                    borderRadius: '6px',
+                    color: darkMode ? '#f9fafb' : '#1f2937',
+                    padding: '8px'
+                  }}
+                />
+              </label>
+              <label style={{ color: darkMode ? '#f9fafb' : '#374151', display: 'grid', gap: 4, fontSize: 12 }}>
+                To
+                <input
+                  key={`events-to-date-${to || 'empty'}`}
+                  type="date"
+                  value={to}
+                  min={from || undefined}
+                  onChange={e => {
+                    const next = e.target.value
+                    setTo(from && next && next < from ? from : next)
+                  }}
+                  style={{
+                    background: darkMode ? '#374151' : '#ffffff',
+                    border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`,
+                    borderRadius: '6px',
+                    color: darkMode ? '#f9fafb' : '#1f2937',
+                    padding: '8px'
+                  }}
+                />
+              </label>
+            </div>
+          )}
+
+          {/* Keyword Filter */}
+          <select
+            value=""
+            onChange={(e) => {
+              const keyword = e.target.value
+              if (keyword && !selectedKeywordFilters.includes(keyword)) {
+                setSelectedKeywordFilters([...selectedKeywordFilters, keyword])
+              }
+              e.target.value = ''
+            }}
+            style={{
+              width: '100%',
+              padding: '8px 12px',
+              background: darkMode ? '#374151' : '#ffffff',
+              border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`,
+              borderRadius: '6px',
+              color: darkMode ? '#f9fafb' : '#1f2937',
+              fontSize: '14px'
+            }}
+          >
+            <option value="">Keywords{selectedKeywordFilters.length ? ` ${selectedKeywordFilters.length}` : ''}</option>
+            {existingKeywords
+              .filter(kw => !selectedKeywordFilters.includes(kw))
+              .map(kw => (
+                <option key={kw} value={kw}>{kw}</option>
+              ))}
+          </select>
 
           {/* Signature Event Filter Toggle */}
-          <label style={{ color: darkMode ? '#f9fafb' : '#374151', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+          <label style={{ 
+            color: darkMode ? '#f9fafb' : '#374151',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            cursor: 'pointer',
+            whiteSpace: 'nowrap',
+            padding: '8px 10px',
+            background: darkMode ? '#374151' : '#ffffff',
+            border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`,
+            borderRadius: '6px'
+          }}>
             <input
               type="checkbox"
               checked={showSignatureEventsOnly}
-              onChange={(e) => {
-                const newValue = e.target.checked
-                setShowSignatureEventsOnly(newValue)
-                // Apply filters immediately with the new value
-                // Create a temporary filtered array with the new filter state
-                let tempFiltered = allRows
-                if (newValue) {
-                  // When checked: show ONLY signature events
-                  tempFiltered = allRows.filter(event => event.is_signature_event === true)
-                }
-                // Apply other filters (search, keywords) to the temp filtered array
-                if (q) {
-                  tempFiltered = tempFiltered.filter(event => 
-                    event.name.toLowerCase().includes(q.toLowerCase())
-                  )
-                }
-                if (selectedKeywordFilters.length > 0) {
-                  tempFiltered = tempFiltered.filter(event => {
-                    if (!event.keywords || event.keywords.length === 0) return false
-                    return selectedKeywordFilters.some(filterKeyword => 
-                      event.keywords!.includes(filterKeyword)
-                    )
-                  })
-                }
-                setRows(tempFiltered)
-              }}
+              onChange={(e) => setShowSignatureEventsOnly(e.target.checked)}
               style={{
                 accentColor: darkMode ? '#3b82f6' : '#3b82f6',
                 cursor: 'pointer',
@@ -2002,42 +1999,74 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
                 height: '16px'
               }}
             />
-            <span style={{ fontSize: '14px' }}>⭐ Signature Events Only</span>
+            <span style={{ fontSize: '14px' }}>⭐ Signature</span>
           </label>
-
-          {/* Keyword Filter */}
-          <div style={{ position: 'relative', minWidth: '200px' }}>
-            <select
-              value=""
-              onChange={(e) => {
-                const keyword = e.target.value
-                if (keyword && !selectedKeywordFilters.includes(keyword)) {
-                  setSelectedKeywordFilters([...selectedKeywordFilters, keyword])
-                }
-                e.target.value = ''
-              }}
+          
+          <label style={{ 
+            color: darkMode ? '#f9fafb' : '#374151',
+            display: 'grid',
+            gridTemplateColumns: 'auto 36px',
+            alignItems: 'center',
+            gap: 6
+          }}>
+            <select 
+              value={sortBy} 
+              onChange={e=>setSortBy(e.target.value as any)} 
               style={{
-                width: '100%',
-                padding: '8px 12px',
                 background: darkMode ? '#374151' : '#ffffff',
                 border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`,
                 borderRadius: '6px',
                 color: darkMode ? '#f9fafb' : '#1f2937',
-                fontSize: '14px'
+                padding: '8px 10px',
+                fontSize: '14px',
+                minWidth: 0
               }}
             >
-              <option value="">Filter by keyword...</option>
-              {existingKeywords
-                .filter(kw => !selectedKeywordFilters.includes(kw))
-                .map(kw => (
-                  <option key={kw} value={kw}>{kw}</option>
-                ))}
+              <option value="start_date">Start Date</option>
+              <option value="name">Name</option>
+              <option value="created_at">Created</option>
             </select>
-          </div>
+            <button
+              onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+              style={{
+                background: darkMode ? '#374151' : '#ffffff',
+                border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`,
+                borderRadius: '6px',
+                color: darkMode ? '#f9fafb' : '#1f2937',
+                padding: '8px',
+                fontSize: '14px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+              title={`Sort ${sortOrder === 'asc' ? 'descending' : 'ascending'}`}
+            >
+              {sortOrder === 'asc' ? '↑' : '↓'}
+            </button>
+          </label>
 
-          {/* Selected keyword filters as chips */}
+          <button
+            type="button"
+            onClick={clearFilters}
+            title="Clear all filters"
+            style={{
+              padding: '8px 12px',
+              background: darkMode ? '#374151' : '#ffffff',
+              border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`,
+              borderRadius: '6px',
+              color: darkMode ? '#f9fafb' : '#374151',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: '500',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            Clear
+          </button>
+
           {selectedKeywordFilters.length > 0 && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center', gridColumn: '1 / -1' }}>
               {selectedKeywordFilters.map(keyword => (
                 <span
                   key={keyword}
@@ -2046,7 +2075,7 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
                     alignItems: 'center',
                     gap: '4px',
                     padding: '4px 10px',
-                    background: darkMode ? '#3b82f6' : '#3b82f6',
+                    background: darkMode ? '#1d4ed8' : '#3b82f6',
                     color: '#ffffff',
                     borderRadius: '16px',
                     fontSize: '13px',
@@ -2062,23 +2091,10 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
                       border: 'none',
                       color: '#ffffff',
                       cursor: 'pointer',
-                      padding: '0',
+                      padding: 0,
                       marginLeft: '4px',
                       fontSize: '16px',
-                      lineHeight: '1',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      width: '18px',
-                      height: '18px',
-                      borderRadius: '50%',
-                      transition: 'background-color 0.2s'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)'
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = 'transparent'
+                      lineHeight: 1
                     }}
                     title="Remove filter"
                   >
@@ -2088,44 +2104,6 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
               ))}
             </div>
           )}
-          
-          <label style={{ color: darkMode ? '#f9fafb' : '#374151', display: 'flex', alignItems: 'center', gap: '4px' }}>
-            Sort by
-            <select 
-              value={sortBy} 
-              onChange={e=>setSortBy(e.target.value as any)} 
-              style={{
-                background: darkMode ? '#374151' : '#ffffff',
-                border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`,
-                borderRadius: '6px',
-                color: darkMode ? '#f9fafb' : '#1f2937',
-                padding: '4px 8px',
-                fontSize: '12px'
-              }}
-            >
-              <option value="start_date">Start Date</option>
-              <option value="name">Name</option>
-              <option value="created_at">Created</option>
-            </select>
-            <button
-              onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-              style={{
-                background: darkMode ? '#374151' : '#ffffff',
-                border: `1px solid ${darkMode ? '#4b5563' : '#d1d5db'}`,
-                borderRadius: '6px',
-                color: darkMode ? '#f9fafb' : '#1f2937',
-                padding: '4px 8px',
-                fontSize: '12px',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px'
-              }}
-              title={`Sort ${sortOrder === 'asc' ? 'descending' : 'ascending'}`}
-            >
-              {sortOrder === 'asc' ? '↑' : '↓'}
-            </button>
-          </label>
         </div>
       </div>
 
