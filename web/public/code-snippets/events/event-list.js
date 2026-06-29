@@ -59,11 +59,14 @@
   const DEFAULT_WEATHER_REGION = {
     name: 'Gold Country',
     slug: 'gold-country',
+    weatherSlug: 'sutter-creek',
+    weatherState: 'ca',
     lat: 38.4819,
     lng: -120.8447,
     timezone: 'America/Los_Angeles'
   };
   const WEATHER_CACHE_TTL_MS = 45 * 60 * 1000;
+  const WEATHER_UNDERGROUND_BASE_URL = 'https://www.wunderground.com/forecast/us';
 
   async function fetchEvents({ url, key, from = null, to = null, limit = 200 }) {
       const api = new URL(url + '/rest/v1/events');
@@ -224,60 +227,26 @@
     return `ssa_weather_v20260628:${region.slug || region.name}:${region.lat},${region.lng}`;
   }
 
+  function slugifyWeatherLocation(value) {
+    return `${value || ''}`
+      .trim()
+      .toLowerCase()
+      .replace(/&/g, ' and ')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+  }
+
   function getWeatherDetailUrl(region) {
     const activeRegion = region || DEFAULT_WEATHER_REGION;
-    return `https://www.google.com/search?q=${encodeURIComponent(`weather ${activeRegion.lat},${activeRegion.lng}`)}`;
-  }
-
-  function getWeatherGovUrl(region) {
-    const activeRegion = region || DEFAULT_WEATHER_REGION;
-    return `https://forecast.weather.gov/MapClick.php?lat=${encodeURIComponent(activeRegion.lat)}&lon=${encodeURIComponent(activeRegion.lng)}`;
-  }
-
-  function getIosWeatherUrl(region) {
-    const activeRegion = region || DEFAULT_WEATHER_REGION;
-    return `weather://?lat=${encodeURIComponent(activeRegion.lat)}&lon=${encodeURIComponent(activeRegion.lng)}`;
-  }
-
-  function getAndroidWeatherIntentUrl(region) {
-    const fallbackUrl = getWeatherDetailUrl(region);
-    const activeRegion = region || DEFAULT_WEATHER_REGION;
-    const query = encodeURIComponent(`weather ${activeRegion.lat},${activeRegion.lng}`);
-    return `intent://www.google.com/search?q=${query}#Intent;scheme=https;package=com.google.android.googlequicksearchbox;S.browser_fallback_url=${encodeURIComponent(fallbackUrl)};end`;
+    if (activeRegion.weatherUrl) return activeRegion.weatherUrl;
+    const stateSlug = slugifyWeatherLocation(activeRegion.weatherState || activeRegion.state || DEFAULT_WEATHER_REGION.weatherState);
+    const citySlug = slugifyWeatherLocation(activeRegion.weatherSlug || activeRegion.citySlug || activeRegion.city || activeRegion.name || DEFAULT_WEATHER_REGION.weatherSlug);
+    return `${WEATHER_UNDERGROUND_BASE_URL}/${encodeURIComponent(stateSlug)}/${encodeURIComponent(citySlug)}`;
   }
 
   function getWeatherLinkAttributes(region) {
-    const fallbackUrl = getWeatherDetailUrl(region);
-    return `href="${fallbackUrl}" target="_blank" rel="noopener" data-ssa-weather-link="true" data-weather-ios-url="${escapeHtml(getIosWeatherUrl(region))}" data-weather-android-url="${escapeHtml(getAndroidWeatherIntentUrl(region))}" data-weather-fallback-url="${escapeHtml(fallbackUrl)}" data-weather-gov-url="${escapeHtml(getWeatherGovUrl(region))}"`;
-  }
-
-  function isIosDevice() {
-    const platform = navigator.platform || '';
-    const userAgent = navigator.userAgent || '';
-    return /iPad|iPhone|iPod/.test(userAgent) || (platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-  }
-
-  function isAndroidDevice() {
-    return /Android/i.test(navigator.userAgent || '');
-  }
-
-  function handleWeatherLinkClick(event) {
-    const link = event.target && event.target.closest ? event.target.closest('[data-ssa-weather-link="true"]') : null;
-    if (!link || event.defaultPrevented || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-    const fallbackUrl = link.dataset.weatherFallbackUrl || link.href;
-    const appUrl = isIosDevice()
-      ? link.dataset.weatherIosUrl
-      : isAndroidDevice()
-        ? link.dataset.weatherAndroidUrl
-        : '';
-    if (!appUrl) return;
-    event.preventDefault();
-    window.location.href = appUrl;
-    window.setTimeout(() => {
-      if (!document.hidden) {
-        window.location.href = fallbackUrl;
-      }
-    }, 900);
+    const detailUrl = getWeatherDetailUrl(region);
+    return `href="${escapeHtml(detailUrl)}" target="_blank" rel="noopener" data-ssa-weather-link="true"`;
   }
 
   function getWeatherPeriodDate(period, timezone) {
@@ -1834,10 +1803,6 @@
     }
     
     mount.innerHTML = pageHeaderHTML + controlsHTML + `<div class="ssa-compact-filter-shell">${dateControlsHTML + viewControlsHTML + stickyMetaHTML}</div>` + eventsHTML + footerHTML;
-    if (!mount._weatherLinkHandlerAttached) {
-      mount.addEventListener('click', handleWeatherLinkClick);
-      mount._weatherLinkHandlerAttached = true;
-    }
     syncStickyControlOffsets(mount);
     
     // Verify keyword cloud was rendered
