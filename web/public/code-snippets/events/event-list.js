@@ -4604,8 +4604,9 @@
         #events-list .ssa-compact-filter-shell .ssa-date-clear-btn{width:40px;min-width:40px;height:26px;align-self:center;justify-self:center}
         #events-list .ssa-compact-filter-shell .ssa-date-input{width:100%;max-width:100%;min-width:0;min-inline-size:0;height:48px;padding:0 10px;box-sizing:border-box;font-size:16px}
         #events-list .ssa-compact-filter-shell .ssa-view-controls-section{display:flex;align-items:stretch;justify-content:stretch}
-        #events-list .ssa-compact-filter-shell .ssa-filter-toolbar{position:relative;width:100%;height:100%;grid-template-columns:minmax(0,1fr) minmax(0,.92fr) minmax(190px,1.35fr) minmax(0,1fr);grid-template-rows:48px;gap:8px 10px;align-items:center;align-content:center}
+        #events-list .ssa-compact-filter-shell .ssa-filter-toolbar{position:relative;width:100%;height:100%;grid-template-columns:minmax(0,1fr) minmax(0,.92fr) minmax(190px,1.35fr) minmax(190px,1fr);grid-template-rows:48px;gap:8px 10px;align-items:center;align-content:center}
         #events-list .ssa-compact-filter-shell .ssa-filter-menu{grid-row:1;transform:none}
+        #events-list .ssa-compact-filter-shell .ssa-keyword-menu{min-width:190px}
         #events-list .ssa-compact-filter-shell .ssa-filter-menu summary{height:48px;padding:0 34px 0 12px;font-size:14px}
         #events-list .ssa-compact-filter-shell .ssa-keyword-menu summary{padding-right:44px}
         #events-list .ssa-compact-filter-shell .ssa-filter-menu summary::after{right:12px;width:8px;height:8px}
@@ -4767,8 +4768,9 @@
         #events-list .ssa-compact-filter-shell{grid-template-columns:1fr}
       }
       @media(max-width:920px){
-        #events-list .ssa-filter-toolbar{grid-template-columns:minmax(0,1fr) minmax(0,.95fr) minmax(174px,1.25fr) minmax(0,1fr);gap:8px}
+        #events-list .ssa-filter-toolbar{grid-template-columns:minmax(0,1fr) minmax(0,.95fr) minmax(174px,1.25fr) minmax(180px,1fr);gap:8px}
         #events-list .ssa-filter-toolbar .ssa-selection-count{grid-column:1/-1}
+        #events-list .ssa-keyword-menu{min-width:180px}
         #events-list .ssa-filter-menu summary{height:44px;padding:0 34px 0 12px;font-size:14px}
         #events-list .ssa-keyword-menu summary{padding-right:44px}
         #events-list .ssa-filter-menu summary::after{right:12px;width:8px;height:8px}
@@ -4776,6 +4778,7 @@
       }
       @media(max-width:560px){
         #events-list .ssa-filter-toolbar{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+        #events-list .ssa-keyword-menu{min-width:0}
         #events-list .ssa-view-controls-section:has(.ssa-keyword-menu[open]){padding-bottom:min(410px,58vh)}
         #events-list .ssa-keyword-menu-panel{left:auto;right:0;width:min(300px,calc(100vw - 44px));max-width:calc(100vw - 44px)}
         #events-list .ssa-filter-menu-panel{max-width:calc(100vw - 44px)}
@@ -4785,7 +4788,7 @@
         #events-list .ssa-control-panel{padding:10px 16px;margin-bottom:8px}
         #events-list .ssa-date-input{height:42px;font-size:16px}
         #events-list .ssa-date-clear-btn{height:42px}
-        #events-list .ssa-filter-toolbar{grid-template-columns:repeat(4,minmax(0,1fr)) auto;gap:8px}
+        #events-list .ssa-filter-toolbar{grid-template-columns:minmax(0,1fr) minmax(0,.95fr) minmax(174px,1.25fr) minmax(180px,1fr);gap:8px}
         #events-list .ssa-filter-toolbar .ssa-selection-count{grid-column:auto}
         #events-list .ssa-filter-menu summary{height:38px;font-size:13px;padding:0 30px 0 10px}
         #events-list .ssa-keyword-menu summary{padding-right:40px}
