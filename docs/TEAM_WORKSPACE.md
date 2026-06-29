@@ -122,6 +122,7 @@ Newest entries at the top.
 
 | Date | Role | Topic | Message | Action needed |
 |------|------|-------|---------|---------------|
+| 2026-06-29 | Dev | Admin sidebar touch activation | Changed the collapsed sidebar expand/theme controls to activate on pointer release with explicit keyboard support, and gave the collapsed control group a fixed touchable width so iPhone landscape taps register reliably. | Dave — verify top two controls in iPhone landscape |
 | 2026-06-29 | Dev | Admin landscape sidebar taps | Fixed the narrow-screen auto-collapse effect so tapping Expand in iPhone landscape is not immediately undone, and raised the collapsed sidebar top controls' touch layer for more reliable theme/expand taps. | Dave — verify on iPhone landscape |
 | 2026-06-29 | Dev | Admin collapsed sidebar controls | Changed the collapsed admin sidebar’s top collapse/theme controls from a horizontal pair to a vertical stack while leaving the expanded sidebar layout unchanged. | Dave — refresh admin app and verify collapsed sidebar |
 | 2026-06-28 | Dev | Events widget keyword menu min width | Gave the Keywords filter its own minimum grid width at compact breakpoints so labels like `Keywords 1`/`Keywords 2` are sized with the count instead of squeezing into the chevron. Source/public widget copies match and JS syntax checks pass. | Dave — hard-refresh events page after deploy |

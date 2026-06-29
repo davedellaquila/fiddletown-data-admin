@@ -14,6 +14,10 @@
  * @module App
  */
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import type {
+  KeyboardEvent as ReactKeyboardEvent,
+  PointerEvent as ReactPointerEvent
+} from 'react'
 import { refreshSupabaseSession, useSupabaseSession } from './hooks/useSupabaseSession'
 import { IS_DEVELOPMENT_MODE } from './lib/devMode'
 import {
@@ -103,6 +107,23 @@ export default function App() {
       return newState
     })
   }, [])
+
+  const activateSidebarControl = useCallback((
+    event: ReactKeyboardEvent<HTMLButtonElement> | ReactPointerEvent<HTMLButtonElement>,
+    action: () => void
+  ) => {
+    event.preventDefault()
+    event.stopPropagation()
+    action()
+  }, [])
+
+  const handleControlKeyDown = useCallback((
+    event: ReactKeyboardEvent<HTMLButtonElement>,
+    action: () => void
+  ) => {
+    if (event.key !== 'Enter' && event.key !== ' ') return
+    activateSidebarControl(event, action)
+  }, [activateSidebarControl])
 
   /**
    * Global keyboard shortcuts for quick module navigation
@@ -707,11 +728,16 @@ export default function App() {
               gap: '6px',
               alignItems: 'center',
               position: 'relative',
-              zIndex: 2
+              zIndex: 2,
+              pointerEvents: 'auto',
+              flex: sidebarCollapsed ? '0 0 auto' : undefined,
+              width: sidebarCollapsed ? '44px' : undefined
             }}>
               <button 
+                type="button"
                 className="sidebar-control-btn"
-                onClick={toggleSidebar}
+                onPointerUp={(event) => activateSidebarControl(event, toggleSidebar)}
+                onKeyDown={(event) => handleControlKeyDown(event, toggleSidebar)}
                 style={{
                   border: 'none',
                   fontSize: '18px',
@@ -726,15 +752,20 @@ export default function App() {
                   height: '32px',
                   touchAction: 'manipulation',
                   position: 'relative',
-                  zIndex: 3
+                  zIndex: 3,
+                  pointerEvents: 'auto',
+                  userSelect: 'none',
+                  WebkitUserSelect: 'none'
                 }}
                 title={sidebarCollapsed ? 'Expand sidebar (⌘B)' : 'Collapse sidebar (⌘B)'}
               >
                 {sidebarCollapsed ? '→' : '←'}
               </button>
               <button 
+                type="button"
                 className="sidebar-control-btn"
-                onClick={toggleDarkMode}
+                onPointerUp={(event) => activateSidebarControl(event, toggleDarkMode)}
+                onKeyDown={(event) => handleControlKeyDown(event, toggleDarkMode)}
                 style={{
                   border: 'none',
                   fontSize: '20px',
@@ -749,7 +780,10 @@ export default function App() {
                   height: '32px',
                   touchAction: 'manipulation',
                   position: 'relative',
-                  zIndex: 3
+                  zIndex: 3,
+                  pointerEvents: 'auto',
+                  userSelect: 'none',
+                  WebkitUserSelect: 'none'
                 }}
                 title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
               >
