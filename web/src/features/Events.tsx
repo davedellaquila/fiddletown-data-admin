@@ -111,6 +111,14 @@ function formatDateSummary(from: string, to: string) {
   return `${from} - ${to}`
 }
 
+function formatCompactDateSummary(from: string, to: string) {
+  if (!from && !to) return 'All dates'
+  if (from && !to) return from
+  if (!from && to) return `To ${to}`
+  if (from === to) return from
+  return `${from} - ${to}`
+}
+
 /**
  * Parse OCR text and convert to event data format
  * 
@@ -1731,7 +1739,7 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
         )}
         {/* Top row: Module title and Action buttons */}
         <div
-          className="responsive-toolbar-row"
+          className="responsive-toolbar-row events-toolbar-row"
           style={{ 
             display: 'flex',
             flexWrap: 'nowrap',
@@ -1862,7 +1870,7 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
 
         {/* Compact filters */}
         <div
-          className="responsive-filters"
+          className="responsive-filters events-filter-grid"
           style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
@@ -1871,7 +1879,7 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
             width: '100%'
           }}
         >
-          <div className="responsive-search" style={{ position: 'relative', gridColumn: '1 / -1' }}>
+          <div className="responsive-search events-filter-full" style={{ position: 'relative', gridColumn: '1 / -1' }}>
             <input 
               placeholder="Search events..." 
               value={q} 
@@ -1934,6 +1942,7 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
           </select>
 
           <div
+            className="events-date-summary"
             style={{
               padding: '8px 12px',
               background: darkMode ? '#111827' : '#f9fafb',
@@ -1947,11 +1956,11 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
             }}
             title={formatDateSummary(from, to)}
           >
-            {formatDateSummary(from, to)}
+            {formatCompactDateSummary(from, to)}
           </div>
 
           {datePreset === 'custom' && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, gridColumn: '1 / -1' }}>
+            <div className="events-filter-full" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, gridColumn: '1 / -1' }}>
               <label style={{ color: darkMode ? '#f9fafb' : '#374151', display: 'grid', gap: 4, fontSize: 12 }}>
                 From
                 <input 
@@ -2045,7 +2054,7 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
             <span style={{ fontSize: '14px' }}>⭐ Signature</span>
           </label>
           
-          <label style={{ 
+          <label className="events-sort-control" style={{ 
             color: darkMode ? '#f9fafb' : '#374151',
             display: 'grid',
             gridTemplateColumns: 'auto 36px',
@@ -2109,7 +2118,7 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
           </button>
 
           {selectedKeywordFilters.length > 0 && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center', gridColumn: '1 / -1' }}>
+            <div className="events-filter-full" style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center', gridColumn: '1 / -1' }}>
               {selectedKeywordFilters.map(keyword => (
                 <span
                   key={keyword}
