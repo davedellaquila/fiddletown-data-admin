@@ -176,6 +176,7 @@ export default function AutoSaveEditDialog<T extends Record<string, any>>({
 
   return (
     <div 
+      className="edit-dialog-overlay"
       style={{ 
         position: 'fixed', 
         top: 0, 
@@ -199,6 +200,7 @@ export default function AutoSaveEditDialog<T extends Record<string, any>>({
       tabIndex={-1}
     >
       <div 
+        className="edit-dialog-panel"
         style={{ 
           background: darkMode ? '#1f2937' : 'white', 
           padding: '32px', 
@@ -216,7 +218,7 @@ export default function AutoSaveEditDialog<T extends Record<string, any>>({
         ref={modalRef}
       >
         {/* Header with navigation */}
-        <div style={{ 
+        <div className="edit-dialog-header" style={{ 
           display: 'flex', 
           alignItems: 'center', 
           justifyContent: 'space-between', 
@@ -224,7 +226,7 @@ export default function AutoSaveEditDialog<T extends Record<string, any>>({
           flexShrink: 0
         }}>
           {/* Title - Left aligned */}
-          <div style={{ flex: 1 }}>
+          <div className="edit-dialog-title" style={{ flex: 1 }}>
             <h3 style={{ 
               margin: 0, 
               fontSize: '24px', 
@@ -236,7 +238,7 @@ export default function AutoSaveEditDialog<T extends Record<string, any>>({
           </div>
 
           {/* Navigation buttons - Centered */}
-          <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
+          <div className="edit-dialog-navigation" style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
             <NavigationButtons
               editing={editing}
               rows={rows}
@@ -248,7 +250,7 @@ export default function AutoSaveEditDialog<T extends Record<string, any>>({
           </div>
 
           {/* Cancel and Save buttons - Right aligned (Cancel left, Save right) */}
-          <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+          <div className="edit-dialog-actions" style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
             <button 
               onClick={handleClose}
               disabled={busy}
@@ -309,6 +311,7 @@ export default function AutoSaveEditDialog<T extends Record<string, any>>({
 
         {/* Scrollable Content */}
         <div 
+          className="edit-dialog-scroll"
           key={editing?.id || 'new'} // Key changes when editing changes to prevent flash
           style={{
             flex: 1,

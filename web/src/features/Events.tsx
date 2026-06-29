@@ -2980,7 +2980,7 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
           }}
           itemType="event"
         >
-          <div style={{ padding: '32px' }}>
+          <div className="event-edit-form" style={{ padding: '32px' }}>
             <div style={{ display: 'grid', gap: '20px' }}>
               {Object.keys(validationErrors).length > 0 && (
                 <div
@@ -3303,7 +3303,7 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
               </div>
 
               {/* Signature Event and Status - At the top */}
-              <div style={{ 
+              <div className="event-edit-grid-row" style={{ 
                 display: 'grid', 
                 gridTemplateColumns: '1fr 1fr',
                 gap: '16px',
@@ -3361,7 +3361,7 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
               </div>
 
               {/* Event Name and Slug */}
-              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '16px' }}>
+              <div className="event-edit-grid-row event-edit-name-row" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '16px' }}>
                 <FormField
                   label="Event Name"
                   name="name"
@@ -3425,7 +3425,7 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
               />
 
               {/* Host Org and Location */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div className="event-edit-grid-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 <FormField
                   label="Host Organization"
                   name="host_org"
@@ -3461,7 +3461,7 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
               </div>
 
               {/* Dates */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div className="event-edit-grid-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 <FormField
                   label="Start Date"
                   name="start_date"
@@ -3543,7 +3543,7 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
               </div>
 
               {/* Times */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div className="event-edit-grid-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 <FormField
                   label="Start Time"
                   name="start_time"
@@ -3626,7 +3626,7 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
               </div>
 
               {/* Website and Recurrence */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div className="event-edit-grid-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 <div>
                   <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: darkMode ? '#f9fafb' : '#374151' }}>
                     Website URL

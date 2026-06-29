@@ -634,6 +634,73 @@ thead th { background: #fafafa; }
   .events-filter-grid .events-sort-control {
     grid-template-columns: minmax(0, 1fr) 36px !important;
   }
+
+  .edit-dialog-overlay {
+    left: 48px !important;
+    padding: max(8px, env(safe-area-inset-top)) 10px 10px !important;
+    align-items: stretch !important;
+    justify-content: stretch !important;
+  }
+
+  .edit-dialog-panel {
+    max-width: none !important;
+    width: 100% !important;
+    max-height: calc(100dvh - 18px) !important;
+    padding: 10px 0 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: transparent !important;
+  }
+
+  .edit-dialog-header {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px !important;
+    align-items: center !important;
+    margin-bottom: 14px !important;
+  }
+
+  .edit-dialog-title {
+    min-width: 0;
+  }
+
+  .edit-dialog-title h3 {
+    font-size: 28px !important;
+    line-height: 1.12 !important;
+  }
+
+  .edit-dialog-navigation {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    justify-content: flex-start !important;
+  }
+
+  .edit-dialog-actions {
+    grid-column: 2;
+    grid-row: 1;
+    justify-content: flex-end !important;
+  }
+
+  .edit-dialog-scroll {
+    padding-right: 0 !important;
+  }
+
+  .event-edit-form {
+    padding: 4px 0 28px !important;
+  }
+
+  .event-edit-grid-row,
+  .event-edit-name-row {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 12px !important;
+    margin-bottom: 0 !important;
+  }
+
+  .event-edit-form [contenteditable="true"] {
+    min-width: 0 !important;
+    width: 100% !important;
+  }
 }
 
 @media (min-width: 769px) {
