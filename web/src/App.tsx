@@ -86,7 +86,7 @@ export default function App() {
     return saved ? JSON.parse(saved) : false
   })
   // Track if user manually collapsed sidebar (vs auto-collapse)
-  const [userManuallyCollapsed, setUserManuallyCollapsed] = useState(false)
+  const userManuallyCollapsedRef = useRef(false)
 
   const resizePastedLinkField = useCallback(() => {
     const el = pastedLinkRef.current
@@ -98,7 +98,7 @@ export default function App() {
   const toggleSidebar = useCallback(() => {
     setSidebarCollapsed((prev) => {
       const newState = !prev
-      setUserManuallyCollapsed(newState)
+      userManuallyCollapsedRef.current = newState
       localStorage.setItem('sidebarCollapsed', JSON.stringify(newState))
       return newState
     })
@@ -179,12 +179,10 @@ export default function App() {
       
       if (isNarrow) {
         // Auto-collapse on narrow screens
-        if (!sidebarCollapsed) {
-          setSidebarCollapsed(true)
-        }
+        setSidebarCollapsed((current) => current ? current : true)
       } else {
         // Restore previous state on wider screens (unless user manually collapsed)
-        if (!userManuallyCollapsed) {
+        if (!userManuallyCollapsedRef.current) {
           const saved = localStorage.getItem('sidebarCollapsed')
           const savedState = saved ? JSON.parse(saved) : false
           setSidebarCollapsed(savedState)
@@ -204,7 +202,7 @@ export default function App() {
       mediaQuery.addListener(handleResize)
       return () => mediaQuery.removeListener(handleResize)
     }
-  }, [sidebarCollapsed, userManuallyCollapsed])
+  }, [])
 
   /**
    * Persist dark mode preference to localStorage
@@ -707,7 +705,9 @@ export default function App() {
               display: 'flex',
               flexDirection: sidebarCollapsed ? 'column' : 'row',
               gap: '6px',
-              alignItems: 'center'
+              alignItems: 'center',
+              position: 'relative',
+              zIndex: 2
             }}>
               <button 
                 className="sidebar-control-btn"
@@ -723,7 +723,10 @@ export default function App() {
                   alignItems: 'center',
                   justifyContent: 'center',
                   minWidth: '32px',
-                  height: '32px'
+                  height: '32px',
+                  touchAction: 'manipulation',
+                  position: 'relative',
+                  zIndex: 3
                 }}
                 title={sidebarCollapsed ? 'Expand sidebar (⌘B)' : 'Collapse sidebar (⌘B)'}
               >
@@ -743,7 +746,10 @@ export default function App() {
                   alignItems: 'center',
                   justifyContent: 'center',
                   minWidth: '32px',
-                  height: '32px'
+                  height: '32px',
+                  touchAction: 'manipulation',
+                  position: 'relative',
+                  zIndex: 3
                 }}
                 title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
               >
