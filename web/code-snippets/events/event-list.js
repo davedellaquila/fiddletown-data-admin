@@ -4607,7 +4607,9 @@
         #events-list .ssa-compact-filter-shell .ssa-filter-toolbar{position:relative;width:100%;height:100%;grid-template-columns:minmax(0,1fr) minmax(0,.92fr) minmax(190px,1.35fr) minmax(0,1fr);grid-template-rows:48px;gap:8px 10px;align-items:center;align-content:center}
         #events-list .ssa-compact-filter-shell .ssa-filter-menu{grid-row:1;transform:none}
         #events-list .ssa-compact-filter-shell .ssa-filter-menu summary{height:48px;padding:0 34px 0 12px;font-size:14px}
+        #events-list .ssa-compact-filter-shell .ssa-keyword-menu summary{padding-right:44px}
         #events-list .ssa-compact-filter-shell .ssa-filter-menu summary::after{right:12px;width:8px;height:8px}
+        #events-list .ssa-compact-filter-shell .ssa-keyword-menu summary::after{right:16px}
         #events-list .ssa-compact-filter-shell .ssa-selection-count{height:auto;display:flex;align-items:center;justify-content:flex-start;flex:0 0 auto;padding:0;background:transparent!important;white-space:nowrap;font-size:13px;line-height:1.15;text-align:left}
         #events-list .ssa-compact-filter-shell.ssa-is-stuck .ssa-view-controls-section{align-items:stretch}
         #events-list .ssa-compact-filter-shell.ssa-is-stuck .ssa-filter-toolbar{grid-template-rows:48px;align-content:center;align-items:center}
@@ -4768,7 +4770,9 @@
         #events-list .ssa-filter-toolbar{grid-template-columns:minmax(0,1fr) minmax(0,.95fr) minmax(174px,1.25fr) minmax(0,1fr);gap:8px}
         #events-list .ssa-filter-toolbar .ssa-selection-count{grid-column:1/-1}
         #events-list .ssa-filter-menu summary{height:44px;padding:0 34px 0 12px;font-size:14px}
+        #events-list .ssa-keyword-menu summary{padding-right:44px}
         #events-list .ssa-filter-menu summary::after{right:12px;width:8px;height:8px}
+        #events-list .ssa-keyword-menu summary::after{right:16px}
       }
       @media(max-width:560px){
         #events-list .ssa-filter-toolbar{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
@@ -4784,7 +4788,9 @@
         #events-list .ssa-filter-toolbar{grid-template-columns:repeat(4,minmax(0,1fr)) auto;gap:8px}
         #events-list .ssa-filter-toolbar .ssa-selection-count{grid-column:auto}
         #events-list .ssa-filter-menu summary{height:38px;font-size:13px;padding:0 30px 0 10px}
+        #events-list .ssa-keyword-menu summary{padding-right:40px}
         #events-list .ssa-filter-menu summary::after{right:10px;width:7px;height:7px}
+        #events-list .ssa-keyword-menu summary::after{right:14px}
         #events-list .ssa-selection-count{font-size:13px}
         #events-list .ssa-selected-keyword-row .ssa-keyword-btn{height:36px;font-size:13px}
       }

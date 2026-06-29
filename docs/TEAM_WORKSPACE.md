@@ -122,6 +122,7 @@ Newest entries at the top.
 
 | Date | Role | Topic | Message | Action needed |
 |------|------|-------|---------|---------------|
+| 2026-06-28 | Dev | Events widget keyword menu padding | Added keyword-specific right padding at compact breakpoints so the Keywords count and chevron have more breathing room without widening every filter menu. Source/public widget copies match and JS syntax checks pass. | Dave — hard-refresh events page after deploy |
 | 2026-06-28 | Dev | Events widget weather links | Changed detailed weather links to stable Weather Underground forecast pages, defaulting Gold Country to Sutter Creek and allowing future regions to pass a `weatherUrl` or Weather Underground city/state slug. Source/public widget copies match and JS syntax checks pass. | Dave — hard-refresh events page after deploy |
 | 2026-06-28 | Dev | Events widget keyword menu width | Let the Keywords dropdown expand left from its button with a viewport cap and raised open filter controls above the summary row so keyword labels remain readable and unobstructed. Source/public widget copies match and JS syntax checks pass. | Dave — hard-refresh events page after deploy |
 | 2026-06-28 | Dev | Events widget group menu layering | Raised the open filter menu layer above the sticky summary row so Group by dropdown items render visibly instead of appearing as clipped red text underneath the menu. Source/public widget copies match and JS syntax checks pass. | Dave — hard-refresh events page after deploy |
