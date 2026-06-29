@@ -703,7 +703,12 @@ export default function App() {
                 {session?.user?.email ?? (IS_DEVELOPMENT_MODE ? 'Dev (not signed in)' : '')}
               </strong>
             )}
-            <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+            <div style={{
+              display: 'flex',
+              flexDirection: sidebarCollapsed ? 'column' : 'row',
+              gap: '6px',
+              alignItems: 'center'
+            }}>
               <button 
                 className="sidebar-control-btn"
                 onClick={toggleSidebar}
