@@ -331,10 +331,25 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
   const rowsRef = useRef<EventRow[]>([])
   const allRowsRef = useRef<EventRow[]>([])
   const editingRef = useRef<EventRow | null>(null)
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
 
   useEffect(() => {
     editingRef.current = editing
   }, [editing])
+
+  useEffect(() => {
+    setValidationErrors({})
+  }, [editing?.id])
+
+  const clearValidationError = (field: string) => {
+    setValidationErrors((prev) => {
+      if (!prev[field] && !prev._form) return prev
+      const next = { ...prev }
+      delete next[field]
+      delete next._form
+      return next
+    })
+  }
   const [q, setQ] = useState('')
   const [from, setFrom] = useState(() => {
     // Default to today's date in YYYY-MM-DD format
@@ -1356,6 +1371,7 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
     if (!current) return
     const payload = { ...current }
     const keywordsToSave = payload.keywords || []
+    const nextErrors: Record<string, string> = {}
 
     console.log('Save function - editing state:', current)
     console.log('Save function - start_date:', payload.start_date, 'type:', typeof payload.start_date)
@@ -1364,7 +1380,25 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
     console.log('Save function - end_time:', payload.end_time, 'type:', typeof payload.end_time)
     console.log('Save function - full payload:', payload)
 
-    if (!payload.name) return alert('Name is required')
+    if (!payload.name?.trim()) {
+      nextErrors.name = 'Event name is required.'
+    }
+    if (payload.start_date && payload.end_date && payload.end_date < payload.start_date) {
+      nextErrors.end_date = 'End date cannot be before the start date.'
+    }
+    if (
+      payload.start_time &&
+      payload.end_time &&
+      (!payload.end_date || !payload.start_date || payload.end_date === payload.start_date) &&
+      payload.end_time < payload.start_time
+    ) {
+      nextErrors.end_time = 'End time cannot be before the start time.'
+    }
+    if (Object.keys(nextErrors).length > 0) {
+      setValidationErrors(nextErrors)
+      return
+    }
+    setValidationErrors({})
     
     // Ensure slug exists and is unique
     try {
@@ -1389,7 +1423,9 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
       console.log('Final slug before save:', payload.slug)
     } catch (error: any) {
       console.error('Error ensuring unique slug:', error)
-      alert(`Error checking slug uniqueness: ${error?.message || 'Unknown error'}`)
+      setValidationErrors({
+        slug: error?.message || 'Could not create a unique slug for this event.'
+      })
       return
     }
 
@@ -1419,14 +1455,21 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
       const { error } = await supabase.from('events').update(updateData).eq('id', payload.id)
       if (error) { 
         console.error('Database update error:', error)
-        alert(`Update error: ${error.message}`); 
+        setValidationErrors({
+          _form: `Update error: ${error.message}`
+        })
         return 
       }
       console.log('Database update successful')
     } else {
       const { id, created_at, updated_at, deleted_at, keywords, ...insertable } = payload
       const { data, error } = await supabase.from('events').insert(insertable).select().single()
-      if (error) { alert(error.message); return }
+      if (error) {
+        setValidationErrors({
+          _form: error.message
+        })
+        return
+      }
       payload.id = data!.id
       editingRef.current = { ...payload }
       setEditing({ ...payload })
@@ -2930,6 +2973,28 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
         >
           <div style={{ padding: '32px' }}>
             <div style={{ display: 'grid', gap: '20px' }}>
+              {Object.keys(validationErrors).length > 0 && (
+                <div
+                  role="alert"
+                  style={{
+                    padding: '12px 14px',
+                    borderRadius: '8px',
+                    border: `1px solid ${darkMode ? '#f87171' : '#dc2626'}`,
+                    background: darkMode ? '#450a0a' : '#fef2f2',
+                    color: darkMode ? '#fca5a5' : '#b91c1c',
+                    fontSize: '14px',
+                    fontWeight: 600
+                  }}
+                >
+                  Please fix the highlighted field{Object.keys(validationErrors).length === 1 ? '' : 's'} before saving.
+                  {validationErrors._form && (
+                    <div style={{ marginTop: 6, fontWeight: 500 }}>
+                      {validationErrors._form}
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Event Image (upload/paste + preview) */}
               <div>
                 <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: darkMode ? '#f9fafb' : '#374151' }}>
@@ -3292,26 +3357,40 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
                   label="Event Name"
                   name="name"
                   value={editing?.name || ''}
-                  onChange={(value) => setEditing({...editing!, name: value as string, slug: slugify(value as string)})}
+                  onChange={(value) => {
+                    clearValidationError('name')
+                    clearValidationError('slug')
+                    setEditing({...editing!, name: value as string, slug: slugify(value as string)})
+                  }}
                   required
                   editingId={editing?.id?.toString()}
                   darkMode={darkMode}
+                  warning={!!validationErrors.name}
+                  warningHint={validationErrors.name}
                 />
                 <FormField
                   label="Slug"
                   name="slug"
                   value={editing?.slug || ''}
-                  onChange={(value) => setEditing({...editing!, slug: slugify(value as string)})}
+                  onChange={(value) => {
+                    clearValidationError('slug')
+                    setEditing({...editing!, slug: slugify(value as string)})
+                  }}
                   editingId={editing?.id?.toString()}
                   darkMode={darkMode}
+                  warning={!!validationErrors.slug}
+                  warningHint={validationErrors.slug}
                 />
               </div>
 
-              <FormField
-                label="Description"
-                name="description"
-                value={editing?.description || ''}
-                onChange={(value) => setEditing({...editing!, description: value as string})}
+                <FormField
+                  label="Description"
+                  name="description"
+                  value={editing?.description || ''}
+                  onChange={(value) => {
+                    clearValidationError('_form')
+                    setEditing({...editing!, description: value as string})
+                  }}
                 type="textarea"
                 minHeight="100px"
                 resize="vertical"
@@ -3342,7 +3421,10 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
                   label="Host Organization"
                   name="host_org"
                   value={editing?.host_org || ''}
-                  onChange={(value) => setEditing({...editing!, host_org: value as string})}
+                  onChange={(value) => {
+                    clearValidationError('_form')
+                    setEditing({...editing!, host_org: value as string})
+                  }}
                   editingId={editing?.id?.toString()}
                   darkMode={darkMode}
                 />
@@ -3350,7 +3432,10 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
                   label="Location"
                   name="location"
                   value={editing?.location || ''}
-                  onChange={(value) => setEditing({...editing!, location: value as string})}
+                  onChange={(value) => {
+                    clearValidationError('_form')
+                    setEditing({...editing!, location: value as string})
+                  }}
                   editingId={editing?.id?.toString()}
                   darkMode={darkMode}
                   endIcon={<span style={{ fontSize: '16px' }}>📍</span>}
@@ -3373,6 +3458,8 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
                   name="start_date"
                   value={editing?.start_date || ''}
                   onChange={(value) => {
+                    clearValidationError('start_date')
+                    clearValidationError('end_date')
                     const newStartDate = value as string
                     const currentEndDate = editing?.end_date
                     const today = new Date().toISOString().slice(0, 10)
@@ -3399,6 +3486,8 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
                     })
                   }}
                   onInput={(value) => {
+                    clearValidationError('start_date')
+                    clearValidationError('end_date')
                     const newStartDate = value as string
                     const currentEndDate = editing?.end_date
                     
@@ -3419,22 +3508,28 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
                   type="date"
                   editingId={editing?.id?.toString()}
                   darkMode={darkMode}
+                  warning={!!validationErrors.start_date}
+                  warningHint={validationErrors.start_date}
                 />
                 <FormField
                   label="End Date"
                   name="end_date"
                   value={editing?.end_date || ''}
                   onChange={(value) => {
+                    clearValidationError('end_date')
                     console.log('End date changed to:', value)
                     setEditing({...editing!, end_date: value as string})
                   }}
                   onInput={(value) => {
+                    clearValidationError('end_date')
                     console.log('End date input to:', value)
                     setEditing({...editing!, end_date: value as string})
                   }}
                   type="date"
                   editingId={editing?.id?.toString()}
                   darkMode={darkMode}
+                  warning={!!validationErrors.end_date}
+                  warningHint={validationErrors.end_date}
                 />
               </div>
 
@@ -3445,6 +3540,8 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
                   name="start_time"
                   value={editing?.start_time ?? ''}
                   onChange={(value) => {
+                    clearValidationError('start_time')
+                    clearValidationError('end_time')
                     const inputValue = value as string
                     console.log('Start time input:', inputValue)
                     
@@ -3455,6 +3552,8 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
                     })
                   }}
                   onBlur={(value) => {
+                    clearValidationError('start_time')
+                    clearValidationError('end_time')
                     const inputValue = value as string
                     const convertedTime = convertTo24Hour(inputValue, false)
                     console.log('Start time blur - converting:', inputValue, 'to:', convertedTime)
@@ -3476,12 +3575,15 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
                   placeholder="HH:MM (e.g., 14:30)"
                   editingId={editing?.id?.toString()}
                   darkMode={darkMode}
+                  warning={!!validationErrors.start_time}
+                  warningHint={validationErrors.start_time}
                 />
                 <FormField
                   label="End Time"
                   name="end_time"
                   value={editing?.end_time ?? ''}
                   onChange={(value) => {
+                    clearValidationError('end_time')
                     const inputValue = value as string
                     console.log('End time input:', inputValue)
                     
@@ -3492,6 +3594,7 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
                     })
                   }}
                   onBlur={(value) => {
+                    clearValidationError('end_time')
                     const inputValue = value as string
                     const convertedTime = convertTo24Hour(inputValue, true, editing?.start_time)
                     console.log('End time blur - converting:', inputValue, 'to:', convertedTime)
@@ -3508,6 +3611,8 @@ export default function Events({ darkMode = false, sidebarCollapsed = false }: E
                   placeholder="HH:MM (e.g., 16:30)"
                   editingId={editing?.id?.toString()}
                   darkMode={darkMode}
+                  warning={!!validationErrors.end_time}
+                  warningHint={validationErrors.end_time}
                 />
               </div>
 

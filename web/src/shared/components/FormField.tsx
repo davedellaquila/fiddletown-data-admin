@@ -73,9 +73,9 @@ export default function FormField({
 }: FormFieldProps) {
   // Unique key for this field instance (helps React track field state when editing different items)
   const fieldKey = `${name}-${editingId || 'new'}`
-  const warningBorder = darkMode ? '#d97706' : '#f59e0b'
-  const warningBackground = darkMode ? '#78350f' : '#fffbeb'
-  const warningForeground = darkMode ? '#fbbf24' : '#b45309'
+  const warningBorder = darkMode ? '#f87171' : '#dc2626'
+  const warningBackground = darkMode ? '#450a0a' : '#fef2f2'
+  const warningForeground = darkMode ? '#fca5a5' : '#b91c1c'
   
   /**
    * Base styles applied to all field types
@@ -110,7 +110,7 @@ export default function FormField({
     ...idleStyle,
     border: warning ? `1px solid ${warningBorder}` : '1px solid #3b82f6',
     boxShadow: warning
-      ? (darkMode ? '0 0 0 3px rgba(217, 119, 6, 0.25)' : '0 0 0 3px rgba(245, 158, 11, 0.25)')
+      ? (darkMode ? '0 0 0 3px rgba(248, 113, 113, 0.25)' : '0 0 0 3px rgba(220, 38, 38, 0.16)')
       : (darkMode ? '0 0 0 3px rgba(59, 130, 246, 0.1)' : '0 0 0 3px rgba(59, 130, 246, 0.1)')
   }
 

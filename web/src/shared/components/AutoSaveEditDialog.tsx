@@ -278,13 +278,17 @@ export default function AutoSaveEditDialog<T extends Record<string, any>>({
               onClick={() => saveFunction()}
               disabled={busy}
               style={{
-                background: 'none',
-                border: 'none',
-                fontSize: '24px',
+                background: busy ? 'transparent' : (darkMode ? '#064e3b' : '#d1fae5'),
+                border: `1px solid ${busy ? 'transparent' : (darkMode ? '#047857' : '#a7f3d0')}`,
+                fontSize: '14px',
+                fontWeight: 700,
                 cursor: busy ? 'not-allowed' : 'pointer',
                 color: busy ? '#9ca3af' : '#10b981',
-                padding: '4px',
-                borderRadius: '4px',
+                padding: '8px 12px',
+                borderRadius: '8px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
                 transition: 'background-color 0.2s ease'
               }}
               onMouseEnter={(e) => {
@@ -297,7 +301,8 @@ export default function AutoSaveEditDialog<T extends Record<string, any>>({
               }}
               title="Save changes (⌘↵ / Ctrl↵)"
             >
-              ✓
+              <span aria-hidden="true">✓</span>
+              <span>Save</span>
             </button>
           </div>
         </div>

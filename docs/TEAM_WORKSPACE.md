@@ -122,6 +122,7 @@ Newest entries at the top.
 
 | Date | Role | Topic | Message | Action needed |
 |------|------|-------|---------|---------------|
+| 2026-06-29 | Dev | Admin event edit validation | Made the event edit save control explicit (`Save`) and replaced alert-only validation with an inline error banner plus red field highlights for missing name, slug problems, date order, time order, and database save errors. | Dave — verify failed event saves show highlighted fields |
 | 2026-06-29 | Dev | Admin events filter layout | Compactified the Events filter toolbar: import/export moved into Actions, date presets are one menu, custom From/To fields appear only for Custom Range, keywords/signature/sort/clear are condensed, and signature filtering now flows through the shared filter effect. | Dave — verify Events filters on mobile and desktop |
 | 2026-06-29 | Dev | Admin sidebar touch activation | Changed the collapsed sidebar expand/theme controls to activate on pointer release with explicit keyboard support, and gave the collapsed control group a fixed touchable width so iPhone landscape taps register reliably. | Dave — verify top two controls in iPhone landscape |
 | 2026-06-29 | Dev | Admin landscape sidebar taps | Fixed the narrow-screen auto-collapse effect so tapping Expand in iPhone landscape is not immediately undone, and raised the collapsed sidebar top controls' touch layer for more reliable theme/expand taps. | Dave — verify on iPhone landscape |
