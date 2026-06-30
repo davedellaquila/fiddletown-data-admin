@@ -4438,7 +4438,7 @@
       #events-list .ssa-date-clear-btn:active::before{transform:rotate(90deg) scale(.92)}
       #events-list .ssa-view-controls-section{position:relative;z-index:2;display:flex;flex-direction:column;gap:12px;overflow:visible}
       #events-list .ssa-view-controls-section:has(.ssa-filter-menu[open]){z-index:6}
-      #events-list .ssa-filter-toolbar{display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:flex-start;min-width:0;max-width:100%}
+      #events-list .ssa-filter-toolbar{display:grid;grid-template-columns:minmax(178px,.82fr) minmax(190px,.86fr) minmax(232px,1fr) minmax(232px,.96fr);gap:14px;align-items:center;justify-content:stretch;min-width:0;max-width:100%}
       #events-list .ssa-sticky-meta-stack{position:relative;z-index:1;width:100%;min-width:0;align-self:stretch;display:flex;flex:0 0 auto;flex-direction:column;gap:8px;clear:both}
       #events-list .ssa-sticky-filter-summary{display:grid;grid-template-columns:minmax(0,1fr);align-items:center;gap:10px;width:100%;min-width:0;padding:10px 18px;background:color-mix(in srgb,var(--ssa-surface) 96%,transparent)!important;border:1px solid var(--ssa-border)!important;border-radius:12px;box-shadow:var(--ssa-shadow)!important;backdrop-filter:blur(14px)!important;-webkit-backdrop-filter:blur(14px)!important}
       #events-list .ssa-sticky-status{display:flex;align-items:center;justify-content:space-between;gap:16px;width:100%;max-width:100%;min-width:0;margin:0;color:var(--ssa-muted)!important;font-size:16px;font-weight:800;line-height:1.2;white-space:nowrap}
@@ -4452,11 +4452,11 @@
       #events-list .ssa-sticky-weather-badge{min-width:34px;height:28px;padding:0 8px;display:inline-flex;align-items:center;justify-content:center;gap:4px;border:1px solid rgba(169,51,38,.26)!important;border-radius:999px;background:rgba(247,200,115,.22)!important;color:var(--ssa-accent)!important;font-size:17px;font-weight:900;line-height:1;text-decoration:none!important;box-shadow:0 2px 8px rgba(15,23,42,.08)}
       #events-list .ssa-sticky-weather-badge:hover,#events-list .ssa-sticky-weather-badge:focus-visible{border-color:var(--ssa-accent)!important;background:rgba(247,200,115,.34)!important;outline:none}
       #events-list .ssa-sticky-weather-chance{font-size:12px;font-weight:900;line-height:1}
-      #events-list .ssa-filter-menu{position:relative;z-index:1;min-width:0}
-      #events-list .ssa-preset-menu{flex:0 1 210px}
-      #events-list .ssa-view-menu{flex:0 1 184px}
-      #events-list .ssa-group-menu{flex:1 1 300px}
-      #events-list .ssa-keyword-menu{flex:1 1 280px}
+      #events-list .ssa-filter-menu{position:relative;z-index:1;min-width:0;width:100%}
+      #events-list .ssa-preset-menu{flex:0 1 178px}
+      #events-list .ssa-view-menu{flex:0 1 190px}
+      #events-list .ssa-group-menu{flex:0 1 232px}
+      #events-list .ssa-keyword-menu{flex:0 1 232px}
       #events-list .ssa-group-menu{min-width:0}
       #events-list .ssa-filter-menu summary{position:relative;height:48px;padding:0 52px 0 18px;display:flex;align-items:center;justify-content:flex-start;gap:12px;min-width:0;overflow:hidden;text-overflow:ellipsis;border:1px solid var(--ssa-control-border)!important;border-radius:10px;background:var(--ssa-surface)!important;color:var(--ssa-muted)!important;font-size:17px;font-weight:800;line-height:1;list-style:none;cursor:pointer;white-space:nowrap;box-shadow:0 1px 0 rgba(255,255,255,.35) inset!important}
       html.dark-mode #events-list .ssa-filter-menu summary,body.dark-mode #events-list .ssa-filter-menu summary{box-shadow:0 1px 0 rgba(255,255,255,.07) inset,0 2px 10px rgba(0,0,0,.24)!important}
@@ -4642,12 +4642,12 @@
         #events-list .ssa-compact-filter-shell .ssa-date-clear-btn{width:40px;min-width:40px;height:26px;align-self:center;justify-self:center}
         #events-list .ssa-compact-filter-shell .ssa-date-input{width:100%;max-width:100%;min-width:0;min-inline-size:0;height:48px;padding:0 10px;box-sizing:border-box;font-size:16px}
         #events-list .ssa-compact-filter-shell .ssa-view-controls-section{display:flex;align-items:stretch;justify-content:stretch}
-        #events-list .ssa-compact-filter-shell .ssa-filter-toolbar{position:relative;width:100%;height:100%;display:flex;flex-wrap:wrap;gap:10px 12px;align-items:center;align-content:center;justify-content:flex-start}
+        #events-list .ssa-compact-filter-shell .ssa-filter-toolbar{position:relative;width:100%;height:100%;display:grid;grid-template-columns:minmax(168px,.82fr) minmax(180px,.86fr) minmax(224px,1fr) minmax(232px,.98fr);gap:10px 12px;align-items:center;align-content:center;justify-content:stretch}
         #events-list .ssa-compact-filter-shell .ssa-filter-menu{transform:none}
-        #events-list .ssa-compact-filter-shell .ssa-preset-menu{flex:0 1 194px}
-        #events-list .ssa-compact-filter-shell .ssa-view-menu{flex:0 1 168px}
-        #events-list .ssa-compact-filter-shell .ssa-group-menu{flex:1 1 280px}
-        #events-list .ssa-compact-filter-shell .ssa-keyword-menu{flex:1 1 260px;min-width:220px}
+        #events-list .ssa-compact-filter-shell .ssa-preset-menu{flex:0 1 168px}
+        #events-list .ssa-compact-filter-shell .ssa-view-menu{flex:0 1 180px}
+        #events-list .ssa-compact-filter-shell .ssa-group-menu{flex:0 1 224px}
+        #events-list .ssa-compact-filter-shell .ssa-keyword-menu{flex:0 1 232px;min-width:0}
         #events-list .ssa-compact-filter-shell .ssa-filter-menu summary{height:48px;padding:0 46px 0 14px;font-size:13.5px}
         #events-list .ssa-compact-filter-shell .ssa-keyword-menu summary{padding-right:50px}
         #events-list .ssa-compact-filter-shell .ssa-filter-menu summary::after{right:16px;width:8px;height:8px}
