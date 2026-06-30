@@ -91,6 +91,8 @@ export default function CandidateDetailPanel({
   const muted = darkMode ? '#9ca3af' : '#6b7280'
   const warnBg = darkMode ? '#78350f' : '#fffbeb'
   const warnBorder = darkMode ? '#d97706' : '#f59e0b'
+  const mobileHalfAction = isMobile ? { flex: '1 1 calc(50% - 4px)', justifyContent: 'center' } : undefined
+  const mobileFullAction = isMobile ? { flex: '1 1 100%', justifyContent: 'center' } : undefined
 
   if (!candidate || !draft) {
     return (
@@ -115,20 +117,20 @@ export default function CandidateDetailPanel({
         display: 'flex',
         flexDirection: 'column',
         height: '100%',
-        minHeight: isMobile ? '100vh' : 0,
+        minHeight: 0,
         background: darkMode ? '#111827' : '#fff',
         borderLeft: isMobile ? 'none' : `1px solid ${border}`,
       }}
     >
       {isMobile && (
-        <div style={{ padding: '12px 16px', borderBottom: `1px solid ${border}` }}>
+        <div style={{ padding: '12px 16px', borderBottom: `1px solid ${border}`, flexShrink: 0 }}>
           <button type="button" className="btn" onClick={onClose}>
             ← Back to queue
           </button>
         </div>
       )}
 
-      <div style={{ flex: 1, overflow: 'auto', padding: 16 }}>
+      <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: 16 }}>
         <h2 style={{ margin: '0 0 8px', fontSize: 18 }}>Edit candidate</h2>
         <p style={{ margin: '0 0 16px', color: muted, fontSize: 13 }}>
           Confidence: {draft.extraction_confidence != null ? `${Math.round(Number(draft.extraction_confidence) * 100)}%` : '—'}
@@ -263,19 +265,19 @@ export default function CandidateDetailPanel({
         </section>
       </div>
 
-      <div style={{ padding: 16, borderTop: `1px solid ${border}`, display: 'flex', flexWrap: 'wrap', gap: 8, background: darkMode ? '#1f2937' : '#f9fafb' }}>
+      <div style={{ padding: isMobile ? '16px 16px max(16px, env(safe-area-inset-bottom))' : 16, flexShrink: 0, borderTop: `1px solid ${border}`, display: 'flex', flexWrap: 'wrap', gap: 8, background: darkMode ? '#1f2937' : '#f9fafb' }}>
         {!showReject ? (
           <>
-            <button type="button" className="btn" onClick={onSave} disabled={busy}>Save</button>
-            <button type="button" className="btn" onClick={onRejectClick} disabled={busy} style={{ borderColor: '#dc2626', color: '#dc2626' }}>Reject</button>
-            <button type="button" className="btn" onClick={onApproveClick} disabled={busy} style={{ marginLeft: 'auto', background: '#2563eb', color: '#fff', borderColor: '#2563eb' }}>Approve as Draft</button>
+            <button type="button" className="btn" onClick={onSave} disabled={busy} style={mobileHalfAction}>Save</button>
+            <button type="button" className="btn" onClick={onRejectClick} disabled={busy} style={{ ...mobileHalfAction, borderColor: '#dc2626', color: '#dc2626' }}>Reject</button>
+            <button type="button" className="btn" onClick={onApproveClick} disabled={busy} style={{ ...mobileFullAction, marginLeft: isMobile ? 0 : 'auto', background: '#2563eb', color: '#fff', borderColor: '#2563eb' }}>Approve as Draft</button>
             <button
               type="button"
               className="btn"
               onClick={onPublishClick}
               disabled={busy || !canPublish}
               title={canPublish ? 'Create a published event on the public site' : 'Fill all required publish fields first'}
-              style={{ background: canPublish ? '#16a34a' : undefined, color: canPublish ? '#fff' : undefined, borderColor: canPublish ? '#16a34a' : undefined }}
+              style={{ ...mobileFullAction, background: canPublish ? '#16a34a' : undefined, color: canPublish ? '#fff' : undefined, borderColor: canPublish ? '#16a34a' : undefined }}
             >
               Approve & Publish
             </button>
@@ -283,8 +285,8 @@ export default function CandidateDetailPanel({
         ) : (
           <>
             <p style={{ width: '100%', margin: 0, fontSize: 14 }}>Reject this candidate? Notes are optional.</p>
-            <button type="button" className="btn" onClick={onRejectCancel} disabled={busy}>Cancel</button>
-            <button type="button" className="btn" onClick={onRejectConfirm} disabled={busy} style={{ background: '#dc2626', color: '#fff', borderColor: '#dc2626' }}>Reject candidate</button>
+            <button type="button" className="btn" onClick={onRejectCancel} disabled={busy} style={mobileHalfAction}>Cancel</button>
+            <button type="button" className="btn" onClick={onRejectConfirm} disabled={busy} style={{ ...mobileHalfAction, background: '#dc2626', color: '#fff', borderColor: '#dc2626' }}>Reject candidate</button>
           </>
         )}
       </div>
