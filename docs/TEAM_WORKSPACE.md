@@ -122,6 +122,7 @@ Newest entries at the top.
 
 | Date | Role | Topic | Message | Action needed |
 |------|------|-------|---------|---------------|
+| 2026-06-29 | Dev | Events widget date/menu fixes | Hardened date state so the widget cannot render To before From, bounded From/To pickers with max/min constraints, and changed desktop filter menus to wrap-safe flex sizing so labels do not collide with chevrons. Source/public widget copies match and JS syntax checks pass. | Dave — hard-refresh events page after deploy |
 | 2026-06-29 | Dev | Admin mobile edit dialog | Removed the card-like edit dialog shell on phone layouts, reduced dialog/form padding, corrected the mobile sidebar offset, and stacked event edit form rows so fields use the available width without left-edge clipping. | Dave — verify event edit form on iPhone portrait |
 | 2026-06-29 | Dev | Admin mobile filter grid | Improved the Events mobile filter layout so controls use a two-column grid instead of full-width stacked bricks, with search/chips/custom date rows still spanning full width and a tighter Events toolbar header. | Dave — verify Events filter layout on iPhone portrait |
 | 2026-06-29 | Dev | Admin event edit validation | Made the event edit save control explicit (`Save`) and replaced alert-only validation with an inline error banner plus red field highlights for missing name, slug problems, date order, time order, and database save errors. | Dave — verify failed event saves show highlighted fields |
