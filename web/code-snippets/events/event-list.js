@@ -4813,9 +4813,15 @@
       #events-list .ssa-filter-menu .ssa-layout-btn.ssa-active,#events-list .ssa-filter-menu .ssa-group-btn.ssa-active,#events-list .ssa-filter-menu .ssa-keyword-btn.ssa-keyword-active{background:rgba(169,51,38,.08)!important;color:var(--ssa-accent)!important}
       @media(max-width:1280px){
         #events-list .ssa-compact-filter-shell{grid-template-columns:1fr}
+        #events-list .ssa-compact-filter-shell > .ssa-date-filters-section{grid-column:1;grid-row:1}
+        #events-list .ssa-compact-filter-shell > .ssa-view-controls-section{grid-column:1;grid-row:2}
+        #events-list .ssa-compact-filter-shell > .ssa-sticky-meta-stack{grid-column:1;grid-row:3}
       }
       @container (max-width:1280px){
         #events-list .ssa-compact-filter-shell{grid-template-columns:1fr}
+        #events-list .ssa-compact-filter-shell > .ssa-date-filters-section{grid-column:1;grid-row:1}
+        #events-list .ssa-compact-filter-shell > .ssa-view-controls-section{grid-column:1;grid-row:2}
+        #events-list .ssa-compact-filter-shell > .ssa-sticky-meta-stack{grid-column:1;grid-row:3}
       }
       @media(max-width:920px){
         #events-list .ssa-filter-toolbar{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
