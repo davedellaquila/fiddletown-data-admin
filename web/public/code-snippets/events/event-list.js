@@ -4966,16 +4966,33 @@
         }
         #events-list .ssa-compact-filter-shell .ssa-date-input{
           display:block!important;
+          inline-size:100%!important;
           width:100%!important;
           min-width:0!important;
           max-width:100%!important;
           min-inline-size:0!important;
           height:44px!important;
-          padding:0 9px!important;
+          padding:0 7px!important;
           box-sizing:border-box!important;
-          font-size:14px!important;
+          font-size:13px!important;
           line-height:1!important;
+          text-align:center!important;
           overflow:hidden!important;
+          -webkit-appearance:none!important;
+          appearance:none!important;
+        }
+        #events-list .ssa-compact-filter-shell .ssa-date-input::-webkit-date-and-time-value{
+          min-width:0!important;
+          width:100%!important;
+          margin:0!important;
+          text-align:center!important;
+        }
+        #events-list .ssa-compact-filter-shell .ssa-date-input::-webkit-calendar-picker-indicator{
+          display:none!important;
+          opacity:0!important;
+          width:0!important;
+          margin:0!important;
+          padding:0!important;
         }
         #events-list .ssa-compact-filter-shell .ssa-date-clear-btn{
           width:32px!important;
