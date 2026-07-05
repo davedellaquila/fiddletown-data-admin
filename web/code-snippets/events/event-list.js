@@ -4427,6 +4427,19 @@
       #events-list .ssa-compact-filter-shell > .ssa-sticky-control-section{position:static;min-width:0;max-width:100%;background:transparent!important;border:0!important;box-shadow:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
       #events-list .ssa-compact-filter-shell > .ssa-control-panel{margin:0;padding:0;max-width:none;width:100%;min-width:0;overflow:visible;background:transparent!important;border:0!important;box-shadow:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
       #events-list .ssa-compact-filter-shell .ssa-date-filters-section,#events-list .ssa-compact-filter-shell .ssa-view-controls-section{padding:0;background:transparent!important;border:0!important;box-shadow:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+      #events-list .ssa-compact-filter-shell > .ssa-sticky-control-section.ssa-is-stuck,
+      html.dark-mode #events-list .ssa-compact-filter-shell > .ssa-sticky-control-section,
+      html.dark-mode #events-list .ssa-compact-filter-shell > .ssa-sticky-control-section.ssa-is-stuck,
+      html.dark-mode #events-list .ssa-compact-filter-shell > .ssa-sticky-view-section,
+      body.dark-mode #events-list .ssa-compact-filter-shell > .ssa-sticky-control-section,
+      body.dark-mode #events-list .ssa-compact-filter-shell > .ssa-sticky-control-section.ssa-is-stuck,
+      body.dark-mode #events-list .ssa-compact-filter-shell > .ssa-sticky-view-section{
+        background:transparent!important;
+        border:0!important;
+        box-shadow:none!important;
+        backdrop-filter:none!important;
+        -webkit-backdrop-filter:none!important;
+      }
       #events-list .ssa-compact-filter-shell > .ssa-date-filters-section{order:1}
       #events-list .ssa-compact-filter-shell > .ssa-view-controls-section{order:2}
       #events-list .ssa-compact-filter-shell > .ssa-sticky-meta-stack{order:3}
