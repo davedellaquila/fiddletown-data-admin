@@ -4842,6 +4842,33 @@
         #events-list .ssa-compact-filter-shell > .ssa-view-controls-section{grid-column:1;grid-row:2}
         #events-list .ssa-compact-filter-shell > .ssa-sticky-meta-stack{grid-column:1;grid-row:3}
       }
+      @media(min-width:821px) and (max-width:1280px){
+        #events-list .ssa-compact-filter-shell{
+          padding:8px 12px 7px!important;
+          gap:6px!important;
+        }
+        #events-list .ssa-compact-filter-shell .ssa-date-filters{gap:4px!important}
+        #events-list .ssa-compact-filter-shell .ssa-date-labels-row{
+          grid-template-columns:minmax(0,1fr) minmax(0,1fr) 30px!important;
+          column-gap:8px!important;
+        }
+        #events-list .ssa-compact-filter-shell .ssa-date-inputs-row{column-gap:8px!important}
+        #events-list .ssa-compact-filter-shell .ssa-date-clear-btn{
+          width:30px!important;
+          min-width:30px!important;
+          height:22px!important;
+        }
+        #events-list .ssa-compact-filter-shell .ssa-filter-toolbar{gap:8px!important}
+        #events-list .ssa-compact-filter-shell .ssa-sticky-filter-summary{
+          padding:0!important;
+          gap:3px!important;
+        }
+        #events-list .ssa-compact-filter-shell .ssa-sticky-status{gap:8px!important}
+        #events-list .ssa-compact-filter-shell .ssa-selection-count{
+          margin-right:0!important;
+          padding-right:0!important;
+        }
+      }
       @container (max-width:1280px){
         #events-list .ssa-compact-filter-shell{grid-template-columns:1fr}
         #events-list .ssa-compact-filter-shell > .ssa-date-filters-section{grid-column:1;grid-row:1}
