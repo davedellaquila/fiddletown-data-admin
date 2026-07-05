@@ -4940,7 +4940,7 @@
         }
         #events-list .ssa-compact-filter-shell .ssa-date-labels-row{
           display:grid!important;
-          grid-template-columns:minmax(0,1fr) minmax(0,1fr) 32px!important;
+          grid-template-columns:minmax(0,1fr) minmax(0,1fr) 28px!important;
           column-gap:8px!important;
           width:100%!important;
           min-width:0!important;
@@ -4972,19 +4972,20 @@
           max-width:100%!important;
           min-inline-size:0!important;
           height:44px!important;
-          padding:0 7px!important;
+          min-height:44px!important;
+          padding:0 8px!important;
           box-sizing:border-box!important;
-          font-size:13px!important;
-          line-height:1!important;
+          font-size:15px!important;
+          line-height:44px!important;
           text-align:center!important;
           overflow:hidden!important;
-          -webkit-appearance:none!important;
-          appearance:none!important;
         }
         #events-list .ssa-compact-filter-shell .ssa-date-input::-webkit-date-and-time-value{
           min-width:0!important;
           width:100%!important;
           margin:0!important;
+          padding:0!important;
+          line-height:44px!important;
           text-align:center!important;
         }
         #events-list .ssa-compact-filter-shell .ssa-date-input::-webkit-calendar-picker-indicator{
@@ -4995,11 +4996,16 @@
           padding:0!important;
         }
         #events-list .ssa-compact-filter-shell .ssa-date-clear-btn{
-          width:32px!important;
-          min-width:32px!important;
+          width:28px!important;
+          min-width:28px!important;
           height:24px!important;
           justify-self:center!important;
           align-self:center!important;
+        }
+        #events-list .ssa-compact-filter-shell .ssa-date-clear-btn::before{
+          width:20px!important;
+          height:20px!important;
+          font-size:16px!important;
         }
         #events-list .ssa-compact-filter-shell .ssa-view-controls-section{
           display:block!important;
@@ -5061,13 +5067,17 @@
       @media(max-width:420px){
         #events-list .ssa-compact-filter-shell{padding:9px!important}
         #events-list .ssa-compact-filter-shell .ssa-date-labels-row{
-          grid-template-columns:minmax(0,1fr) minmax(0,1fr) 30px!important;
+          grid-template-columns:minmax(0,1fr) minmax(0,1fr) 28px!important;
           column-gap:6px!important;
         }
         #events-list .ssa-compact-filter-shell .ssa-date-inputs-row{column-gap:6px!important}
         #events-list .ssa-compact-filter-shell .ssa-date-input{
-          font-size:13px!important;
-          padding:0 7px!important;
+          font-size:14px!important;
+          line-height:44px!important;
+          padding:0 6px!important;
+        }
+        #events-list .ssa-compact-filter-shell .ssa-date-input::-webkit-date-and-time-value{
+          line-height:44px!important;
         }
         #events-list .ssa-compact-filter-shell .ssa-filter-toolbar{gap:7px!important}
         #events-list .ssa-compact-filter-shell .ssa-filter-menu summary{
