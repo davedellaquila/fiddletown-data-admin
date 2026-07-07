@@ -1740,11 +1740,11 @@
     dateControlsHTML += '<div class="ssa-date-labels-row">';
     dateControlsHTML += '<span class="ssa-date-label">From</span>';
     dateControlsHTML += '<span class="ssa-date-label">To</span>';
-    dateControlsHTML += `<button type="button" class="ssa-date-clear-btn ssa-clear-to-date" title="Clear To date and edit From date" aria-label="Clear To date and edit From date"></button>`;
     dateControlsHTML += '</div>';
     dateControlsHTML += '<div class="ssa-date-inputs-row">';
     dateControlsHTML += `<input type="date" class="ssa-date-input ssa-from-date-input" id="ssa-from-date" aria-label="From date" value="${fromDate || ''}" max="${toDate || ''}">`;
     dateControlsHTML += `<input type="date" class="ssa-date-input ssa-to-date-input" id="ssa-to-date" aria-label="To date" value="${toDate || ''}" min="${fromDate || ''}" placeholder="Open">`;
+    dateControlsHTML += `<button type="button" class="ssa-date-clear-btn ssa-clear-to-date" title="Clear To date and edit From date" aria-label="Clear To date and edit From date"></button>`;
     dateControlsHTML += '</div>';
     dateControlsHTML += '</div>';
     dateControlsHTML += '</section>';
@@ -4444,9 +4444,9 @@
       #events-list .ssa-compact-filter-shell > .ssa-view-controls-section{order:2}
       #events-list .ssa-compact-filter-shell > .ssa-sticky-meta-stack{order:3}
       #events-list .ssa-date-filters{display:flex;flex-direction:column;align-items:stretch;gap:8px;justify-content:flex-start}
-      #events-list .ssa-date-labels-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 58px;gap:16px;align-items:center;width:100%}
+      #events-list .ssa-date-labels-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:center;width:100%}
       #events-list .ssa-date-label{display:block;padding-left:2px;color:var(--ssa-muted)!important;font-size:17px;font-weight:700;line-height:1.2}
-      #events-list .ssa-date-inputs-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:flex-end;width:100%;min-width:0}
+      #events-list .ssa-date-inputs-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 58px;gap:16px;align-items:center;width:100%;min-width:0}
       #events-list .ssa-date-input{width:190px;height:58px;padding:0 14px;background:var(--ssa-surface-soft)!important;border:1px solid var(--ssa-control-border)!important;border-radius:10px;color:var(--ssa-text)!important;font-size:19px;font-weight:700;box-shadow:0 1px 0 rgba(255,255,255,.35) inset!important}
       html.dark-mode #events-list .ssa-sticky-control-section .ssa-date-input,body.dark-mode #events-list .ssa-sticky-control-section .ssa-date-input{box-shadow:0 1px 0 rgba(255,255,255,.06) inset,0 2px 10px rgba(0,0,0,.22)!important}
       #events-list button{font-family:var(--ssa-font);letter-spacing:0}
@@ -4645,8 +4645,8 @@
         #events-list .ssa-sticky-view-section{top:calc(var(--ssa-sticky-date-height,150px) + 8px)}
         #events-list .ssa-sticky-keyword-section{top:calc(var(--ssa-sticky-date-height,150px) + var(--ssa-sticky-view-height,96px) + 16px)}
         #events-list .ssa-date-filters{display:flex;flex-direction:column;gap:8px;align-items:stretch;width:100%}
-        #events-list .ssa-date-labels-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 44px;column-gap:16px}
-        #events-list .ssa-date-inputs-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:16px;width:100%;min-width:0}
+        #events-list .ssa-date-labels-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:16px}
+        #events-list .ssa-date-inputs-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 44px;column-gap:16px;width:100%;min-width:0}
         #events-list .ssa-date-label{min-width:0;width:100%;font-size:17px}
         #events-list .ssa-date-input{width:100%;min-width:0}
         #events-list .ssa-weekend-btn{width:100%;min-width:0;height:58px;padding:0 18px}
@@ -4665,8 +4665,8 @@
         #events-list .ssa-compact-filter-shell > .ssa-control-panel{max-width:none;width:100%;min-width:0;margin:0;overflow:visible}
         #events-list .ssa-compact-filter-shell .ssa-date-filters-section,#events-list .ssa-compact-filter-shell .ssa-view-controls-section{padding:0}
         #events-list .ssa-compact-filter-shell .ssa-date-filters{display:flex;flex-direction:column;gap:6px;width:100%}
-        #events-list .ssa-compact-filter-shell .ssa-date-labels-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 40px;column-gap:14px}
-        #events-list .ssa-compact-filter-shell .ssa-date-inputs-row{grid-column:auto;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:14px;align-items:end;width:100%;min-width:0;overflow:visible}
+        #events-list .ssa-compact-filter-shell .ssa-date-labels-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:14px}
+        #events-list .ssa-compact-filter-shell .ssa-date-inputs-row{grid-column:auto;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 40px;column-gap:14px;align-items:center;width:100%;min-width:0;overflow:visible}
         #events-list .ssa-compact-filter-shell .ssa-date-inputs-row > *{min-width:0}
         #events-list .ssa-compact-filter-shell .ssa-date-label{min-width:0;width:100%;overflow:visible;margin:0;padding-left:1px;font-size:13px;line-height:1.15}
         #events-list .ssa-compact-filter-shell .ssa-date-clear-btn{width:40px;min-width:40px;height:24px;align-self:center;justify-self:center}
@@ -4715,8 +4715,8 @@
         #events-list .ssa-controls-heading h2{font-size:24px;line-height:1.12}
         #events-list .ssa-controls-heading p{font-size:15px;line-height:1.35}
         #events-list .ssa-date-filters{display:flex;flex-direction:column;gap:7px;width:100%;align-items:stretch}
-        #events-list .ssa-date-labels-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 46px;column-gap:10px}
-        #events-list .ssa-date-inputs-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:10px;width:100%;min-width:0}
+        #events-list .ssa-date-labels-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:10px}
+        #events-list .ssa-date-inputs-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 46px;column-gap:10px;width:100%;min-width:0}
         #events-list .ssa-date-label{min-width:0;font-size:13px;line-height:1.2}
         #events-list .ssa-date-input{width:100%;min-width:0;height:48px;font-size:15px;padding:0 10px;-webkit-appearance:none;appearance:none}
         #events-list .ssa-date-clear-btn{width:46px;height:26px;align-self:center;justify-self:center}
@@ -4808,8 +4808,8 @@
         #events-list{padding:22px 10px}
         #events-list .ssa-page-intro h1{font-size:29px}
         #events-list .ssa-controls{padding:18px 14px}
-        #events-list .ssa-date-labels-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 38px;column-gap:8px}
-        #events-list .ssa-date-inputs-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:8px}
+        #events-list .ssa-date-labels-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:8px}
+        #events-list .ssa-date-inputs-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 38px;column-gap:8px}
         #events-list .ssa-date-input{height:46px;font-size:13.5px;padding:0 8px}
         #events-list .ssa-date-clear-btn{width:38px;height:24px;justify-self:center}
         #events-list .ssa-weekend-btn{height:44px;font-size:10.5px;padding:0 3px}
@@ -4820,7 +4820,7 @@
       @media(max-width:360px){
         #events-list .ssa-layout-switcher{gap:6px}
         #events-list .ssa-layout-btn{font-size:12px;padding:0 6px}
-        #events-list .ssa-date-labels-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 38px;column-gap:6px}
+        #events-list .ssa-date-labels-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:6px}
         #events-list .ssa-weekend-btn{font-size:10px}
         #events-list .ssa-clear-dates{width:38px}
         #events-list .ssa-display-options-switcher,#events-list .ssa-group-switcher{grid-template-columns:1fr}
@@ -4849,10 +4849,13 @@
         }
         #events-list .ssa-compact-filter-shell .ssa-date-filters{gap:4px!important}
         #events-list .ssa-compact-filter-shell .ssa-date-labels-row{
+          grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;
+          column-gap:8px!important;
+        }
+        #events-list .ssa-compact-filter-shell .ssa-date-inputs-row{
           grid-template-columns:minmax(0,1fr) minmax(0,1fr) 30px!important;
           column-gap:8px!important;
         }
-        #events-list .ssa-compact-filter-shell .ssa-date-inputs-row{column-gap:8px!important}
         #events-list .ssa-compact-filter-shell .ssa-date-clear-btn{
           width:30px!important;
           min-width:30px!important;
@@ -4940,7 +4943,7 @@
         }
         #events-list .ssa-compact-filter-shell .ssa-date-labels-row{
           display:grid!important;
-          grid-template-columns:minmax(0,1fr) minmax(0,1fr) 28px!important;
+          grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;
           column-gap:8px!important;
           width:100%!important;
           min-width:0!important;
@@ -4950,7 +4953,7 @@
         }
         #events-list .ssa-compact-filter-shell .ssa-date-inputs-row{
           display:grid!important;
-          grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;
+          grid-template-columns:minmax(0,1fr) minmax(0,1fr) 28px!important;
           column-gap:8px!important;
           width:100%!important;
           min-width:0!important;
@@ -5067,10 +5070,13 @@
       @media(max-width:420px){
         #events-list .ssa-compact-filter-shell{padding:9px!important}
         #events-list .ssa-compact-filter-shell .ssa-date-labels-row{
+          grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;
+          column-gap:6px!important;
+        }
+        #events-list .ssa-compact-filter-shell .ssa-date-inputs-row{
           grid-template-columns:minmax(0,1fr) minmax(0,1fr) 28px!important;
           column-gap:6px!important;
         }
-        #events-list .ssa-compact-filter-shell .ssa-date-inputs-row{column-gap:6px!important}
         #events-list .ssa-compact-filter-shell .ssa-date-input{
           font-size:14px!important;
           line-height:44px!important;
