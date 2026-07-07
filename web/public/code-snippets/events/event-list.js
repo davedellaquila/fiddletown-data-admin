@@ -2012,24 +2012,46 @@
       }
       scrollToResultsStart(mount);
     };
+    let scheduledDateRerender = null;
+    const scheduleDateInputRerender = nextState => {
+      if (scheduledDateRerender) {
+        window.clearTimeout(scheduledDateRerender);
+      }
+      scheduledDateRerender = window.setTimeout(async () => {
+        scheduledDateRerender = null;
+        await rerenderForDateChange(nextState);
+      }, 250);
+    };
+    const runDateInputRerenderNow = async nextState => {
+      if (scheduledDateRerender) {
+        window.clearTimeout(scheduledDateRerender);
+        scheduledDateRerender = null;
+      }
+      await rerenderForDateChange(nextState);
+    };
     
     const syncFromDateInput = input => applyDateStateToInputs({ ...getState(), fromDate: input.value || null }, 'from');
+    const syncToDateInput = input => applyDateStateToInputs({ ...getState(), toDate: input.value || null }, 'to');
 
     fromInputs.forEach(input => {
       input.addEventListener('input', function() {
-        commitState(syncFromDateInput(this));
+        const newState = commitState(syncFromDateInput(this));
+        scheduleDateInputRerender(newState);
       });
       input.addEventListener('change', async function() {
         const newState = commitState(syncFromDateInput(this));
-        await rerenderForDateChange(newState);
+        await runDateInputRerenderNow(newState);
       });
     });
     
     toInputs.forEach(input => {
+      input.addEventListener('input', function() {
+        const newState = commitState(syncToDateInput(this));
+        scheduleDateInputRerender(newState);
+      });
       input.addEventListener('change', async function() {
-        const newToDate = this.value || null;
-        const newState = commitState(applyDateStateToInputs({ ...getState(), toDate: newToDate }, 'to'));
-        await rerenderForDateChange(newState);
+        const newState = commitState(syncToDateInput(this));
+        await runDateInputRerenderNow(newState);
       });
     });
     
