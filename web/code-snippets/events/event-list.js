@@ -1970,6 +1970,26 @@
       setToInputs('');
       setFromInputMaxes('');
     };
+    let lastClearToDateAt = 0;
+    const clearToDateAndRerender = async event => {
+      if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+      const now = Date.now();
+      if (now - lastClearToDateAt < 350) return;
+      lastClearToDateAt = now;
+
+      forceClearToDateInputs();
+      const nextState = applyDateStateToInputs({ ...getState(), toDate: null });
+      nextState.toDate = null;
+      forceClearToDateInputs();
+      const newState = commitState(nextState);
+      await rerenderForDateChange(newState);
+      mount.querySelectorAll('.ssa-to-date-input').forEach(input => { input.value = ''; });
+      mount.querySelectorAll('.ssa-from-date-input').forEach(input => { input.removeAttribute('max'); });
+      window.setTimeout(openFromDatePicker, 0);
+    };
     const openFromDatePicker = () => {
       const nextFromInput = mount.querySelector('.ssa-from-date-input');
       if (!nextFromInput) return;
@@ -2014,24 +2034,18 @@
     });
     
     mount.querySelectorAll('.ssa-clear-to-date').forEach(clearToDateBtn => {
-      clearToDateBtn.addEventListener('click', async function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        const currentState = getState();
-        forceClearToDateInputs();
-        const newState = commitState(applyDateStateToInputs({ ...currentState, toDate: null }));
-        await rerenderForDateChange(newState);
-        mount.querySelectorAll('.ssa-to-date-input').forEach(input => { input.value = ''; });
-        mount.querySelectorAll('.ssa-from-date-input').forEach(input => { input.removeAttribute('max'); });
-        openFromDatePicker();
-      });
+      clearToDateBtn.addEventListener('pointerup', clearToDateAndRerender);
+      clearToDateBtn.addEventListener('touchend', clearToDateAndRerender);
+      clearToDateBtn.addEventListener('click', clearToDateAndRerender);
     });
     
     mount.querySelectorAll('.ssa-clear-dates').forEach(clearDatesBtn => {
       clearDatesBtn.addEventListener('click', async function(e) {
         e.preventDefault();
         forceClearToDateInputs();
-        const newState = commitState(applyDateStateToInputs({ ...getState(), toDate: null, selectedKeywords: [] }));
+        const nextState = applyDateStateToInputs({ ...getState(), toDate: null, selectedKeywords: [] });
+        nextState.toDate = null;
+        const newState = commitState(nextState);
         await rerenderForDateChange(newState);
         mount.querySelectorAll('.ssa-to-date-input').forEach(input => { input.value = ''; });
         mount.querySelectorAll('.ssa-from-date-input').forEach(input => { input.removeAttribute('max'); });
@@ -4451,8 +4465,8 @@
       html.dark-mode #events-list .ssa-sticky-control-section .ssa-date-input,body.dark-mode #events-list .ssa-sticky-control-section .ssa-date-input{box-shadow:0 1px 0 rgba(255,255,255,.06) inset,0 2px 10px rgba(0,0,0,.22)!important}
       #events-list button{font-family:var(--ssa-font);letter-spacing:0}
       #events-list .ssa-weekend-btn,#events-list .ssa-clear-dates,#events-list .ssa-date-clear-btn,#events-list .ssa-layout-btn,#events-list .ssa-group-btn,#events-list .ssa-show-images-toggle,#events-list .ssa-signature-events-toggle,#events-list .ssa-dark-mode-toggle,#events-list .ssa-keyword-btn{height:52px;padding:0 22px;display:inline-flex;align-items:center;justify-content:center;background:var(--ssa-surface)!important;border:1px solid var(--ssa-border-soft)!important;border-radius:10px;color:var(--ssa-muted)!important;font-size:20px;font-weight:700;line-height:1;box-shadow:none!important;transform:none!important;white-space:nowrap}
-      #events-list .ssa-date-clear-btn{width:58px;height:32px;padding:0;border-color:transparent!important;border-radius:999px;background:transparent!important;font-size:0;color:transparent!important;align-self:center;justify-self:center}
-      #events-list .ssa-date-clear-btn::before{content:'×';display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:999px;border:1px solid currentColor;color:var(--ssa-muted)!important;font-size:18px;font-weight:800;line-height:1;transition:transform .22s ease,border-color .22s ease,color .22s ease,box-shadow .22s ease}
+      #events-list .ssa-date-clear-btn{position:relative;z-index:3;width:58px;height:32px;padding:0;border-color:transparent!important;border-radius:999px;background:transparent!important;font-size:0;color:transparent!important;align-self:center;justify-self:center;pointer-events:auto!important;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+      #events-list .ssa-date-clear-btn::before{content:'×';display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:999px;border:1px solid currentColor;color:var(--ssa-muted)!important;font-size:18px;font-weight:800;line-height:1;pointer-events:none;transition:transform .22s ease,border-color .22s ease,color .22s ease,box-shadow .22s ease}
       #events-list .ssa-dark-mode-toggle{width:auto!important;flex:0 0 auto;height:36px;min-width:92px;padding:0 10px 0 8px;gap:7px;border-radius:999px;background:var(--ssa-surface-soft)!important;color:var(--ssa-text)!important;font-size:13px;font-weight:800;text-transform:none}
       #events-list .ssa-theme-icon{position:relative;width:20px;min-width:20px;height:20px;flex:0 0 20px;display:inline-flex!important;align-items:center;justify-content:center;border-radius:999px;background:var(--ssa-accent)!important;box-shadow:inset -5px 0 0 rgba(0,0,0,.18)}
       #events-list .ssa-theme-icon::after{content:'';width:6px;height:6px;border-radius:999px;background:var(--ssa-surface)!important;box-shadow:6px 3px 0 -1px var(--ssa-surface),2px 8px 0 -2px var(--ssa-surface)}
@@ -4999,11 +5013,18 @@
           padding:0!important;
         }
         #events-list .ssa-compact-filter-shell .ssa-date-clear-btn{
+          display:inline-flex!important;
+          grid-column:3!important;
+          grid-row:1!important;
           width:28px!important;
           min-width:28px!important;
+          max-width:28px!important;
           height:24px!important;
+          min-height:24px!important;
           justify-self:center!important;
           align-self:center!important;
+          pointer-events:auto!important;
+          z-index:4!important;
         }
         #events-list .ssa-compact-filter-shell .ssa-date-clear-btn::before{
           width:20px!important;
