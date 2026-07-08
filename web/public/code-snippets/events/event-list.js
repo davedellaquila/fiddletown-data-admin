@@ -1851,6 +1851,13 @@
       mount._currentState = nextState
       return nextState
     }
+    let scheduledDateRerender = null;
+    const cancelScheduledDateRerender = () => {
+      if (scheduledDateRerender) {
+        window.clearTimeout(scheduledDateRerender);
+        scheduledDateRerender = null;
+      }
+    };
 
     mount.querySelectorAll('.ssa-filter-menu').forEach(menu => {
       menu.addEventListener('toggle', function() {
@@ -1871,8 +1878,9 @@
     // Layout switcher
     mount.querySelectorAll('.ssa-layout-btn').forEach(btn => {
       btn.addEventListener('click', async function() {
+        cancelScheduledDateRerender();
         const newLayout = this.dataset.layout;
-        const nextState = { ...state, layout: newLayout };
+        const nextState = commitState({ ...getState(), layout: newLayout });
         await renderEvents(mount, rows, nextState);
         if (newLayout === LAYOUTS.CALENDAR) {
           scrollToCalendarFromMonth(mount, nextState);
@@ -1883,15 +1891,19 @@
     // Group switcher
     mount.querySelectorAll('.ssa-group-btn').forEach(btn => {
       btn.addEventListener('click', async function() {
+        cancelScheduledDateRerender();
         const newGroupBy = this.dataset.group;
-        await renderEvents(mount, rows, { ...state, groupBy: newGroupBy });
+        const nextState = commitState({ ...getState(), groupBy: newGroupBy });
+        await renderEvents(mount, rows, nextState);
       });
     });
 
     mount.querySelectorAll('.ssa-sticky-layout-cycle').forEach(btn => {
       btn.addEventListener('click', async function() {
-        const newLayout = getNextLayout(state.layout || LAYOUTS.LIST);
-        const nextState = { ...state, layout: newLayout };
+        cancelScheduledDateRerender();
+        const currentState = getState();
+        const newLayout = getNextLayout(currentState.layout || LAYOUTS.LIST);
+        const nextState = commitState({ ...currentState, layout: newLayout });
         await renderEvents(mount, rows, nextState);
         if (newLayout === LAYOUTS.CALENDAR) {
           scrollToCalendarFromMonth(mount, nextState);
@@ -1901,8 +1913,11 @@
 
     mount.querySelectorAll('.ssa-sticky-group-cycle').forEach(btn => {
       btn.addEventListener('click', async function() {
-        const newGroupBy = (state.groupBy || 'day') === 'day' ? 'month' : 'day';
-        await renderEvents(mount, rows, { ...state, groupBy: newGroupBy });
+        cancelScheduledDateRerender();
+        const currentState = getState();
+        const newGroupBy = (currentState.groupBy || 'day') === 'day' ? 'month' : 'day';
+        const nextState = commitState({ ...currentState, groupBy: newGroupBy });
+        await renderEvents(mount, rows, nextState);
       });
     });
     
@@ -2019,23 +2034,21 @@
       } else {
         await renderEvents(mount, sourceRows, newState);
       }
-      scrollToResultsStart(mount);
-    };
-    let scheduledDateRerender = null;
-    const scheduleDateInputRerender = nextState => {
-      if (scheduledDateRerender) {
-        window.clearTimeout(scheduledDateRerender);
+      if (newState && newState.layout === LAYOUTS.CALENDAR) {
+        scrollToCalendarFromMonth(mount, newState);
+      } else {
+        scrollToResultsStart(mount);
       }
+    };
+    const scheduleDateInputRerender = nextState => {
+      cancelScheduledDateRerender();
       scheduledDateRerender = window.setTimeout(async () => {
         scheduledDateRerender = null;
         await rerenderForDateChange(nextState);
       }, 250);
     };
     const runDateInputRerenderNow = async nextState => {
-      if (scheduledDateRerender) {
-        window.clearTimeout(scheduledDateRerender);
-        scheduledDateRerender = null;
-      }
+      cancelScheduledDateRerender();
       await rerenderForDateChange(nextState);
     };
     
@@ -5246,7 +5259,9 @@
 
   function scrollToCalendarFromMonth(mount, state) {
     if (!mount) return;
-    const fromDate = normalizeDateString(state && state.fromDate);
+    const visibleFromInput = mount.querySelector('.ssa-from-date-input');
+    const visibleFromDate = normalizeDateString(visibleFromInput && visibleFromInput.value);
+    const fromDate = visibleFromDate || normalizeDateString(state && state.fromDate);
     const monthKey = fromDate ? fromDate.slice(0, 7) : null;
     const target = monthKey
       ? mount.querySelector(`.ssa-calendar-container[data-calendar-month="${monthKey}"]`)
@@ -5257,13 +5272,20 @@
       return;
     }
 
-    const stickyShell = mount.querySelector('.ssa-compact-filter-shell');
-    const stickyOffset = stickyShell ? Math.min(stickyShell.getBoundingClientRect().height || 0, 260) : 0;
-    const top = target.getBoundingClientRect().top + window.scrollY - stickyOffset - 14;
-    window.requestAnimationFrame(() => {
+    const scrollToTarget = () => {
+      const stickyShell = mount.querySelector('.ssa-compact-filter-shell');
+      const stickyOffset = stickyShell ? Math.min(stickyShell.getBoundingClientRect().height || 0, 260) : 0;
+      const top = target.getBoundingClientRect().top + window.scrollY - stickyOffset - 14;
       window.scrollTo({
         top: Math.max(top, 0),
-        behavior: 'smooth'
+        behavior: 'auto'
+      });
+    };
+
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        scrollToTarget();
+        window.setTimeout(scrollToTarget, 80);
       });
     });
   }
