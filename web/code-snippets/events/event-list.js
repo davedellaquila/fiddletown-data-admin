@@ -1564,8 +1564,8 @@
       }
     });
 
-    let firstMonthDate = firstEventDate;
-    let lastMonthDate = lastEventDate;
+    let firstMonthDate = rangeStart || firstEventDate;
+    let lastMonthDate = lastEventDate || rangeEnd || firstMonthDate;
 
     if (!firstMonthDate || !lastMonthDate) {
       if (rangeStart) {
@@ -1598,7 +1598,8 @@
       const startingDayOfWeek = firstDay.getDay(); // 0 = Sunday, 6 = Saturday
 
       const monthName = displayDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-      let html = `<div class="ssa-calendar-container">`;
+      const monthKey = `${year}-${String(month + 1).padStart(2, '0')}`;
+      let html = `<div class="ssa-calendar-container" data-calendar-month="${monthKey}">`;
       html += `<h3 class="ssa-calendar-month-header">${monthName}</h3>`;
       html += `<div class="ssa-calendar-grid">`;
 
@@ -1871,7 +1872,11 @@
     mount.querySelectorAll('.ssa-layout-btn').forEach(btn => {
       btn.addEventListener('click', async function() {
         const newLayout = this.dataset.layout;
-        await renderEvents(mount, rows, { ...state, layout: newLayout });
+        const nextState = { ...state, layout: newLayout };
+        await renderEvents(mount, rows, nextState);
+        if (newLayout === LAYOUTS.CALENDAR) {
+          scrollToCalendarFromMonth(mount, nextState);
+        }
       });
     });
     
@@ -1886,7 +1891,11 @@
     mount.querySelectorAll('.ssa-sticky-layout-cycle').forEach(btn => {
       btn.addEventListener('click', async function() {
         const newLayout = getNextLayout(state.layout || LAYOUTS.LIST);
-        await renderEvents(mount, rows, { ...state, layout: newLayout });
+        const nextState = { ...state, layout: newLayout };
+        await renderEvents(mount, rows, nextState);
+        if (newLayout === LAYOUTS.CALENDAR) {
+          scrollToCalendarFromMonth(mount, nextState);
+        }
       });
     });
 
@@ -5224,6 +5233,30 @@
     if (!mount) return;
     const target = mount.querySelector('.ssa-list-date-anchor, .ssa-events-list, .ssa-grid, .ssa-calendar-container, .ssa-empty');
     if (!target) return;
+    const stickyShell = mount.querySelector('.ssa-compact-filter-shell');
+    const stickyOffset = stickyShell ? Math.min(stickyShell.getBoundingClientRect().height || 0, 260) : 0;
+    const top = target.getBoundingClientRect().top + window.scrollY - stickyOffset - 14;
+    window.requestAnimationFrame(() => {
+      window.scrollTo({
+        top: Math.max(top, 0),
+        behavior: 'smooth'
+      });
+    });
+  }
+
+  function scrollToCalendarFromMonth(mount, state) {
+    if (!mount) return;
+    const fromDate = normalizeDateString(state && state.fromDate);
+    const monthKey = fromDate ? fromDate.slice(0, 7) : null;
+    const target = monthKey
+      ? mount.querySelector(`.ssa-calendar-container[data-calendar-month="${monthKey}"]`)
+      : mount.querySelector('.ssa-calendar-container');
+
+    if (!target) {
+      scrollToResultsStart(mount);
+      return;
+    }
+
     const stickyShell = mount.querySelector('.ssa-compact-filter-shell');
     const stickyOffset = stickyShell ? Math.min(stickyShell.getBoundingClientRect().height || 0, 260) : 0;
     const top = target.getBoundingClientRect().top + window.scrollY - stickyOffset - 14;
