@@ -411,7 +411,7 @@
       return {
         ...state,
         fromDate: normalizedFrom,
-        toDate: changedField === 'from' ? null : normalizedFrom
+        toDate: normalizedFrom
       };
     }
     return {
@@ -1743,7 +1743,7 @@
     dateControlsHTML += '<span class="ssa-date-label">To</span>';
     dateControlsHTML += '</div>';
     dateControlsHTML += '<div class="ssa-date-inputs-row">';
-    dateControlsHTML += `<input type="date" class="ssa-date-input ssa-from-date-input" id="ssa-from-date" aria-label="From date" value="${fromDate || ''}" max="${toDate || ''}">`;
+    dateControlsHTML += `<input type="date" class="ssa-date-input ssa-from-date-input" id="ssa-from-date" aria-label="From date" value="${fromDate || ''}">`;
     dateControlsHTML += `<input type="date" class="ssa-date-input ssa-to-date-input" id="ssa-to-date" aria-label="To date" value="${toDate || ''}" min="${fromDate || ''}" placeholder="Open">`;
     dateControlsHTML += `<button type="button" class="ssa-date-clear-btn ssa-clear-to-date" title="Clear To date and edit From date" aria-label="Clear To date and edit From date"></button>`;
     dateControlsHTML += '</div>';
@@ -1986,7 +1986,7 @@
       const normalizedState = normalizeWidgetDateState(nextState, changedField);
       setFromInputs(normalizedState.fromDate);
       setToInputs(normalizedState.toDate);
-      setFromInputMaxes(normalizedState.toDate);
+      setFromInputMaxes('');
       setToInputMins(normalizedState.fromDate);
       return normalizedState;
     };
@@ -2012,7 +2012,6 @@
       await rerenderForDateChange(newState);
       mount.querySelectorAll('.ssa-to-date-input').forEach(input => { input.value = ''; });
       mount.querySelectorAll('.ssa-from-date-input').forEach(input => { input.removeAttribute('max'); });
-      window.setTimeout(openFromDatePicker, 0);
     };
     const openFromDatePicker = () => {
       const nextFromInput = mount.querySelector('.ssa-from-date-input');
