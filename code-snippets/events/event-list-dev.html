@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Events List - Development</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #f9fafb;
+      transition: background-color 0.3s, color 0.3s;
+    }
+    body.dark-mode {
+      background: #111827;
+      color: #f9fafb;
+    }
+    h1 {
+      color: #1f2937;
+      margin-bottom: 20px;
+      transition: color 0.3s;
+    }
+    body.dark-mode h1 {
+      color: #f9fafb;
+    }
+    .dev-info {
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 20px;
+      font-size: 14px;
+      color: #6b7280;
+      transition: background-color 0.3s, border-color 0.3s, color 0.3s;
+    }
+    body.dark-mode .dev-info {
+      background: #1f2937;
+      border-color: #374151;
+      color: #d1d5db;
+    }
+    .dev-info code {
+      background: #f3f4f6;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 12px;
+      transition: background-color 0.3s, color 0.3s;
+    }
+    body.dark-mode .dev-info code {
+      background: #374151;
+      color: #f9fafb;
+    }
+    /* Dark mode styles for the widget */
+    body.dark-mode #events-list {
+      --ssa-bg: #1f2937;
+      --ssa-text: #f9fafb;
+      --ssa-border: #374151;
+      --ssa-control-bg: #374151;
+      --ssa-control-border: #4b5563;
+      --ssa-card-bg: #374151;
+      --ssa-header-bg: #374151;
+    }
+    body.dark-mode .ssa-controls {
+      background: transparent !important;
+      border-bottom-color: var(--ssa-border, #374151) !important;
+    }
+    body.dark-mode .ssa-layout-btn,
+    body.dark-mode .ssa-group-btn,
+    body.dark-mode .ssa-keyword-btn,
+    body.dark-mode .ssa-weekend-btn,
+    body.dark-mode .ssa-clear-dates {
+      background: var(--ssa-control-bg, #374151) !important;
+      border-color: var(--ssa-control-border, #4b5563) !important;
+      color: var(--ssa-text, #f9fafb) !important;
+    }
+    body.dark-mode .ssa-layout-btn:hover,
+    body.dark-mode .ssa-group-btn:hover,
+    body.dark-mode .ssa-keyword-btn:hover,
+    body.dark-mode .ssa-weekend-btn:hover,
+    body.dark-mode .ssa-clear-dates:hover {
+      background: #4b5563 !important;
+      border-color: #6b7280 !important;
+    }
+    body.dark-mode .ssa-keyword-filters {
+      background: transparent !important;
+    }
+    body.dark-mode .ssa-keyword-active {
+      background: transparent !important;
+      border-color: #3b82f6 !important;
+      color: #3b82f6 !important;
+    }
+    body.dark-mode .ssa-keyword-active:hover {
+      background: transparent !important;
+      border-color: #60a5fa !important;
+      color: #60a5fa !important;
+    }
+    body.dark-mode .ssa-layout-btn.ssa-active {
+      background: transparent !important;
+      border-color: #3b82f6 !important;
+      color: #3b82f6 !important;
+    }
+    body.dark-mode .ssa-layout-btn.ssa-active:hover {
+      background: transparent !important;
+      border-color: #60a5fa !important;
+      color: #60a5fa !important;
+    }
+    body.dark-mode .ssa-group-btn.ssa-active {
+      background: transparent !important;
+      border-color: #3b82f6 !important;
+      color: #3b82f6 !important;
+    }
+    body.dark-mode .ssa-group-btn.ssa-active:hover {
+      background: transparent !important;
+      border-color: #60a5fa !important;
+      color: #60a5fa !important;
+    }
+    body.dark-mode .ssa-keyword-tag-clickable {
+      background: transparent !important;
+      border-color: #4b5563 !important;
+      color: #9ca3af !important;
+    }
+    body.dark-mode .ssa-keyword-tag-clickable:hover {
+      background: transparent !important;
+      border-color: #6b7280 !important;
+      color: #d1d5db !important;
+    }
+    body.dark-mode .ssa-keyword-tag-clickable.ssa-keyword-tag-active {
+      background: transparent !important;
+      border-color: #3b82f6 !important;
+      color: #3b82f6 !important;
+    }
+    body.dark-mode .ssa-keyword-tag-clickable.ssa-keyword-tag-active:hover {
+      background: transparent !important;
+      border-color: #60a5fa !important;
+      color: #60a5fa !important;
+    }
+    body.dark-mode .ssa-tag-clickable {
+      background: transparent !important;
+      border-color: #4b5563 !important;
+      color: #9ca3af !important;
+    }
+    body.dark-mode .ssa-tag-clickable:hover {
+      background: transparent !important;
+      border-color: #6b7280 !important;
+      color: #d1d5db !important;
+    }
+    body.dark-mode .ssa-tag-clickable.ssa-tag-active {
+      background: transparent !important;
+      border-color: #3b82f6 !important;
+      color: #3b82f6 !important;
+    }
+    body.dark-mode .ssa-tag-clickable.ssa-tag-active:hover {
+      background: transparent !important;
+      border-color: #60a5fa !important;
+      color: #60a5fa !important;
+    }
+    body.dark-mode .ssa-date-input {
+      background: var(--ssa-control-bg, #374151) !important;
+      border-color: var(--ssa-control-border, #4b5563) !important;
+      color: var(--ssa-text, #f9fafb) !important;
+    }
+    body.dark-mode .ssa-date-filters label {
+      color: var(--ssa-text, #f9fafb) !important;
+    }
+    body.dark-mode .ssa-month-header,
+    body.dark-mode .ssa-day-header,
+    body.dark-mode .ssa-calendar-month-header {
+      color: var(--ssa-text, #f9fafb) !important;
+    }
+    body.dark-mode .ssa-event-item {
+      border-bottom-color: var(--ssa-border, #374151) !important;
+    }
+    body.dark-mode .ssa-event-name,
+    body.dark-mode .ssa-event-meta-item {
+      color: var(--ssa-text, #f9fafb) !important;
+    }
+    body.dark-mode .ssa-card {
+      background: var(--ssa-card-bg, #374151) !important;
+      border-color: var(--ssa-border, #4b5563) !important;
+    }
+    body.dark-mode .ssa-title,
+    body.dark-mode .ssa-meta {
+      color: var(--ssa-text, #f9fafb) !important;
+    }
+    body.dark-mode .ssa-calendar-day {
+      background: var(--ssa-card-bg, #374151) !important;
+      border-color: var(--ssa-border, #4b5563) !important;
+    }
+    body.dark-mode .ssa-calendar-day-empty {
+      background: #111827 !important;
+    }
+    body.dark-mode .ssa-calendar-day-header {
+      background: var(--ssa-header-bg, #374151) !important;
+      color: #9ca3af !important;
+    }
+    body.dark-mode .ssa-calendar-day-number {
+      color: var(--ssa-text, #f9fafb) !important;
+    }
+    body.dark-mode .ssa-calendar-grid {
+      background: var(--ssa-border, #4b5563) !important;
+      border-color: var(--ssa-border, #4b5563) !important;
+    }
+  </style>
+</head>
+<body>
+  <h1>Events List - Development Preview</h1>
+  <div class="dev-info">
+    <strong>Development Mode:</strong> Local preview using the same loader pattern as production Squarespace.
+    <br><br>
+    <strong>To deploy UI changes:</strong>
+    <ol style="margin: 8px 0; padding-left: 20px;">
+      <li>Edit <code>code-snippets/events/event-list.js</code></li>
+      <li>Copy to <code>public/code-snippets/events/event-list.js</code> (must match)</li>
+      <li>Commit and push to <code>main</code> — GitHub Pages deploys from <code>web/dist</code></li>
+      <li>Verify <a href="https://davedellaquila.github.io/fiddletown-data-admin/code-snippets/events/event-list.js">hosted script</a> and hard-refresh the live Events page</li>
+    </ol>
+    See <code>docs/EVENTS_PUBLISHING.md</code> for the full workflow. Do not paste <code>event-list.html</code> into Squarespace for routine updates.
+  </div>
+
+  <!-- Events will render here -->
+  <div id="events-list"></div>
+
+  <!-- Include the event list script -->
+  <script src="event-list.js"></script>
+  <script>
+    // Check for saved dark mode preference and apply it
+    const savedDarkMode = localStorage.getItem('ssa-dark-mode');
+    if (savedDarkMode === 'true') {
+      document.body.classList.add('dark-mode');
+    }
+    
+    // Initialize the widget with your Supabase credentials
+    SSWidgets.renderEvents({
+      mount: '#events-list',
+      url: 'https://ydftcebaftngcdjvxrgl.supabase.co',
+      key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlkZnRjZWJhZnRuZ2NkanZ4cmdsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA1NDA5NDcsImV4cCI6MjA3NjExNjk0N30.8AlcsUMJSxBlua-ehaGLAn69bbORoMBdjM--MSxxXF0',
+      limit: 200
+    });
+  </script>
+</body>
+</html>
+
