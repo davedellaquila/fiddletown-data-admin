@@ -1994,6 +1994,10 @@
       setToInputs('');
       setFromInputMaxes('');
     };
+    const getVisibleFromDate = () => {
+      const visibleValue = fromInputs.map(input => input.value).find(Boolean);
+      return normalizeDateString(visibleValue || (getState() && getState().fromDate));
+    };
     let lastClearToDateAt = 0;
     const clearToDateAndRerender = async event => {
       if (event) {
@@ -2004,9 +2008,14 @@
       if (now - lastClearToDateAt < 350) return;
       lastClearToDateAt = now;
 
+      cancelScheduledDateRerender();
       forceClearToDateInputs();
-      const nextState = applyDateStateToInputs({ ...getState(), toDate: null });
-      nextState.toDate = null;
+      const nextState = {
+        ...getState(),
+        fromDate: getVisibleFromDate(),
+        toDate: null
+      };
+      applyDateStateToInputs(nextState, 'clear-to');
       forceClearToDateInputs();
       const newState = commitState(nextState);
       await rerenderForDateChange(newState);
@@ -2085,9 +2094,15 @@
     mount.querySelectorAll('.ssa-clear-dates').forEach(clearDatesBtn => {
       clearDatesBtn.addEventListener('click', async function(e) {
         e.preventDefault();
+        cancelScheduledDateRerender();
         forceClearToDateInputs();
-        const nextState = applyDateStateToInputs({ ...getState(), toDate: null, selectedKeywords: [] });
-        nextState.toDate = null;
+        const nextState = {
+          ...getState(),
+          fromDate: getVisibleFromDate(),
+          toDate: null,
+          selectedKeywords: []
+        };
+        applyDateStateToInputs(nextState, 'clear-to');
         const newState = commitState(nextState);
         await rerenderForDateChange(newState);
         mount.querySelectorAll('.ssa-to-date-input').forEach(input => { input.value = ''; });
